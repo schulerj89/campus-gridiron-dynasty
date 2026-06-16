@@ -108,6 +108,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Debug" }).click();
   await page.getByRole("button", { name: "Force User Playoff" }).click();
   await page.getByRole("button", { name: "Force User Award" }).click();
+  await page.getByRole("button", { name: "Force Walk-on Need" }).click();
 
   for (let week = 0; week < 4; week += 1) {
     await page.getByTestId("advance-week").click();
@@ -136,11 +137,23 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByText(/offseason/)).toBeVisible({ timeout: 90_000 });
   await page.getByRole("button", { name: "Overview" }).click();
   await expect(page.getByTestId("offseason-report-panel")).toBeVisible();
+  await expect(page.getByTestId("offseason-steps")).toContainText("Recruiting 1/4");
   await page.screenshot({ path: path.join(screenshotDir, "offseason-dashboard-desktop.png"), fullPage: true });
   await page.getByTestId("offseason-report-panel").screenshot({ path: path.join(screenshotDir, "offseason-departures-desktop.png") });
 
   await page.getByTestId("advance-week").click();
-  await expect(page.getByText(/offseason week 2 - signing day/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/offseason recruiting week 2 of 4/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId("offseason-steps")).toContainText("Recruiting 2/4");
+  await page.screenshot({ path: path.join(screenshotDir, "offseason-extra-recruiting-desktop.png"), fullPage: true });
+
+  for (let week = 0; week < 3; week += 1) {
+    await page.getByTestId("advance-week").click();
+  }
+
+  await expect(page.getByText(/offseason signing day - ready/)).toBeVisible({ timeout: 90_000 });
+
+  await page.getByTestId("advance-week").click();
+  await expect(page.getByText(/offseason signing day - classes posted/)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByTestId("offseason-all-classes-panel")).toBeVisible();
   await expect(page.getByTestId("recruiting-ranking-panel")).toContainText("Recruiting Class Leaderboard");
   await page.getByTestId("recruiting-ranking-panel").screenshot({ path: path.join(screenshotDir, "offseason-recruiting-rankings-desktop.png") });
@@ -150,8 +163,10 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByText(/preseason week - player development/)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByTestId("preseason-progression-panel")).toBeVisible();
   await expect(page.getByTestId("program-review-panel")).toBeVisible();
+  await expect(page.getByTestId("walk-ons-panel")).toBeVisible();
   await page.getByTestId("preseason-progression-panel").screenshot({ path: path.join(screenshotDir, "preseason-progression-desktop.png") });
   await page.getByTestId("program-review-panel").screenshot({ path: path.join(screenshotDir, "offseason-program-review-desktop.png") });
+  await page.getByTestId("walk-ons-panel").screenshot({ path: path.join(screenshotDir, "offseason-walk-ons-desktop.png") });
 
   await page.getByRole("button", { name: "Recruiting" }).click();
   await expect(page.getByTestId("recruiting-budget-panel")).toBeVisible();

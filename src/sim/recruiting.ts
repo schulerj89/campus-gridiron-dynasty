@@ -8,6 +8,8 @@ export const SCOUT_COST = 40;
 export const PITCH_COST = 75;
 const BOARD_LIMIT = 35;
 const PIPELINE_BONUS = 8;
+const MIN_SIGNING_CLASS = 22;
+const MAX_SIGNING_CLASS = 28;
 
 export function addRecruitToBoard(state: DynastyState, recruitId: string): DynastyState {
   const recruit = state.recruits.find((candidate) => candidate.id === recruitId);
@@ -131,7 +133,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
   let points = state.recruiting.pointsRemaining;
   let spent = state.recruiting.pointsSpent ?? 0;
   let investedByRecruit = { ...(state.recruiting.investedByRecruit ?? {}) };
-  let board = ensureSmartBoard(state.recruits, activeBoard(state.recruiting.board, state.recruits), team, 24, recruitingBoardLimit(state));
+  let board = ensureSmartBoard(state.recruits, activeBoard(state.recruiting.board, state.recruits), team, recruitingBoardLimit(state), recruitingBoardLimit(state));
   let recruits = state.recruits;
   const actions: string[] = [];
   const skipped = new Set<string>();
@@ -198,7 +200,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
     } else {
       skipped.add(target.id);
     }
-    board = ensureSmartBoard(recruits, activeBoard(board, recruits), team, 24, recruitingBoardLimit(state));
+    board = ensureSmartBoard(recruits, activeBoard(board, recruits), team, recruitingBoardLimit(state), recruitingBoardLimit(state));
   }
 
   return {
@@ -258,12 +260,49 @@ export function advanceRecruitingWeek(state: DynastyState): DynastyState {
 export function signRecruitingClass(state: DynastyState): DynastyState {
   const rng = new Rng(state.rngState);
   const userTeam = getUserTeam(state);
-  const recruits = state.recruits.map((recruit) => {
+  const preparedRecruits = state.recruits.map((recruit) => {
     if (recruit.stage === "signed") return recruit;
     const committedTeamId = recruit.committedTeamId ?? chooseSigningTeam(rng, recruit);
     return {
       ...recruit,
       stage: "signed" as const,
+      committedTeamId,
+    };
+  });
+  const signedByTeam = new Map<string, Recruit[]>();
+  const assignments = new Map<string, string>();
+  const overflow: Recruit[] = [];
+  for (const recruit of preparedRecruits) {
+    if (!recruit.committedTeamId) continue;
+    const group = signedByTeam.get(recruit.committedTeamId) ?? [];
+    if (group.length < MAX_SIGNING_CLASS) {
+      group.push(recruit);
+      assignments.set(recruit.id, recruit.committedTeamId);
+    } else {
+      overflow.push(recruit);
+    }
+    signedByTeam.set(recruit.committedTeamId, group);
+  }
+
+  const fallbackPool = [...overflow].sort((a, b) => a.stars - b.stars || b.nationalRank - a.nationalRank);
+  const teamsByNeed = [...state.teams].sort((a, b) => estimatedClassTarget(b) - estimatedClassTarget(a));
+  for (const team of teamsByNeed) {
+    const group = signedByTeam.get(team.id) ?? [];
+    const target = estimatedClassTarget(team);
+    while (group.length < target && fallbackPool.length > 0) {
+      const pickIndex = pickFallbackRecruitIndex(fallbackPool, team, group);
+      const [recruit] = fallbackPool.splice(pickIndex, 1);
+      if (!recruit) break;
+      group.push(recruit);
+      assignments.set(recruit.id, team.id);
+    }
+    signedByTeam.set(team.id, group);
+  }
+
+  const recruits = preparedRecruits.map((recruit) => {
+    const committedTeamId = assignments.get(recruit.id);
+    return {
+      ...recruit,
       committedTeamId,
       traitRevealed: committedTeamId === userTeam.id ? true : recruit.traitRevealed,
       knownAttributes: committedTeamId === userTeam.id ? [...ATTRIBUTE_KEYS] : recruit.knownAttributes,
@@ -271,15 +310,16 @@ export function signRecruitingClass(state: DynastyState): DynastyState {
       gemBust: committedTeamId === userTeam.id ? gemBustFor(recruit) : recruit.gemBust,
     };
   });
-  const signedByTeam = new Map<string, Recruit[]>();
+  const finalSignedByTeam = new Map<string, Recruit[]>();
   for (const recruit of recruits) {
     if (!recruit.committedTeamId) continue;
-    const group = signedByTeam.get(recruit.committedTeamId) ?? [];
-    if (group.length < 28) group.push(recruit);
-    signedByTeam.set(recruit.committedTeamId, group);
+    const group = finalSignedByTeam.get(recruit.committedTeamId) ?? [];
+    group.push(recruit);
+    finalSignedByTeam.set(recruit.committedTeamId, group);
   }
+
   const teams = state.teams.map((team) => {
-    const signees = signedByTeam.get(team.id) ?? [];
+    const signees = finalSignedByTeam.get(team.id) ?? [];
     const roster = trimRoster([...team.roster, ...signees.map(createSignedPlayerFromRecruit)]);
     return {
       ...team,
@@ -294,7 +334,7 @@ export function signRecruitingClass(state: DynastyState): DynastyState {
     recruits,
     recruiting: {
       ...state.recruiting,
-      lastActions: [`Signing day complete: ${signedByTeam.get(userTeam.id)?.length ?? 0} recruits joined ${userTeam.name}.`, ...state.recruiting.lastActions].slice(0, 10),
+      lastActions: [`Signing day complete: ${finalSignedByTeam.get(userTeam.id)?.length ?? 0} recruits joined ${userTeam.name}.`, ...state.recruiting.lastActions].slice(0, 10),
     },
   };
 }
@@ -370,7 +410,10 @@ function autoScore(recruit: Recruit, team: Team, points: number): number {
   const need = positionNeedScore(team, recruit.position);
   const interest = recruit.interest[team.id] ?? 0;
   const scoutNeed = recruit.scoutProgress < 100 && points < PITCH_COST ? 18 : 0;
-  return need * 10 + recruit.stars * 16 + interest * 0.8 + recruit.overall * 0.35 + pipelineBonus(team, recruit) + scoutNeed;
+  const gemBoost = recruit.gemBust === "gem" ? 22 : recruit.gemBust === "bust" ? -32 : 0;
+  const knownFit = recruit.knownAttributes.reduce((sum, key) => sum + recruit.attributes[key], 0) / Math.max(1, recruit.knownAttributes.length);
+  const scoutFit = recruit.knownAttributes.length ? knownFit * 0.15 : 0;
+  return need * 12 + recruit.stars * 14 + interest * 0.8 + recruit.overall * 0.3 + pipelineBonus(team, recruit) + scoutNeed + gemBoost + scoutFit;
 }
 
 function positionNeedScore(team: Team, position: Position): number {
@@ -469,6 +512,36 @@ function chooseSigningTeam(rng: Rng, recruit: Recruit): string {
     if (roll <= 0) return teamId;
   }
   return top[0]?.[0] ?? Object.keys(recruit.interest)[0]!;
+}
+
+function estimatedClassTarget(team: Team): number {
+  const seniorCount = team.roster.filter((player) => player.year === "SR").length;
+  const earlyExitRisk = team.roster.filter((player) => player.year === "JR" && player.overall >= 89).length;
+  return clamp(seniorCount + Math.ceil(earlyExitRisk / 2) + 3, MIN_SIGNING_CLASS, MAX_SIGNING_CLASS);
+}
+
+function pickFallbackRecruitIndex(pool: Recruit[], team: Team, signees: Recruit[]): number {
+  let bestIndex = 0;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index < pool.length; index += 1) {
+    const recruit = pool[index]!;
+    const score = fallbackRecruitScore(recruit, team, signees);
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  }
+  return bestIndex;
+}
+
+function fallbackRecruitScore(recruit: Recruit, team: Team, signees: Recruit[]): number {
+  const target = TARGET_ROSTER[recruit.position];
+  const current =
+    team.roster.filter((player) => player.position === recruit.position && player.year !== "SR").length +
+    signees.filter((signee) => signee.position === recruit.position).length;
+  const need = Math.max(0, target - current);
+  const interest = recruit.interest[team.id] ?? 0;
+  return need * 42 + interest * 0.3 + pipelineBonus(team, recruit) + (3 - recruit.stars) * 8 - recruit.nationalRank * 0.001;
 }
 
 function topInterest(recruit: Recruit): number {

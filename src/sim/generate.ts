@@ -314,6 +314,36 @@ export function createSignedPlayerFromRecruit(recruit: Recruit): Player {
   };
 }
 
+export function createWalkOnPlayer(rng: Rng, teamId: string, position: Position, year: number, index: number): Player {
+  const targetOverall = rng.nextInt(45, 59);
+  const attributes = createAttributes(rng, position, targetOverall, 60);
+  const overall = clamp(calculateOverall(position, attributes), 38, 60);
+  const potential = clamp(overall + rng.nextInt(4, 18), overall, 78);
+  return {
+    id: `walkon-${teamId}-${year}-${position}-${index}-${rng.currentState()}`,
+    name: createPersonName(rng),
+    position,
+    year: "FR",
+    profileIndex: rng.nextInt(0, 13),
+    attributes,
+    overall,
+    potential,
+    development: rng.weighted<RecruitTrait>([
+      { value: "project", weight: 48 },
+      { value: "depth", weight: 36 },
+      { value: "rotation", weight: 14 },
+      { value: "starter", weight: 2 },
+    ]),
+    hometown: `${rng.pick(CITIES)}, ${rng.pick(STATES)}`,
+    stats: emptyStats(),
+    careerStats: [],
+    awards: [],
+    streak: undefined,
+    incomingFreshman: true,
+    walkOn: true,
+  };
+}
+
 export function awardNameForPosition(position: Position): string {
   if (position === "QB") return AWARD_NAMES.qb;
   if (position === "HB") return AWARD_NAMES.rb;

@@ -107,6 +107,7 @@ export interface Player {
   awards: string[];
   streak?: PlayerStreak;
   incomingFreshman?: boolean;
+  walkOn?: boolean;
 }
 
 export interface Coach {
@@ -353,6 +354,14 @@ export interface RecruitSigning {
   trait: RecruitTrait;
 }
 
+export interface WalkOnAddition {
+  playerId: string;
+  playerName: string;
+  position: Position;
+  overall: number;
+  potential: number;
+}
+
 export interface PlayerProgression {
   playerId: string;
   playerName: string;
@@ -378,6 +387,7 @@ export interface TeamOffseasonReport {
   teamName: string;
   departures: PlayerDeparture[];
   signees: RecruitSigning[];
+  walkOns: WalkOnAddition[];
   progressions: PlayerProgression[];
   programChanges: ProgramChange[];
   recruitingRank?: number;

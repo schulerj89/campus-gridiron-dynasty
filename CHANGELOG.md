@@ -2,6 +2,14 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.9.0 - 2026-06-16
+
+- Reworked signing day distribution so all 70 teams land sustainable classes before roster turnover.
+- Added four late-cycle offseason recruiting weeks with bonus points and auto-recruit reallocation after commitment refunds.
+- Added roster-floor protection with labeled low-rated walk-ons when recruiting still leaves a team under 85 players.
+- Added offseason dashboard stage steps, clearer postseason dashboard playoff actions, and walk-on reporting in offseason and roster views.
+- Added debug forcing for walk-on QA, refreshed screenshots, and expanded tests for roster floor, walk-ons, signing class distribution, and auto-recruit refunds.
+
 ## 0.8.1 - 2026-06-16
 
 - Fixed signing-day recruits advancing to sophomores during preseason development.

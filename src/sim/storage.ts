@@ -66,6 +66,7 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
       ...player,
       streak: player.streak && player.streak.weeks > 0 ? player.streak : undefined,
       incomingFreshman: raw.phase !== "regular" && Boolean(player.incomingFreshman) ? true : undefined,
+      walkOn: Boolean(player.walkOn) ? true : undefined,
     })),
   }));
   const recruits = raw.recruits.map((recruit) => ({
@@ -96,6 +97,7 @@ function normalizeOffseasonReport(report: DynastyState["offseasonReport"]): Dyna
     teams: report.teams.map((teamReport) => ({
       ...teamReport,
       signees: teamReport.signees ?? [],
+      walkOns: teamReport.walkOns ?? [],
       progressions: teamReport.progressions ?? [],
       programChanges: teamReport.programChanges ?? [],
     })),

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { advanceWeek, forceUserAward, forceUserPlayoff, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
+import { advanceWeek, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
+import { TARGET_ROSTER } from "../ratings";
+
+const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
 
 describe("dynasty flow", () => {
   it("simulates weekly games and creates weekly awards", () => {
@@ -57,9 +60,16 @@ describe("dynasty flow", () => {
     expect(state.phase).toBe("offseason");
     const userReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
     expect(userReport?.departures.some((departure) => departure.reason === "graduated" || departure.reason === "pro")).toBe(true);
+    for (let week = 0; week < 4; week += 1) {
+      state = advanceWeek(state);
+      expect(state.phase).toBe("offseason");
+      expect(state.offseasonReport?.signingComplete).toBeFalsy();
+    }
+    expect(state.week).toBe(20);
+
     state = advanceWeek(state);
     expect(state.phase).toBe("offseason");
-    expect(state.week).toBe(17);
+    expect(state.week).toBe(21);
     expect(state.offseasonReport?.signingComplete).toBe(true);
     expect(state.offseasonReport?.topClasses.length).toBeGreaterThan(0);
     expect(state.offseasonReport?.teams.some((report) => report.signees.length > 0)).toBe(true);
@@ -69,6 +79,8 @@ describe("dynasty flow", () => {
     expect(state.offseasonReport?.developmentComplete).toBe(true);
     const preseasonReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
     expect(preseasonReport?.progressions.every((progression) => progression.afterOverall >= progression.beforeOverall)).toBe(true);
+    expect(state.offseasonReport?.teams.every((report) => report.walkOns.length >= 0)).toBe(true);
+    expect(state.teams.every((team) => team.roster.length >= ROSTER_FLOOR)).toBe(true);
     const incomingFreshmen = state.teams.flatMap((team) => team.roster.filter((player) => player.incomingFreshman));
     expect(incomingFreshmen.length).toBeGreaterThan(0);
     expect(incomingFreshmen.every((player) => player.year === "FR" && player.careerStats.length === 0)).toBe(true);
@@ -81,6 +93,25 @@ describe("dynasty flow", () => {
     expect(state.phase).toBe("regular");
     expect(state.offseasonReport).toBeUndefined();
     expect(state.teams.flatMap((team) => team.roster).some((player) => player.incomingFreshman)).toBe(false);
+  }, 20_000);
+
+  it("adds labeled walk-ons when the user roster drops below the floor", () => {
+    let state = forceUserPlayoff(forceUserWalkOnNeed(createDynasty(8934)));
+    expect(state.teams.find((team) => team.id === state.userTeamId)?.roster.length).toBeLessThan(ROSTER_FLOOR);
+    for (let week = 1; week <= 15; week += 1) {
+      state = advanceWeek(state);
+    }
+    for (let week = 0; week < 4; week += 1) {
+      state = advanceWeek(state);
+    }
+    state = advanceWeek(state);
+    state = advanceWeek(state);
+    const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    const userReport = state.offseasonReport?.teams.find((report) => report.teamId === state.userTeamId);
+    expect(userTeam.roster.length).toBeGreaterThanOrEqual(ROSTER_FLOOR);
+    expect(userTeam.roster.some((player) => player.walkOn)).toBe(true);
+    expect(userReport?.walkOns.length).toBeGreaterThan(0);
+    expect(userReport?.walkOns.every((walkOn) => walkOn.overall <= 60)).toBe(true);
   }, 20_000);
 
   it("does not log a coach point spend when no point is available", () => {
@@ -120,6 +151,7 @@ describe("dynasty flow", () => {
     expect(advanced.history.length).toBeGreaterThanOrEqual(3);
     expect(advanced.phase).toBe("regular");
     expect(advanced.teams[0]?.roster.some((player) => player.careerStats.length > 0)).toBe(true);
+    expect(advanced.teams.every((team) => team.roster.length >= ROSTER_FLOOR)).toBe(true);
   }, 20_000);
 
   it("builds a sorted depth chart for every position", () => {

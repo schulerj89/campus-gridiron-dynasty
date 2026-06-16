@@ -21,7 +21,7 @@ npm run test
 npm run smoke
 ```
 
-Smoke coverage runs Chromium desktop, WebKit desktop, and WebKit with an iPhone 15 Pro Max profile. The smoke test also uses the debug controls to force a user playoff berth, force a user award winner, auto-recruit, and simulate three seasons.
+Smoke coverage runs Chromium desktop, WebKit desktop, and WebKit with an iPhone 15 Pro Max profile. The smoke test also uses the debug controls to force a user playoff berth, force a user award winner, force walk-on roster need, auto-recruit, and simulate three seasons.
 
 ## Versioning
 
@@ -58,10 +58,12 @@ QA screenshots are written to:
 - `artifacts/screenshots/awards-playoff-desktop.png`
 - `artifacts/screenshots/offseason-dashboard-desktop.png`
 - `artifacts/screenshots/offseason-departures-desktop.png`
+- `artifacts/screenshots/offseason-extra-recruiting-desktop.png`
 - `artifacts/screenshots/offseason-all-classes-desktop.png`
 - `artifacts/screenshots/offseason-recruiting-rankings-desktop.png`
 - `artifacts/screenshots/preseason-progression-desktop.png`
 - `artifacts/screenshots/offseason-program-review-desktop.png`
+- `artifacts/screenshots/offseason-walk-ons-desktop.png`
 - `artifacts/screenshots/offseason-recruiting-desktop.png`
 - `artifacts/screenshots/mobile-dashboard.png`
 
@@ -85,8 +87,10 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
 - Recruiting scholarships are one-time offers that add prospects to the board, and pitches require an offer with a one-week cooldown per recruit.
 - Recruiting action points are tracked by recruit and return when a board prospect commits.
+- Auto-recruit should fill the board, use scouting information when choosing targets, and reallocate refunded points after commitments.
 - Recruits committed to other programs remain visible in the database with destination indicators but cannot be added, scouted, or pitched.
-- Offseason advancement should expose departures, signing day, preseason player development, and kickoff as distinct steps.
+- Offseason advancement should expose departures, four late recruiting weeks, signing day, preseason player development, and kickoff as distinct steps.
+- Teams should stay at or above the 85-player roster floor after offseason turnover; add labeled walk-ons capped around 60 overall only when recruiting cannot fill the roster.
 - Player offseason development must never regress attributes or overall.
 - Signing-day recruits are incoming freshmen: they do not advance class year or gain offseason development until after kickoff clears the incoming marker.
 - Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.

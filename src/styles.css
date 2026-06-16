@@ -1138,6 +1138,35 @@ select {
   margin-top: 14px;
 }
 
+.offseason-steps {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 12px 0 4px;
+}
+
+.offseason-steps span {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  padding: 10px;
+  text-align: center;
+}
+
+.offseason-steps span.active {
+  border-color: rgba(240, 184, 74, 0.56);
+  color: var(--gold);
+}
+
+.offseason-steps span.complete {
+  background: rgba(79, 180, 119, 0.12);
+  border-color: rgba(79, 180, 119, 0.38);
+  color: #a8f0c4;
+}
+
 .offseason-column {
   align-content: start;
   background: #0f171b;
@@ -1187,6 +1216,10 @@ select {
 
 .program-change-row span:last-child {
   grid-column: 1 / -1;
+}
+
+.walk-on-row {
+  grid-template-columns: minmax(130px, 1fr) 48px 78px 78px;
 }
 
 .positive {
@@ -1437,7 +1470,8 @@ select {
   .content-grid,
   .metric-grid,
   .unit-grid,
-  .offseason-grid {
+  .offseason-grid,
+  .offseason-steps {
     grid-template-columns: 1fr;
   }
 

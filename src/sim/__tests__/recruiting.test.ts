@@ -101,6 +101,39 @@ describe("recruiting", () => {
     expect(state.recruiting.pointsRemaining).toBe(beforeRefund + invested);
   });
 
+  it("auto-recruit immediately reallocates refunded points after commitments", () => {
+    let state = createDynasty(5683);
+    const otherTeam = state.teams.find((team) => team.id !== state.userTeamId)!;
+    const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;
+    state = offerScholarship(state, recruit.id);
+    state = pitchRecruit(state, recruit.id);
+    const invested = state.recruiting.investedByRecruit[recruit.id] ?? 0;
+    state = {
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        pointsRemaining: 0,
+        autoEnabled: true,
+      },
+      recruits: state.recruits.map((candidate) =>
+        candidate.id === recruit.id
+          ? {
+              ...candidate,
+              committedTeamId: otherTeam.id,
+              stage: "softPledge" as const,
+            }
+          : candidate,
+      ),
+    };
+
+    const advanced = advanceWeek(state);
+    expect(advanced.recruiting.board).not.toContain(recruit.id);
+    expect(advanced.recruiting.investedByRecruit[recruit.id]).toBeUndefined();
+    expect(advanced.recruiting.pointsSpent).toBeGreaterThan(0);
+    expect(advanced.recruiting.pointsRemaining).toBeLessThan(invested);
+    expect(advanced.recruiting.lastActions.join(" ")).toContain("reallocated");
+  });
+
   it("does not spend points or log actions for invalid recruit targets", () => {
     const state = createDynasty(5791);
     const scouted = scoutRecruit(state, "missing-recruit");
@@ -183,5 +216,13 @@ describe("recruiting", () => {
     expect(userSignees.every((candidate) => candidate.traitRevealed)).toBe(true);
     expect(signedPlayer?.incomingFreshman).toBe(true);
     expect(signedPlayer?.year).toBe("FR");
+  });
+
+  it("distributes enough signing day recruits for every team to sustain roster turnover", () => {
+    const state = createDynasty(6791);
+    const signed = signRecruitingClass(state);
+    const classSizes = signed.teams.map((team) => signed.recruits.filter((recruit) => recruit.committedTeamId === team.id).length);
+    expect(Math.min(...classSizes)).toBeGreaterThanOrEqual(22);
+    expect(Math.max(...classSizes)).toBeLessThanOrEqual(28);
   });
 });
