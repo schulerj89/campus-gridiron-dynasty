@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review Integrity"
+  short_description: "Review code, integrity, and test readiness"
+  default_prompt: "Use $code-review-integrity to review changes for correctness, integrity risks, and required validation before commit."

@@ -23,6 +23,10 @@ npm run smoke
 
 Smoke coverage runs Chromium desktop, WebKit desktop, and WebKit with an iPhone 15 Pro Max profile. The smoke test also uses the debug controls to force a user playoff berth, force a user award winner, auto-recruit, and simulate three seasons.
 
+## Versioning
+
+When bumping the app version, update `package.json`, `package-lock.json`, `src/version.ts`, smoke expectations, and `CHANGELOG.md` in the same change.
+
 QA screenshots are written to:
 
 - `artifacts/screenshots/home-desktop.png`

@@ -35,12 +35,11 @@ import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart } from "./sim/depthChart";
 import { teamPower, teamUnitRatings } from "./sim/ratings";
 import { POSITIONS, type AttributeKey, type AwardWinner, type Coach, type DynastyState, type Game, type Player, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team } from "./sim/types";
+import { APP_VERSION } from "./version";
 
 type Tab = "overview" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
-
-const APP_VERSION = "v0.2.0";
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
@@ -849,9 +848,15 @@ function CoachCard({ coach, onUpdate }: { coach: Coach; onUpdate: (recipe: (stat
         <span>Pts {coach.points}</span>
       </div>
       <div className="button-row compact-row">
-        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "recruiting"))}>Rec</button>
-        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "development"))}>Dev</button>
-        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "tactics"))}>Tac</button>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "recruiting"))} disabled={coach.points <= 0}>
+          Rec
+        </button>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "development"))} disabled={coach.points <= 0}>
+          Dev
+        </button>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "tactics"))} disabled={coach.points <= 0}>
+          Tac
+        </button>
       </div>
     </article>
   );

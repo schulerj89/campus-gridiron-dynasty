@@ -21,6 +21,12 @@ describe("world generation", () => {
     expect(state.recruits.every((recruit) => !recruit.traitRevealed)).toBe(true);
   });
 
+  it("normalizes invalid selected team ids to an existing team", () => {
+    const state = createDynasty(2468, "missing-team");
+    expect(state.userTeamId).not.toBe("missing-team");
+    expect(state.teams.some((team) => team.id === state.userTeamId)).toBe(true);
+  });
+
   it("generates thousands of recruits with expected star scarcity", () => {
     const state = createDynasty(3456);
     const total = state.recruits.length;

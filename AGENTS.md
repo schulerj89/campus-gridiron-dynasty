@@ -37,7 +37,14 @@ Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium de
 This repo includes local skill briefs under `skills/`:
 
 - `skills/cfb-game-expert`: dynasty-mode research translation.
+- `skills/code-review-integrity`: code review, integrity checks, test coverage, screenshots, and version-bump hygiene.
 - `skills/dynasty-game-qa`: test and smoke coverage checklist.
 - `skills/sim-game-director`: game-director review priorities.
 
 Update this file when core simulation rules, commands, storage, or QA expectations change.
+
+## Versioning
+
+- Bump `package.json`, `package-lock.json`, and `src/version.ts` together.
+- Add a `CHANGELOG.md` entry for every app version bump.
+- Update smoke expectations when the visible version changes.

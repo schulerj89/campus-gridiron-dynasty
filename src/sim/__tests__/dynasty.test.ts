@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { advanceWeek, forceUserAward, forceUserPlayoff, simulateSeasons } from "../dynasty";
+import { advanceWeek, forceUserAward, forceUserPlayoff, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart } from "../depthChart";
 
 describe("dynasty flow", () => {
@@ -20,6 +20,31 @@ describe("dynasty flow", () => {
     expect(state.phase).toBe("postseason");
     expect(state.playoff?.seeds).toContain(state.userTeamId);
     expect(state.seasonAwards?.nationalAwards[0]?.teamId).toBe(state.userTeamId);
+    const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    expect(userTeam.roster.some((player) => player.awards.length > 0)).toBe(true);
+  });
+
+  it("does not log a coach point spend when no point is available", () => {
+    const state = createDynasty(9021);
+    const prepared = {
+      ...state,
+      teams: state.teams.map((team) =>
+        team.id === state.userTeamId
+          ? {
+              ...team,
+              coaches: {
+                ...team.coaches,
+                head: {
+                  ...team.coaches.head,
+                  points: 0,
+                },
+              },
+            }
+          : team,
+      ),
+    };
+    const updated = spendCoachPoint(prepared, "head", "recruiting");
+    expect(updated).toBe(prepared);
   });
 
   it("can smoke simulate multiple seasons", () => {

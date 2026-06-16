@@ -8,18 +8,21 @@ const PITCH_COST = 100;
 const BOARD_LIMIT = 35;
 
 export function addRecruitToBoard(state: DynastyState, recruitId: string): DynastyState {
-  if (state.recruiting.board.includes(recruitId)) return state;
+  const recruit = state.recruits.find((candidate) => candidate.id === recruitId);
+  if (!recruit || recruit.stage === "signed" || state.recruiting.board.includes(recruitId) || state.recruiting.board.length >= BOARD_LIMIT) return state;
   return {
     ...state,
     recruiting: {
       ...state.recruiting,
-      board: [...state.recruiting.board, recruitId].slice(0, BOARD_LIMIT),
-      lastActions: [`Added ${findRecruitName(state, recruitId)} to recruiting board.`, ...state.recruiting.lastActions].slice(0, 8),
+      board: [...state.recruiting.board, recruitId],
+      lastActions: [`Added ${recruit.name} to recruiting board.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };
 }
 
 export function scoutRecruit(state: DynastyState, recruitId: string): DynastyState {
+  const target = state.recruits.find((recruit) => recruit.id === recruitId);
+  if (!target || target.stage === "signed") return state;
   if (state.recruiting.pointsRemaining < SCOUT_COST) return state;
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
@@ -34,13 +37,15 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
     recruiting: {
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - SCOUT_COST,
-      board: state.recruiting.board.includes(recruitId) ? state.recruiting.board : [...state.recruiting.board, recruitId].slice(0, BOARD_LIMIT),
+      board: boardWithRecruit(state.recruiting.board, recruitId),
       lastActions: [`Scouted ${recruit?.name ?? "recruit"} for ${SCOUT_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };
 }
 
 export function pitchRecruit(state: DynastyState, recruitId: string): DynastyState {
+  const target = state.recruits.find((recruit) => recruit.id === recruitId);
+  if (!target || target.stage === "signed") return state;
   if (state.recruiting.pointsRemaining < PITCH_COST) return state;
   const team = getUserTeam(state);
   const rng = new Rng(state.rngState);
@@ -65,7 +70,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
     recruiting: {
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - PITCH_COST,
-      board: state.recruiting.board.includes(recruitId) ? state.recruiting.board : [...state.recruiting.board, recruitId].slice(0, BOARD_LIMIT),
+      board: boardWithRecruit(state.recruiting.board, recruitId),
       lastActions: [`Pitched ${recruit?.name ?? "recruit"} for ${PITCH_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };
@@ -366,6 +371,7 @@ function getUserTeam(state: DynastyState): Team {
   return team;
 }
 
-function findRecruitName(state: DynastyState, recruitId: string): string {
-  return state.recruits.find((recruit) => recruit.id === recruitId)?.name ?? "recruit";
+function boardWithRecruit(board: string[], recruitId: string): string[] {
+  if (board.includes(recruitId) || board.length >= BOARD_LIMIT) return board;
+  return [...board, recruitId];
 }

@@ -5,7 +5,7 @@ import { applyPositionCaps, calculateOverall } from "./ratings";
 import { clamp, Rng } from "./rng";
 import { createNextPlayoffRound, createPlayoffGames, createSchedule } from "./schedule";
 import { advanceRecruitingWeek, autoRecruit, signRecruitingClass } from "./recruiting";
-import type { Coach, CollegeYear, DynastyState, Game, Phase, Player, ProgramRatings, Team } from "./types";
+import type { Coach, CollegeYear, DynastyState, Game, Phase, Player, ProgramRatings, Recruit, SeasonAwards, Team } from "./types";
 
 export function advanceWeek(input: DynastyState): DynastyState {
   if (input.phase === "complete") return input;
@@ -68,10 +68,12 @@ export function investProgramPoint(state: DynastyState, key: keyof ProgramRating
 }
 
 export function spendCoachPoint(state: DynastyState, coachRole: Coach["role"], skill: "recruiting" | "development" | "tactics" | "culture"): DynastyState {
+  let spentCoachName: string | undefined;
   const teams = state.teams.map((team) => {
     if (team.id !== state.userTeamId) return team;
     const coach = team.coaches[coachRole];
     if (!coach || coach.points <= 0) return team;
+    spentCoachName = coach.name;
     return {
       ...team,
       coaches: {
@@ -84,10 +86,11 @@ export function spendCoachPoint(state: DynastyState, coachRole: Coach["role"], s
       },
     };
   });
+  if (!spentCoachName) return state;
   return {
     ...state,
     teams,
-    debugLog: [`Spent a coach point on ${coachRole} ${skill}.`, ...state.debugLog].slice(0, 20),
+    debugLog: [`Spent a coach point on ${spentCoachName} ${skill}.`, ...state.debugLog].slice(0, 20),
   };
 }
 
@@ -152,10 +155,12 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
   }
 
   const seasonAwards = createSeasonAwards(teams, state.conferences, state.calendarYear, state.debugFlags.forceUserAward ? state.userTeamId : undefined);
+  teams = applySeasonAwardsToPlayers(teams, seasonAwards);
   const seeds = selectPlayoffSeeds(teams, state.userTeamId, state.debugFlags.forceUserPlayoff);
   const playoffGames = createPlayoffGames(state.calendarYear, seeds);
   return {
     ...nextState,
+    teams,
     phase: "postseason",
     week: 13,
     seasonAwards,
@@ -221,7 +226,7 @@ function advancePostseasonWeek(state: DynastyState): DynastyState {
 function runOffseason(state: DynastyState): DynastyState {
   const signedState = signRecruitingClass(state);
   const rng = new Rng(signedState.rngState);
-  const topClasses = recruitingClassRankings(signedState.teams);
+  const topClasses = recruitingClassRankings(signedState.teams, signedClassCounts(signedState.recruits));
   const champion = signedState.playoff?.championTeamId ? signedState.teams.find((team) => team.id === signedState.playoff?.championTeamId) : undefined;
   const historyEntry = {
     year: signedState.calendarYear,
@@ -281,6 +286,41 @@ function runOffseason(state: DynastyState): DynastyState {
 
 function advanceRecruitingAndKeepClock(state: DynastyState): DynastyState {
   return advanceRecruitingWeek(state);
+}
+
+function applySeasonAwardsToPlayers(teams: Team[], seasonAwards: SeasonAwards): Team[] {
+  const awardsByPlayer = new Map<string, Set<string>>();
+  const awardGroups = [
+    seasonAwards.nationalAwards,
+    seasonAwards.allAmericans.first,
+    seasonAwards.allAmericans.second,
+    seasonAwards.allAmericans.freshman,
+    ...Object.values(seasonAwards.allConference).flatMap((group) => [group.first, group.second, group.freshman]),
+  ];
+  for (const award of awardGroups.flat()) {
+    const awards = awardsByPlayer.get(award.playerId) ?? new Set<string>();
+    awards.add(award.awardName);
+    awardsByPlayer.set(award.playerId, awards);
+  }
+  return teams.map((team) => ({
+    ...team,
+    roster: team.roster.map((player) => {
+      const awards = awardsByPlayer.get(player.id);
+      if (!awards) return player;
+      return {
+        ...player,
+        awards: Array.from(new Set([...player.awards, ...awards])),
+      };
+    }),
+  }));
+}
+
+function signedClassCounts(recruits: Recruit[]): Record<string, number> {
+  return recruits.reduce<Record<string, number>>((counts, recruit) => {
+    if (!recruit.committedTeamId) return counts;
+    counts[recruit.committedTeamId] = (counts[recruit.committedTeamId] ?? 0) + 1;
+    return counts;
+  }, {});
 }
 
 function recordAndDevelopTeam(rng: Rng, team: Team, year: number, champion: boolean): Team {

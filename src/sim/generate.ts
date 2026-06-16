@@ -50,9 +50,9 @@ export function createDynasty(seed = Date.now(), userTeamId?: string): DynastySt
   const conferences = createConferences();
   const coachPool = createCoachPool(rng, 260);
   const teams = createTeams(rng, conferences, coachPool);
-  const selectedTeamId = userTeamId ?? teams[0]!.id;
+  const userTeam = teams.find((team) => team.id === userTeamId) ?? teams[0]!;
+  const selectedTeamId = userTeam.id;
   const recruits = createRecruitClass(rng, teams, 2600);
-  const userTeam = teams.find((team) => team.id === selectedTeamId) ?? teams[0]!;
   const weeklyPoints = calculateWeeklyRecruitingPoints(userTeam);
   const schedule = createSchedule(rng, teams, 1);
 
