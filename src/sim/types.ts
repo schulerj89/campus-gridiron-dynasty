@@ -56,6 +56,13 @@ export interface PlayerStats {
   fieldGoalAttempts: number;
 }
 
+export interface PlayerSeasonStats {
+  year: number;
+  teamName: string;
+  collegeYear: CollegeYear;
+  stats: PlayerStats;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -68,6 +75,7 @@ export interface Player {
   development: RecruitTrait;
   hometown: string;
   stats: PlayerStats;
+  careerStats: PlayerSeasonStats[];
   awards: string[];
 }
 
@@ -75,6 +83,7 @@ export interface Coach {
   id: string;
   name: string;
   role: "head" | "offense" | "defense";
+  portraitIndex: number;
   age: number;
   scheme: string;
   recruiting: number;

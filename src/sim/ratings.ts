@@ -68,6 +68,127 @@ const POSITION_WEIGHTS: Record<Position, Partial<Record<AttributeKey, number>>> 
   },
 };
 
+export const POSITION_ATTRIBUTE_CAPS: Record<Position, Partial<Record<AttributeKey, number>>> = {
+  QB: {
+    catching: 62,
+    tackle: 52,
+    interception: 44,
+    defAwareness: 58,
+    runBlock: 46,
+    passBlock: 54,
+    routeRunning: 55,
+    kickPower: 42,
+    kickAccuracy: 42,
+  },
+  HB: {
+    throwPower: 58,
+    accuracy: 52,
+    tackle: 58,
+    interception: 48,
+    defAwareness: 58,
+    passBlock: 64,
+    kickPower: 42,
+    kickAccuracy: 42,
+  },
+  WR: {
+    throwPower: 55,
+    accuracy: 50,
+    tackle: 56,
+    interception: 52,
+    defAwareness: 58,
+    runBlock: 58,
+    passBlock: 52,
+    kickPower: 42,
+    kickAccuracy: 42,
+  },
+  TE: {
+    throwPower: 55,
+    accuracy: 50,
+    tackle: 62,
+    interception: 52,
+    defAwareness: 60,
+    kickPower: 42,
+    kickAccuracy: 42,
+  },
+  OL: {
+    throwPower: 48,
+    accuracy: 44,
+    speed: 72,
+    catching: 48,
+    tackle: 58,
+    interception: 38,
+    defAwareness: 56,
+    routeRunning: 44,
+    kickPower: 40,
+    kickAccuracy: 40,
+  },
+  DL: {
+    throwPower: 46,
+    accuracy: 42,
+    catching: 48,
+    interception: 58,
+    runBlock: 58,
+    passBlock: 58,
+    routeRunning: 42,
+    kickPower: 40,
+    kickAccuracy: 40,
+  },
+  LB: {
+    throwPower: 48,
+    accuracy: 44,
+    catching: 52,
+    runBlock: 54,
+    passBlock: 52,
+    routeRunning: 46,
+    kickPower: 40,
+    kickAccuracy: 40,
+  },
+  CB: {
+    throwPower: 48,
+    accuracy: 44,
+    catching: 62,
+    runBlock: 48,
+    passBlock: 46,
+    routeRunning: 58,
+    kickPower: 40,
+    kickAccuracy: 40,
+  },
+  S: {
+    throwPower: 48,
+    accuracy: 44,
+    catching: 58,
+    runBlock: 52,
+    passBlock: 50,
+    routeRunning: 52,
+    kickPower: 40,
+    kickAccuracy: 40,
+  },
+  K: {
+    throwPower: 46,
+    accuracy: 44,
+    speed: 58,
+    catching: 42,
+    tackle: 44,
+    interception: 34,
+    defAwareness: 46,
+    runBlock: 36,
+    passBlock: 36,
+    routeRunning: 36,
+  },
+  P: {
+    throwPower: 48,
+    accuracy: 44,
+    speed: 58,
+    catching: 42,
+    tackle: 44,
+    interception: 34,
+    defAwareness: 46,
+    runBlock: 36,
+    passBlock: 36,
+    routeRunning: 36,
+  },
+};
+
 export const TARGET_ROSTER: Record<Position, number> = {
   QB: 4,
   HB: 7,
@@ -119,6 +240,14 @@ export function normalizeAttributesForPosition(position: Position, attributes: A
     normalized[key] = clamp(Math.round(attributes[key] + delta * Math.min(1, weight)), 35, 93);
   }
   return normalized;
+}
+
+export function applyPositionCaps(position: Position, attributes: Attributes, maxCap = 93): Attributes {
+  const caps = POSITION_ATTRIBUTE_CAPS[position];
+  return ATTRIBUTE_KEYS.reduce((next, key) => {
+    next[key] = clamp(attributes[key], 20, Math.min(maxCap, caps[key] ?? maxCap));
+    return next;
+  }, {} as Attributes);
 }
 
 export function teamUnitRatings(players: Player[]) {

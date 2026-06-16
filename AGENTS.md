@@ -10,6 +10,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Standard generated rosters are 85 players per team.
 - Player ratings use the 13 keys in `src/sim/types.ts`.
 - Initial player ratings and attributes are capped at 93.
+- Position-specific attribute caps in `src/sim/ratings.ts` limit unrelated skills for each position.
 - Recruit hidden trait bands live in `src/sim/ratings.ts`; elite recruit entry cap is 83.
 - Each recruiting class should include thousands of recruits with about 2-4% five-stars and 10-20% four-stars.
 - Dynasty length is 20 years.
@@ -28,7 +29,7 @@ Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium de
 ## QA Expectations
 
 - Use the Debug tab for forced playoff, forced award, auto recruit, and multi-season checks.
-- Keep screenshots in `artifacts/screenshots`.
+- Keep screenshots in `artifacts/screenshots`, including roster/depth chart, player modal, awards, all-conference, playoff bracket, program, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
 ## Repo-Local Skills

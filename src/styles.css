@@ -77,6 +77,20 @@ button:disabled {
   letter-spacing: 0;
 }
 
+.version-pill {
+  background: rgba(94, 177, 191, 0.16);
+  border: 1px solid rgba(94, 177, 191, 0.45);
+  border-radius: 999px;
+  color: #cceef3;
+  display: inline-flex;
+  font-size: 0.72rem;
+  line-height: 1;
+  margin-left: 8px;
+  padding: 4px 7px;
+  text-transform: none;
+  vertical-align: middle;
+}
+
 h1,
 h2,
 h3,
@@ -504,6 +518,182 @@ select {
   width: 58px;
 }
 
+.coach-portrait {
+  background-image: url("/assets/coach-portrait-sprite.png");
+  background-size: 500% 200%;
+  border: 1px solid #31414a;
+  border-radius: 8px;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 64px;
+  image-rendering: pixelated;
+  width: 64px;
+}
+
+.roster-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.roster-controls button,
+.modal-tabs button {
+  background: #10191e;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.roster-controls button.active,
+.modal-tabs button.active {
+  background: #22353d;
+  color: var(--text);
+}
+
+.roster-list {
+  display: grid;
+  gap: 8px;
+  max-height: 650px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.roster-row {
+  align-items: center;
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 58px minmax(160px, 1fr) 54px 54px 86px 82px;
+  min-height: 78px;
+  padding: 9px 12px 9px 9px;
+  text-align: left;
+  width: 100%;
+}
+
+.roster-row span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.depth-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.depth-card {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.depth-card button {
+  align-items: center;
+  background: #152128;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 28px 1fr 36px;
+  min-height: 38px;
+  padding: 7px 9px;
+  text-align: left;
+}
+
+.depth-card span,
+.depth-card em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 800;
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgba(3, 7, 9, 0.74);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 18px;
+  position: fixed;
+  z-index: 20;
+}
+
+.player-modal {
+  background: #10191e;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.5);
+  max-height: min(760px, calc(100vh - 36px));
+  max-width: 940px;
+  overflow: auto;
+  padding: 18px;
+  width: min(940px, 100%);
+}
+
+.modal-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.modal-title {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  min-width: 0;
+}
+
+.modal-title h2 {
+  margin-bottom: 4px;
+}
+
+.modal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.modal-section {
+  display: grid;
+  gap: 14px;
+}
+
+.compact-table .table-row {
+  grid-template-columns: minmax(160px, 1.35fr) repeat(6, minmax(70px, 1fr));
+}
+
+.award-history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.award-history span {
+  background: rgba(240, 184, 74, 0.14);
+  border: 1px solid rgba(240, 184, 74, 0.45);
+  border-radius: 999px;
+  color: #f8d58a;
+  font-weight: 800;
+  padding: 8px 10px;
+}
+
 .recruit-card {
   display: grid;
   gap: 12px;
@@ -564,9 +754,124 @@ select {
   text-align: left;
 }
 
+.investment svg {
+  color: var(--blue);
+}
+
 .investment strong {
   color: var(--gold);
   font-size: 1.7rem;
+}
+
+.coach-card {
+  display: grid;
+  gap: 12px;
+}
+
+.coach-pool-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.coach-pool-card {
+  align-items: center;
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 8px 12px;
+  grid-template-columns: 64px 1fr;
+  min-height: 92px;
+  padding: 12px;
+  text-align: left;
+}
+
+.coach-pool-card span,
+.coach-pool-card em {
+  color: var(--muted);
+  font-style: normal;
+  grid-column: 2;
+}
+
+.playoff-bracket {
+  align-items: stretch;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.playoff-bracket.field-only {
+  grid-template-columns: 1fr;
+}
+
+.playoff-bracket.field-only .bracket-round {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.bracket-round {
+  display: grid;
+  gap: 12px;
+}
+
+.bracket-round h3 {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-bottom: 0;
+  text-transform: uppercase;
+}
+
+.bracket-game {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  position: relative;
+}
+
+.bracket-game::after {
+  background: var(--line);
+  content: "";
+  height: 1px;
+  position: absolute;
+  right: -15px;
+  top: 50%;
+  width: 14px;
+}
+
+.bracket-round:last-child .bracket-game::after,
+.field-only .bracket-game::after {
+  display: none;
+}
+
+.bracket-game div {
+  align-items: center;
+  background: #152128;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 34px;
+  padding: 8px 9px;
+}
+
+.bracket-game .winner {
+  border-color: rgba(240, 184, 74, 0.65);
+  color: #ffe0a1;
+}
+
+.bracket-game.placeholder {
+  align-content: center;
+  min-height: 132px;
+}
+
+.bracket-game span {
+  color: var(--muted);
+  font-weight: 800;
 }
 
 .log {
@@ -612,6 +917,12 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .dashboard-panel .desktop-units,
+  .action-panel,
+  .latest-awards-panel {
+    display: none;
+  }
+
   .span-2 {
     grid-column: span 1;
   }
@@ -636,6 +947,33 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .compact-table .table-row,
+  .roster-row {
+    grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
+  }
+
+  .roster-row .portrait {
+    height: 48px;
+    width: 48px;
+  }
+
+  .roster-row span:nth-last-child(-n + 2) {
+    display: none;
+  }
+
+  .playoff-bracket {
+    grid-template-columns: 1fr;
+  }
+
+  .bracket-game::after {
+    display: none;
+  }
+
+  .player-modal {
+    max-height: calc(100vh - 20px);
+    padding: 14px;
+  }
+
   .rank-list li {
     grid-template-columns: 30px 1fr;
   }
@@ -657,8 +995,58 @@ select {
   .playoff-grid,
   .investment-grid,
   .debug-grid,
-  .attribute-grid {
+  .attribute-grid,
+  .depth-grid,
+  .coach-pool-grid {
     grid-template-columns: 1fr;
+  }
+
+  .metric-grid.mobile-priority {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mobile-priority .metric {
+    padding: 10px;
+  }
+
+  .mobile-priority .metric strong {
+    font-size: 1.35rem;
+  }
+
+  .topbar-actions .secondary {
+    display: none;
+  }
+
+  .roster-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .roster-controls button {
+    flex: 0 0 auto;
+  }
+
+  .modal-title {
+    align-items: flex-start;
+  }
+
+  .modal-title .portrait {
+    height: 52px;
+    width: 52px;
+  }
+
+  .coach-pool-card {
+    grid-template-columns: 58px 1fr;
+  }
+
+  .coach-portrait {
+    height: 58px;
+    width: 58px;
+  }
+
+  .standings-panel .rank-list li:nth-child(n + 5) {
+    display: none;
   }
 
   .tab span {

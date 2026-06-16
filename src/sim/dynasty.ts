@@ -1,6 +1,7 @@
 import { createSeasonAwards, createWeeklyAwards, rankTeams, recruitingClassRankings, selectPlayoffSeeds } from "./awards";
 import { calculateWeeklyRecruitingPoints, createRecruitClass, freshTeamSeason, resetPlayerStats } from "./generate";
 import { simulateGame } from "./game";
+import { applyPositionCaps, calculateOverall } from "./ratings";
 import { clamp, Rng } from "./rng";
 import { createNextPlayoffRound, createPlayoffGames, createSchedule } from "./schedule";
 import { advanceRecruitingWeek, autoRecruit, signRecruitingClass } from "./recruiting";
@@ -297,7 +298,7 @@ function recordAndDevelopTeam(rng: Rng, team: Team, year: number, champion: bool
       prestige: clamp(team.program.prestige + (team.season.wins >= 9 ? 2 : team.season.losses >= 8 ? -2 : 0) + (champion ? 4 : 0), 1, 99),
       fanSupport: clamp(team.program.fanSupport + (team.season.wins >= 8 ? 2 : -1), 1, 99),
     },
-    roster: developAndGraduate(rng, team),
+    roster: developAndGraduate(rng, team, year),
     history: [
       {
         year,
@@ -312,20 +313,36 @@ function recordAndDevelopTeam(rng: Rng, team: Team, year: number, champion: bool
   };
 }
 
-function developAndGraduate(rng: Rng, team: Team): Player[] {
+function developAndGraduate(rng: Rng, team: Team, year: number): Player[] {
   return team.roster
     .filter((player) => player.year !== "SR")
     .map((player) => {
       const traitBoost = player.development === "elite" ? 4 : player.development === "starter" ? 3 : player.development === "rotation" ? 2 : player.development === "depth" ? 1 : 0;
       const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 170;
       const growth = clamp(Math.round(rng.nextInt(0, 3) + traitBoost * 0.65 + coachBoost), 0, Math.max(0, player.potential - player.overall));
-      const attributes = Object.fromEntries(Object.entries(player.attributes).map(([key, value]) => [key, clamp(value + Math.round(growth * rng.next()), 35, 99)])) as typeof player.attributes;
+      const attributes = applyPositionCaps(
+        player.position,
+        Object.fromEntries(Object.entries(player.attributes).map(([key, value]) => [key, clamp(value + Math.round(growth * rng.next()), 20, 99)])) as typeof player.attributes,
+        99,
+      );
       const nextYear: CollegeYear = player.year === "FR" ? "SO" : player.year === "SO" ? "JR" : "SR";
+      const nextOverall = calculateOverall(player.position, attributes);
       return {
-        ...resetPlayerStats(player),
+        ...resetPlayerStats({
+          ...player,
+          careerStats: [
+            ...(player.careerStats ?? []),
+            {
+              year,
+              teamName: team.name,
+              collegeYear: player.year,
+              stats: player.stats,
+            },
+          ],
+        }),
         year: nextYear,
         attributes,
-        overall: clamp(player.overall + growth, 35, player.potential),
+        overall: clamp(Math.max(player.overall + growth, nextOverall), 35, player.potential),
       };
     });
 }

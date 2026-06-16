@@ -3,11 +3,18 @@ import clsx from "clsx";
 import {
   Award,
   BadgeDollarSign,
+  BookOpen,
+  Building2,
   CalendarDays,
   ChevronsRight,
   ClipboardList,
+  Crown,
+  Dumbbell,
   GraduationCap,
+  Handshake,
+  Heart,
   LineChart,
+  MapPinned,
   Medal,
   Play,
   RotateCcw,
@@ -19,15 +26,21 @@ import {
   UserRound,
   Users,
   Wrench,
+  X,
 } from "lucide-react";
 import { addRecruitToBoard, autoRecruit, gemBustFor, pitchRecruit, positionNeeds, scoutRecruit } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, forceUserAward, forceUserPlayoff, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint, topTeams } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
+import { buildDepthChart } from "./sim/depthChart";
 import { teamPower, teamUnitRatings } from "./sim/ratings";
-import type { AttributeKey, AwardWinner, DynastyState, Player, ProgramRatings, Recruit, Team } from "./sim/types";
+import { POSITIONS, type AttributeKey, type AwardWinner, type Coach, type DynastyState, type Game, type Player, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team } from "./sim/types";
 
 type Tab = "overview" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
+type RosterFilter = "ALL" | Position;
+type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
+
+const APP_VERSION = "v0.2.0";
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
@@ -54,6 +67,16 @@ const ATTRIBUTE_KEYS_FOR_UI: AttributeKey[] = [
   "kickPower",
   "kickAccuracy",
 ];
+
+const programIcons: Record<keyof ProgramRatings, typeof GraduationCap> = {
+  academics: BookOpen,
+  facilities: Building2,
+  training: Dumbbell,
+  recruitingReach: MapPinned,
+  fanSupport: Heart,
+  prestige: Crown,
+  NIL: Handshake,
+};
 
 export default function App() {
   const previewWorld = useMemo(() => createDynasty(20260616), []);
@@ -123,10 +146,12 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Campus Gridiron Dynasty</p>
+          <p className="eyebrow">
+            Campus Gridiron Dynasty <span className="version-pill">{APP_VERSION}</span>
+          </p>
           <h1>{userTeam.name}</h1>
           <p className="muted">
-            Year {state.year} of {state.maxYears} · {state.calendarYear} · {state.phase} · Week {state.week}
+            Year {state.year} of {state.maxYears} - {state.calendarYear} - {state.phase} - Week {state.week}
           </p>
         </div>
         <div className="topbar-actions">
@@ -187,11 +212,11 @@ function HomeScreen({
     <div className="home">
       <section className="hero" style={{ backgroundImage: "linear-gradient(90deg, rgba(9,13,18,.94), rgba(9,13,18,.58), rgba(9,13,18,.18)), url('/assets/dynasty-hero.png')" }}>
         <div className="hero-copy">
-          <p className="eyebrow">Fictional 20-year dynasty sim</p>
-          <h1>Campus Gridiron Dynasty</h1>
-          <p className="hero-lede">
-            Build a program through recruiting uncertainty, coach movement, playoff pressure, local storage persistence, and rating-driven game simulation.
+          <p className="eyebrow">
+            Fictional 20-year dynasty sim <span className="version-pill">{APP_VERSION}</span>
           </p>
+          <h1>Campus Gridiron Dynasty</h1>
+          <p className="hero-lede">Build a program through recruiting uncertainty, coach movement, playoff pressure, local storage persistence, and rating-driven game simulation.</p>
           <div className="feature-list" aria-label="Game features">
             <Feature icon={Shield} text="70 fictional programs across 7 conferences" />
             <Feature icon={Users} text="85-player rosters with 13 detailed ratings" />
@@ -204,7 +229,7 @@ function HomeScreen({
               <select value={selectedTeamId} onChange={(event) => onSelectTeam(event.target.value)} data-testid="team-select">
                 {teams.slice(0, 70).map((team) => (
                   <option key={team.id} value={team.id}>
-                    {team.name} · {team.abbreviation}
+                    {team.name} - {team.abbreviation}
                   </option>
                 ))}
               </select>
@@ -238,39 +263,43 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
 
   return (
     <>
-      <section className="panel span-2">
+      <section className="panel span-2 dashboard-panel">
         <div className="panel-head">
           <div>
             <p className="eyebrow">Dynasty Command</p>
-            <h2>{userTeam.season.wins}-{userTeam.season.losses} · Power {teamPower(userTeam.roster)}</h2>
+            <h2>
+              {userTeam.season.wins}-{userTeam.season.losses} - Power {teamPower(userTeam.roster)}
+            </h2>
           </div>
           <button className="primary" onClick={() => onUpdate(advanceWeek)} disabled={state.phase === "complete"}>
             <ChevronsRight size={18} />
             Advance Week
           </button>
         </div>
-        <div className="metric-grid">
+        <div className="metric-grid mobile-priority">
           <Metric label="Program Rating" value={programRating(userTeam)} />
+          <Metric label="Overall" value={units.overall} />
           <Metric label="Recruiting Points" value={state.recruiting.pointsRemaining} />
-          <Metric label="Coach Points" value={userTeam.coachPoints} />
           <Metric label="Program Points" value={userTeam.programPoints} />
         </div>
-        <div className="unit-grid">
-          {Object.entries(units).map(([label, value]) => (
-            <div key={label} className="unit-bar">
-              <span>{title(label)}</span>
-              <strong>{value}</strong>
-              <div>
-                <i style={{ width: `${Math.min(100, Number(value))}%` }} />
+        <div className="unit-grid desktop-units">
+          {Object.entries(units)
+            .filter(([label]) => label !== "overall")
+            .map(([label, value]) => (
+              <div key={label} className="unit-bar">
+                <span>{title(label)}</span>
+                <strong>{value}</strong>
+                <div>
+                  <i style={{ width: `${Math.min(100, Number(value))}%` }} />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </section>
 
-      <section className="panel">
+      <section className="panel standings-panel">
         <div className="panel-head compact">
-          <h2>Top 8</h2>
+          <h2>Top Programs</h2>
           <Medal size={20} />
         </div>
         <ol className="rank-list">
@@ -278,13 +307,15 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
             <li key={team.id}>
               <span>{team.season.rank ?? "-"}</span>
               <strong>{team.name}</strong>
-              <em>{team.season.wins}-{team.season.losses}</em>
+              <em>
+                {team.season.wins}-{team.season.losses}
+              </em>
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="panel">
+      <section className="panel action-panel">
         <div className="panel-head compact">
           <h2>Action Items</h2>
           <Sparkles size={20} />
@@ -297,7 +328,7 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
         </ul>
       </section>
 
-      <section className="panel span-2">
+      <section className="panel span-2 latest-awards-panel">
         <div className="panel-head compact">
           <h2>Latest National Awards</h2>
           <Award size={20} />
@@ -309,66 +340,148 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
 }
 
 function Roster({ team }: { team: Team }) {
-  const sorted = [...team.roster].sort((a, b) => b.overall - a.overall);
-  const featured = sorted[0];
-  const byPosition = Object.entries(
-    team.roster.reduce<Record<string, number>>((counts, player) => {
-      counts[player.position] = (counts[player.position] ?? 0) + 1;
-      return counts;
-    }, {}),
-  );
+  const [positionFilter, setPositionFilter] = useState<RosterFilter>("ALL");
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | undefined>();
+  const [modalTab, setModalTab] = useState<PlayerModalTab>("profile");
+  const sorted = [...team.roster].sort((a, b) => b.overall - a.overall || b.potential - a.potential);
+  const filtered = positionFilter === "ALL" ? sorted : sorted.filter((player) => player.position === positionFilter);
+  const depthChart = buildDepthChart(team.roster, 3);
+
+  const openPlayer = (player: Player) => {
+    setSelectedPlayer(player);
+    setModalTab("profile");
+  };
+
   return (
     <>
-      <section className="panel span-2">
-        <div className="panel-head compact">
-          <h2>Roster Core</h2>
+      <section className="panel span-2" data-testid="roster-panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">Roster Room</p>
+            <h2>{team.roster.length} players</h2>
+          </div>
           <Users size={20} />
         </div>
-        <div className="position-pills">
-          {byPosition.map(([position, count]) => (
-            <span key={position}>
-              {position} {count}
-            </span>
+        <div className="roster-controls" data-testid="position-filter">
+          {(["ALL", ...POSITIONS] as RosterFilter[]).map((position) => (
+            <button key={position} className={clsx(positionFilter === position && "active")} onClick={() => setPositionFilter(position)}>
+              {position}
+            </button>
           ))}
         </div>
-        <div className="player-grid">
-          {sorted.slice(0, 28).map((player) => (
-            <PlayerCard key={player.id} player={player} />
+        <div className="roster-list" data-testid="roster-list">
+          {filtered.map((player) => (
+            <button key={player.id} className="roster-row" onClick={() => openPlayer(player)}>
+              <Portrait index={player.profileIndex} />
+              <strong>{player.name}</strong>
+              <span>{player.position}</span>
+              <span>{player.year}</span>
+              <span>OVR {player.overall}</span>
+              <span>Pot {player.potential}</span>
+            </button>
           ))}
         </div>
       </section>
-      {featured && (
-        <section className="panel span-2" data-testid="attributes-panel">
-          <div className="panel-head compact">
-            <h2>Attribute Board</h2>
-            <LineChart size={20} />
-          </div>
-          <div className="attribute-board">
-            <div className="featured-player">
-              <Portrait index={featured.profileIndex} />
-              <div>
-                <p className="eyebrow">Featured Player</p>
-                <h3>{featured.name}</h3>
-                <p className="muted">
-                  {featured.year} · {featured.position} · OVR {featured.overall} · Potential {featured.potential}
-                </p>
-              </div>
-            </div>
-            <div className="attribute-grid">
-              {ATTRIBUTE_KEYS_FOR_UI.map((key) => (
-                <div key={key} className="unit-bar">
-                  <span>{title(key)}</span>
-                  <strong>{featured.attributes[key]}</strong>
-                  <div>
-                    <i style={{ width: `${featured.attributes[key]}%` }} />
-                  </div>
-                </div>
+
+      <section className="panel span-2" data-testid="depth-chart-panel">
+        <div className="panel-head compact">
+          <h2>Depth Chart</h2>
+          <ClipboardList size={20} />
+        </div>
+        <div className="depth-grid">
+          {depthChart.map((slot) => (
+            <article key={slot.position} className="depth-card">
+              <p className="eyebrow">{slot.position}</p>
+              {slot.players.map((player, index) => (
+                <button key={player.id} onClick={() => openPlayer(player)}>
+                  <span>{index + 1}</span>
+                  <strong>{player.name}</strong>
+                  <em>{player.overall}</em>
+                </button>
               ))}
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {selectedPlayer && <PlayerModal player={selectedPlayer} activeTab={modalTab} onTabChange={setModalTab} onClose={() => setSelectedPlayer(undefined)} />}
+    </>
+  );
+}
+
+function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Player; activeTab: PlayerModalTab; onTabChange: (tab: PlayerModalTab) => void; onClose: () => void }) {
+  const statRows = playerStatRows(player);
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="player-modal" role="dialog" aria-modal="true" aria-label={`${player.name} player card`} onMouseDown={(event) => event.stopPropagation()} data-testid="player-modal">
+        <div className="modal-head">
+          <div className="modal-title">
+            <Portrait index={player.profileIndex} />
+            <div>
+              <p className="eyebrow">{player.position} - {player.year}</p>
+              <h2>{player.name}</h2>
+              <p className="muted">
+                OVR {player.overall} - Potential {player.potential} - {player.hometown}
+              </p>
             </div>
           </div>
-        </section>
-      )}
-    </>
+          <button className="icon-button" onClick={onClose} aria-label="Close player card">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="modal-tabs">
+          {(["profile", "stats", "attributes", "awards"] as PlayerModalTab[]).map((tab) => (
+            <button key={tab} className={clsx(activeTab === tab && "active")} onClick={() => onTabChange(tab)}>
+              {title(tab)}
+            </button>
+          ))}
+        </div>
+        {activeTab === "profile" && (
+          <div className="modal-section">
+            <div className="metric-grid">
+              <Metric label="Overall" value={player.overall} />
+              <Metric label="Potential" value={player.potential} />
+              <Metric label="Development" value={player.development} />
+              <Metric label="Games" value={player.stats.games} />
+            </div>
+            <p className="muted">Career rows are recorded each offseason before the player advances class year.</p>
+          </div>
+        )}
+        {activeTab === "stats" && (
+          <div className="table-list compact-table">
+            {statRows.map((row) => (
+              <div key={row.label} className="table-row stat-row">
+                <strong>{row.label}</strong>
+                <span>{row.stats.games} GP</span>
+                <span>{row.stats.passYards} PYD</span>
+                <span>{row.stats.rushYards} RYD</span>
+                <span>{row.stats.receivingYards} REC</span>
+                <span>{row.stats.tackles} TKL</span>
+                <span>{row.stats.interceptions} INT</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {activeTab === "attributes" && (
+          <div className="attribute-grid" data-testid="attributes-panel">
+            {ATTRIBUTE_KEYS_FOR_UI.map((key) => (
+              <div key={key} className="unit-bar">
+                <span>{title(key)}</span>
+                <strong>{player.attributes[key]}</strong>
+                <div>
+                  <i style={{ width: `${player.attributes[key]}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {activeTab === "awards" && (
+          <div className="award-history">
+            {player.awards.length ? player.awards.map((award) => <span key={award}>{award}</span>) : <p className="muted">No awards yet.</p>}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
 
@@ -391,7 +504,9 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         <div className="panel-head">
           <div>
             <p className="eyebrow">Recruiting Board</p>
-            <h2>{state.recruiting.pointsRemaining} / {state.recruiting.weeklyPoints} points</h2>
+            <h2>
+              {state.recruiting.pointsRemaining} / {state.recruiting.weeklyPoints} points
+            </h2>
           </div>
           <button className="primary" data-testid="auto-recruit" onClick={() => onUpdate((current) => autoRecruit(current, "Manual auto-recruit run."))}>
             <Search size={18} />
@@ -420,7 +535,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         <div className="table-list">
           {available.map((recruit) => (
             <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))}>
-              <span>{"★".repeat(recruit.stars)}</span>
+              <span>{"*".repeat(recruit.stars)}</span>
               <strong>{recruit.name}</strong>
               <span>{recruit.position}</span>
               <span>#{recruit.nationalRank}</span>
@@ -452,7 +567,9 @@ function RecruitCard({
         <Portrait index={recruit.profileIndex} />
         <div>
           <strong>{recruit.name}</strong>
-          <p>{recruit.position} · {"★".repeat(recruit.stars)} · #{recruit.nationalRank}</p>
+          <p>
+            {recruit.position} - {"*".repeat(recruit.stars)} - #{recruit.nationalRank}
+          </p>
         </div>
       </div>
       <div className="mini-metrics">
@@ -461,15 +578,7 @@ function RecruitCard({
         <span>Scout {recruit.scoutProgress}%</span>
       </div>
       <div className="known-attrs">
-        {known.length ? (
-          known.map((key) => (
-            <span key={key}>
-              {shortAttr(key)} {recruit.attributes[key]}
-            </span>
-          ))
-        ) : (
-          <span>No ratings unlocked</span>
-        )}
+        {known.length ? known.map((key) => <span key={key}>{shortAttr(key)} {recruit.attributes[key]}</span>) : <span>No ratings unlocked</span>}
       </div>
       <p className={clsx("trait-chip", recruit.gemBust)}>{recruit.traitRevealed ? recruit.hiddenTrait : recruit.gemBust ? gemBustFor(recruit) : "trait hidden"}</p>
       <div className="button-row compact-row">
@@ -507,7 +616,9 @@ function Schedule({ state }: { state: DynastyState }) {
             <li key={team.id}>
               <span>{index + 1}</span>
               <strong>{team.name}</strong>
-              <em>{team.season.confWins}-{team.season.confLosses}</em>
+              <em>
+                {team.season.confWins}-{team.season.confLosses}
+              </em>
             </li>
           ))}
         </ol>
@@ -524,7 +635,9 @@ function Schedule({ state }: { state: DynastyState }) {
             return (
               <div key={game.id} className="table-row">
                 <span>W{game.week}</span>
-                <strong>{away?.abbreviation} at {home?.abbreviation}</strong>
+                <strong>
+                  {away?.abbreviation} at {home?.abbreviation}
+                </strong>
                 <span>{game.bowlName ?? (game.conferenceGame ? "Conference" : "Non-conf")}</span>
                 <span>{game.result?.summary ?? "Pending"}</span>
               </div>
@@ -537,6 +650,9 @@ function Schedule({ state }: { state: DynastyState }) {
 }
 
 function Awards({ state }: { state: DynastyState }) {
+  const userTeam = getUserTeam(state);
+  const userConference = state.conferences.find((conference) => conference.id === userTeam.conferenceId);
+  const conferenceAwards = userConference && state.seasonAwards ? state.seasonAwards.allConference[userConference.id] : undefined;
   const playoffGames = state.playoff?.games ?? [];
   const latestHistory = state.history[0];
   const awardSource = state.seasonAwards?.nationalAwards ?? latestHistory?.awardWinners ?? [];
@@ -551,44 +667,25 @@ function Awards({ state }: { state: DynastyState }) {
         <AwardGrid awards={awardSource} />
       </section>
       {state.seasonAwards && (
-        <section className="panel span-2" data-testid="all-american-panel">
-          <div className="panel-head compact">
-            <h2>All-American Teams</h2>
-            <Medal size={20} />
-          </div>
-          <AwardGrid awards={[...state.seasonAwards.allAmericans.first.slice(0, 6), ...state.seasonAwards.allAmericans.second.slice(0, 6), ...state.seasonAwards.allAmericans.freshman.slice(0, 4)]} />
-        </section>
+        <>
+          <AwardTeamPanel title="All-American First Team" awards={state.seasonAwards.allAmericans.first} testId="all-american-first-panel" />
+          <AwardTeamPanel title="All-American Second Team" awards={state.seasonAwards.allAmericans.second} testId="all-american-second-panel" />
+          <AwardTeamPanel title="Freshman All-American" awards={state.seasonAwards.allAmericans.freshman} testId="all-american-freshman-panel" />
+        </>
+      )}
+      {conferenceAwards && (
+        <>
+          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} First Team`} awards={conferenceAwards.first} testId="all-conference-first-panel" />
+          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} Second Team`} awards={conferenceAwards.second} testId="all-conference-second-panel" />
+          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} Freshman Team`} awards={conferenceAwards.freshman} testId="all-conference-freshman-panel" />
+        </>
       )}
       <section className="panel span-2" data-testid="playoff-panel">
         <div className="panel-head compact">
           <h2>{state.playoff ? "Summit Four Playoff" : "Latest Playoff Field"}</h2>
           <Trophy size={20} />
         </div>
-        <div className="playoff-grid">
-          {playoffGames.length ? (
-            playoffGames.map((game) => {
-              const home = state.teams.find((team) => team.id === game.homeTeamId);
-              const away = state.teams.find((team) => team.id === game.awayTeamId);
-              return (
-                <article key={game.id} className="card">
-                  <p className="eyebrow">{game.bowlName}</p>
-                  <strong>{away?.name} at {home?.name}</strong>
-                  <span>{game.result?.summary ?? game.playoffRound}</span>
-                </article>
-              );
-            })
-          ) : priorPlayoffTeams.length ? (
-            priorPlayoffTeams.map((teamName, index) => (
-              <article key={`${teamName}-${index}`} className="card">
-                <p className="eyebrow">Seed {index + 1}</p>
-                <strong>{teamName}</strong>
-                <span>{latestHistory?.championName === teamName ? "Crown Bowl Champion" : "Playoff qualifier"}</span>
-              </article>
-            ))
-          ) : (
-            <p className="muted">Playoff bracket forms after Week 12.</p>
-          )}
-        </div>
+        <PlayoffBracket games={playoffGames} teams={state.teams} priorPlayoffTeams={priorPlayoffTeams} championName={latestHistory?.championName} />
       </section>
       <section className="panel span-2">
         <div className="panel-head compact">
@@ -610,6 +707,77 @@ function Awards({ state }: { state: DynastyState }) {
   );
 }
 
+function AwardTeamPanel({ title: panelTitle, awards, testId }: { title: string; awards: AwardWinner[]; testId: string }) {
+  return (
+    <section className="panel span-2" data-testid={testId}>
+      <div className="panel-head compact">
+        <h2>{panelTitle}</h2>
+        <Medal size={20} />
+      </div>
+      <AwardGrid awards={awards} limit={16} />
+    </section>
+  );
+}
+
+function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }: { games: Game[]; teams: Team[]; priorPlayoffTeams: string[]; championName?: string }) {
+  if (!games.length && priorPlayoffTeams.length) {
+    return (
+      <div className="playoff-bracket field-only">
+        <div className="bracket-round">
+          {priorPlayoffTeams.map((teamName, index) => (
+            <article key={`${teamName}-${index}`} className="bracket-game">
+              <p className="eyebrow">Seed {index + 1}</p>
+              <strong>{teamName}</strong>
+              <span>{championName === teamName ? "Crown Bowl Champion" : "Playoff qualifier"}</span>
+            </article>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (!games.length) return <p className="muted">Playoff bracket forms after Week 12.</p>;
+
+  const rounds = [
+    { label: "Quarterfinals", games: games.filter((game) => game.playoffRound === "quarter"), placeholder: "Opening bowls pending" },
+    { label: "Semifinals", games: games.filter((game) => game.playoffRound === "semi"), placeholder: "Awaiting quarterfinal winners" },
+    { label: "Crown Bowl", games: games.filter((game) => game.playoffRound === "final"), placeholder: "Awaiting semifinal winners" },
+  ];
+
+  return (
+    <div className="playoff-bracket">
+      {rounds.map((round) => (
+        <div key={round.label} className="bracket-round">
+          <h3>{round.label}</h3>
+          {round.games.map((game) => {
+            const home = teams.find((team) => team.id === game.homeTeamId);
+            const away = teams.find((team) => team.id === game.awayTeamId);
+            return (
+              <article key={game.id} className="bracket-game">
+                <p className="eyebrow">{game.bowlName}</p>
+                <div className={clsx(game.result?.winnerTeamId === away?.id && "winner")}>
+                  <strong>{away?.name}</strong>
+                  <span>{game.result?.awayScore ?? "-"}</span>
+                </div>
+                <div className={clsx(game.result?.winnerTeamId === home?.id && "winner")}>
+                  <strong>{home?.name}</strong>
+                  <span>{game.result?.homeScore ?? "-"}</span>
+                </div>
+              </article>
+            );
+          })}
+          {!round.games.length && (
+            <article className="bracket-game placeholder">
+              <p className="eyebrow">{round.label}</p>
+              <strong>{round.placeholder}</strong>
+              <span>Bracket advances after the prior round.</span>
+            </article>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
   const team = getUserTeam(state);
   const programKeys: (keyof ProgramRatings)[] = ["academics", "facilities", "training", "recruitingReach", "fanSupport", "prestige"];
@@ -621,12 +789,16 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
           <BadgeDollarSign size={20} />
         </div>
         <div className="investment-grid">
-          {programKeys.map((key) => (
-            <button key={key} className="investment" onClick={() => onUpdate((current) => investProgramPoint(current, key))} disabled={team.programPoints <= 0}>
-              <span>{title(String(key))}</span>
-              <strong>{team.program[key] ?? 0}</strong>
-            </button>
-          ))}
+          {programKeys.map((key) => {
+            const Icon = programIcons[key];
+            return (
+              <button key={key} className="investment" onClick={() => onUpdate((current) => investProgramPoint(current, key))} disabled={team.programPoints <= 0}>
+                <Icon size={20} />
+                <span>{title(String(key))}</span>
+                <strong>{team.program[key] ?? 0}</strong>
+              </button>
+            );
+          })}
         </div>
       </section>
       <section className="panel span-2">
@@ -636,21 +808,7 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
         </div>
         <div className="staff-grid">
           {Object.values(team.coaches).map((coach) => (
-            <article key={coach.id} className="card">
-              <p className="eyebrow">{coach.role} · {coach.scheme}</p>
-              <h3>{coach.name}</h3>
-              <div className="mini-metrics">
-                <span>Rec {coach.recruiting}</span>
-                <span>Dev {coach.development}</span>
-                <span>Tac {coach.tactics}</span>
-                <span>Pts {coach.points}</span>
-              </div>
-              <div className="button-row compact-row">
-                <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "recruiting"))}>Rec</button>
-                <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "development"))}>Dev</button>
-                <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "tactics"))}>Tac</button>
-              </div>
-            </article>
+            <CoachCard key={coach.id} coach={coach} onUpdate={onUpdate} />
           ))}
         </div>
       </section>
@@ -659,19 +817,43 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
           <h2>Coach Pool</h2>
           <Users size={20} />
         </div>
-        <div className="table-list">
+        <div className="coach-pool-grid">
           {state.coachPool.slice(0, 9).map((coach) => (
-            <button key={coach.id} className="table-row clickable" onClick={() => onUpdate((current) => hireCoach(current, coach.id))}>
+            <button key={coach.id} className="coach-pool-card" onClick={() => onUpdate((current) => hireCoach(current, coach.id))}>
+              <CoachPortrait index={coach.portraitIndex ?? 0} />
               <strong>{coach.name}</strong>
-              <span>{coach.role}</span>
-              <span>{coach.scheme}</span>
-              <span>Rec {coach.recruiting}</span>
-              <span>Dev {coach.development}</span>
+              <span>{coach.role} - {coach.scheme}</span>
+              <em>Rec {coach.recruiting} - Dev {coach.development}</em>
             </button>
           ))}
         </div>
       </section>
     </>
+  );
+}
+
+function CoachCard({ coach, onUpdate }: { coach: Coach; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
+  return (
+    <article className="card coach-card">
+      <div className="card-title">
+        <CoachPortrait index={coach.portraitIndex ?? 0} />
+        <div>
+          <p className="eyebrow">{coach.role} - {coach.scheme}</p>
+          <h3>{coach.name}</h3>
+        </div>
+      </div>
+      <div className="mini-metrics">
+        <span>Rec {coach.recruiting}</span>
+        <span>Dev {coach.development}</span>
+        <span>Tac {coach.tactics}</span>
+        <span>Pts {coach.points}</span>
+      </div>
+      <div className="button-row compact-row">
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "recruiting"))}>Rec</button>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "development"))}>Dev</button>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "tactics"))}>Tac</button>
+      </div>
+    </article>
   );
 }
 
@@ -706,31 +888,8 @@ function Debug({ state, onUpdate, onReset }: { state: DynastyState; onUpdate: (r
   );
 }
 
-function PlayerCard({ player }: { player: Player }) {
-  const attrs = keyAttrs(player).slice(0, 4);
-  return (
-    <article className="card player-card">
-      <div className="card-title">
-        <Portrait index={player.profileIndex} />
-        <div>
-          <strong>{player.name}</strong>
-          <p>{player.year} · {player.position} · OVR {player.overall}</p>
-        </div>
-      </div>
-      <div className="known-attrs">
-        {attrs.map((key) => (
-          <span key={key}>
-            {shortAttr(key)} {player.attributes[key]}
-          </span>
-        ))}
-      </div>
-      <p className="muted">{player.hometown}</p>
-    </article>
-  );
-}
-
-function AwardGrid({ awards }: { awards: AwardWinner[] }) {
-  const list = topAwardList(awards);
+function AwardGrid({ awards, limit = 12 }: { awards: AwardWinner[]; limit?: number }) {
+  const list = awards.slice(0, limit);
   if (!list.length) return <p className="muted">Awards appear once games are simulated.</p>;
   return (
     <div className="award-grid">
@@ -738,7 +897,9 @@ function AwardGrid({ awards }: { awards: AwardWinner[] }) {
         <article key={`${award.awardName}-${award.playerId}`} className="card">
           <p className="eyebrow">{award.awardName}</p>
           <h3>{award.playerName}</h3>
-          <p>{award.teamName} · {award.position}</p>
+          <p>
+            {award.teamName} - {award.position}
+          </p>
           <span>{award.note}</span>
         </article>
       ))}
@@ -750,6 +911,12 @@ function Portrait({ index }: { index: number }) {
   const column = index % 4;
   const row = Math.floor(index / 4);
   return <span className="portrait" style={{ backgroundPosition: `${column * 33.333}% ${row * 33.333}%` }} aria-hidden="true" />;
+}
+
+function CoachPortrait({ index }: { index: number }) {
+  const column = index % 5;
+  const row = Math.floor(index / 5);
+  return <span className="coach-portrait" style={{ backgroundPosition: `${column * 25}% ${row * 100}%` }} aria-hidden="true" />;
 }
 
 function Feature({ icon: Icon, text }: { icon: typeof Shield; text: string }) {
@@ -775,18 +942,6 @@ function programRating(team: Team): number {
   return Math.round((prestige + academics + facilities + training + recruitingReach + fanSupport) / 6);
 }
 
-function keyAttrs(player: Player): AttributeKey[] {
-  if (player.position === "QB") return ["throwPower", "accuracy", "awareness", "speed"];
-  if (player.position === "HB") return ["speed", "catching", "awareness", "runBlock"];
-  if (player.position === "WR") return ["catching", "routeRunning", "speed", "awareness"];
-  if (player.position === "TE") return ["catching", "routeRunning", "runBlock", "passBlock"];
-  if (player.position === "OL") return ["runBlock", "passBlock", "awareness", "speed"];
-  if (player.position === "DL") return ["tackle", "defAwareness", "speed", "interception"];
-  if (player.position === "LB") return ["tackle", "defAwareness", "interception", "speed"];
-  if (player.position === "CB" || player.position === "S") return ["interception", "defAwareness", "speed", "tackle"];
-  return ["kickPower", "kickAccuracy", "awareness", "speed"];
-}
-
 function shortAttr(key: AttributeKey): string {
   return key
     .replace("throwPower", "THP")
@@ -808,6 +963,16 @@ function title(value: string): string {
   return value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
 }
 
-function topAwardList<T>(awards: T[]): T[] {
-  return awards.slice(0, 12);
+function playerStatRows(player: Player): { label: string; stats: PlayerStats }[] {
+  const career = (player.careerStats ?? []).map((entry) => ({
+    label: `${entry.year} ${entry.teamName} ${entry.collegeYear}`,
+    stats: entry.stats,
+  }));
+  return [
+    ...career,
+    {
+      label: `Current ${player.year}`,
+      stats: player.stats,
+    },
+  ];
 }

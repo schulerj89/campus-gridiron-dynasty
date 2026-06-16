@@ -18,10 +18,18 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByText("Dynasty Command")).toBeVisible({ timeout: 40_000 });
 
   await page.getByRole("button", { name: "Roster" }).click();
-  await expect(page.getByText("Roster Core")).toBeVisible();
+  await expect(page.getByText("Roster Room")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "roster-desktop.png"), fullPage: true });
+  await page.getByTestId("depth-chart-panel").screenshot({ path: path.join(screenshotDir, "depth-chart-desktop.png") });
+  await page.locator(".roster-row").first().click();
+  await expect(page.getByTestId("player-modal")).toBeVisible();
+  await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "player-profile-modal-desktop.png") });
+  await page.getByTestId("player-modal").getByRole("button", { name: "Stats" }).click();
+  await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "player-stats-modal-desktop.png") });
+  await page.getByTestId("player-modal").getByRole("button", { name: "Attributes" }).click();
   await expect(page.getByTestId("attributes-panel")).toBeVisible();
-  await page.getByTestId("attributes-panel").screenshot({ path: path.join(screenshotDir, "attributes-desktop.png") });
+  await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "attributes-desktop.png") });
+  await page.getByRole("button", { name: "Close player card" }).click();
 
   await page.getByRole("button", { name: "Program" }).click();
   await expect(page.getByText("Program Investments")).toBeVisible();
@@ -39,7 +47,10 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Awards" }).click();
   await expect(page.getByText("Season Awards")).toBeVisible();
   await page.getByTestId("awards-panel").screenshot({ path: path.join(screenshotDir, "awards-desktop.png") });
-  await page.getByTestId("all-american-panel").screenshot({ path: path.join(screenshotDir, "all-american-desktop.png") });
+  await page.getByTestId("all-american-first-panel").screenshot({ path: path.join(screenshotDir, "all-american-desktop.png") });
+  await page.getByTestId("all-american-second-panel").screenshot({ path: path.join(screenshotDir, "all-american-second-desktop.png") });
+  await page.getByTestId("all-conference-first-panel").screenshot({ path: path.join(screenshotDir, "all-conference-first-desktop.png") });
+  await page.getByTestId("all-conference-second-panel").screenshot({ path: path.join(screenshotDir, "all-conference-second-desktop.png") });
   await page.getByTestId("playoff-panel").screenshot({ path: path.join(screenshotDir, "playoffs-desktop.png") });
 
   for (let round = 0; round < 3; round += 1) {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
 import { advanceWeek, forceUserAward, forceUserPlayoff, simulateSeasons } from "../dynasty";
+import { buildDepthChart } from "../depthChart";
 
 describe("dynasty flow", () => {
   it("simulates weekly games and creates weekly awards", () => {
@@ -27,5 +28,20 @@ describe("dynasty flow", () => {
     expect(advanced.year).toBe(4);
     expect(advanced.history.length).toBeGreaterThanOrEqual(3);
     expect(advanced.phase).toBe("regular");
+    expect(advanced.teams[0]?.roster.some((player) => player.careerStats.length > 0)).toBe(true);
   }, 20_000);
+
+  it("builds a sorted depth chart for every position", () => {
+    const state = createDynasty(10101);
+    const team = state.teams[0]!;
+    const depthChart = buildDepthChart(team.roster, 3);
+    expect(depthChart).toHaveLength(11);
+    expect(depthChart.every((slot) => slot.players.length > 0 && slot.players.length <= 3)).toBe(true);
+    for (const slot of depthChart) {
+      expect(slot.players.every((player) => player.position === slot.position)).toBe(true);
+      for (let index = 1; index < slot.players.length; index += 1) {
+        expect(slot.players[index - 1]!.overall).toBeGreaterThanOrEqual(slot.players[index]!.overall);
+      }
+    }
+  });
 });

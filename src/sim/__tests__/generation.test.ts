@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
+import { POSITION_ATTRIBUTE_CAPS } from "../ratings";
 
 describe("world generation", () => {
   it("creates a fictional 70-team world with average college-sized rosters", () => {
@@ -30,5 +31,23 @@ describe("world generation", () => {
     expect(fiveStarRate).toBeLessThanOrEqual(0.04);
     expect(fourStarRate).toBeGreaterThanOrEqual(0.1);
     expect(fourStarRate).toBeLessThanOrEqual(0.2);
+  });
+
+  it("applies position-specific caps to off-skill attributes", () => {
+    const state = createDynasty(4567);
+    const playersAndRecruits = [
+      ...state.teams.flatMap((team) => team.roster.map((player) => ({ position: player.position, attributes: player.attributes }))),
+      ...state.recruits.map((recruit) => ({ position: recruit.position, attributes: recruit.attributes })),
+    ];
+
+    for (const item of playersAndRecruits) {
+      const caps = POSITION_ATTRIBUTE_CAPS[item.position];
+      for (const [key, cap] of Object.entries(caps)) {
+        expect(item.attributes[key as keyof typeof item.attributes]).toBeLessThanOrEqual(cap);
+      }
+    }
+
+    const quarterbacks = playersAndRecruits.filter((item) => item.position === "QB");
+    expect(quarterbacks.every((item) => item.attributes.interception <= 44 && item.attributes.runBlock <= 46)).toBe(true);
   });
 });

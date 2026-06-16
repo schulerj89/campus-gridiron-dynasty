@@ -14,6 +14,7 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await page.reload();
 
   await expect(page.getByRole("heading", { name: "Campus Gridiron Dynasty" })).toBeVisible();
+  await expect(page.getByText("v0.2.0").first()).toBeVisible();
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "home-desktop.png"), fullPage: true });
   }
@@ -21,11 +22,15 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await page.getByTestId("new-dynasty").click();
   await expect(page.getByText("Dynasty Command")).toBeVisible({ timeout: 40_000 });
   await expect(page.getByText(/Year 1 of 20/)).toBeVisible();
+  await expect(page.getByText("v0.2.0").first()).toBeVisible();
 
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "dashboard-desktop.png"), fullPage: true });
   }
   if (testInfo.project.name === "webkit-iphone-15-pro-max") {
+    await expect(page.getByText("Action Items")).not.toBeVisible();
+    await expect(page.getByText("Latest National Awards")).not.toBeVisible();
+    await expect(page.getByText("Passing")).not.toBeVisible();
     await page.screenshot({ path: path.join(screenshotDir, "mobile-dashboard.png"), fullPage: true });
   }
 

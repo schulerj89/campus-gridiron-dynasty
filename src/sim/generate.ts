@@ -15,7 +15,7 @@ import {
   type Team,
   type TeamSeason,
 } from "./types";
-import { blankAttributes, calculateOverall, normalizeAttributesForPosition, RECRUIT_TRAIT_BANDS, TARGET_ROSTER, teamPower } from "./ratings";
+import { applyPositionCaps, blankAttributes, calculateOverall, normalizeAttributesForPosition, RECRUIT_TRAIT_BANDS, TARGET_ROSTER, teamPower } from "./ratings";
 import { createSchedule } from "./schedule";
 
 const COLORS = [
@@ -232,6 +232,7 @@ export function createCoachPool(rng: Rng, count: number): Coach[] {
       id: `coach-${index + 1}`,
       name: createPersonName(rng),
       role,
+      portraitIndex: index % 10,
       age: rng.nextInt(31, 67),
       scheme: `${rng.pick(SCHEMES)}`,
       recruiting: rng.nextInt(45, 92),
@@ -281,6 +282,7 @@ export function createSignedPlayerFromRecruit(recruit: Recruit): Player {
     development: recruit.hiddenTrait,
     hometown: recruit.hometown,
     stats: emptyStats(),
+    careerStats: [],
     awards: [],
   };
 }
@@ -323,6 +325,7 @@ function createPlayer(rng: Rng, id: string, position: Position, targetOverall: n
     development: trait,
     hometown: `${rng.pick(CITIES)}, ${rng.pick(STATES)}`,
     stats: emptyStats(),
+    careerStats: [],
     awards: [],
   };
 }
@@ -332,10 +335,10 @@ function createAttributes(rng: Rng, position: Position, targetOverall: number, c
   const raw = blankAttributes(45);
   for (const key of ATTRIBUTE_KEYS) {
     const base = focus.has(key) ? targetOverall + rng.nextInt(-7, 7) : targetOverall + rng.nextInt(-23, 3);
-    raw[key] = clamp(base, 35, cap);
+    raw[key] = clamp(base, 20, cap);
   }
   const normalized = normalizeAttributesForPosition(position, raw, targetOverall);
-  return Object.fromEntries(Object.entries(normalized).map(([key, value]) => [key, clamp(value, 35, cap)])) as Attributes;
+  return applyPositionCaps(position, Object.fromEntries(Object.entries(normalized).map(([key, value]) => [key, clamp(value, 20, cap)])) as Attributes, cap);
 }
 
 function rollStars(rng: Rng): 1 | 2 | 3 | 4 | 5 {
