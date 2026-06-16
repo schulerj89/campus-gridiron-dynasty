@@ -75,7 +75,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Initial generated players must not exceed 93 in any rating.
 - Generated players and recruits also use position-specific off-skill caps so non-role attributes stay plausible.
 - Team helmets use generated fictional 16-bit PNG assets with no logos, letters, mascots, or licensed marks.
-- National poll rankings are stored as dynasty snapshots with votes, first-place votes, and weekly movement.
+- National poll rankings are stored as dynasty snapshots with Top 25 entries, full 1-70 all-team ranks, votes, first-place votes, and weekly movement.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
 - Recruits committed to other programs remain visible in the database with destination indicators but cannot be added, scouted, or pitched.

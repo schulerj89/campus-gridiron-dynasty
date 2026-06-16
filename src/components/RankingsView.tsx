@@ -75,7 +75,7 @@ export function Rankings({ state }: { state: DynastyState }) {
           <h2>Moved In</h2>
           <TrendingUp size={20} />
         </div>
-        <MovementList entries={latest.movedIn} empty="No new teams entered this poll." />
+        <MovementList entries={latest.movedIn} empty="No new teams entered this poll." mode="in" />
       </section>
 
       <section className="panel" data-testid="rankings-moved-out-panel">
@@ -83,7 +83,7 @@ export function Rankings({ state }: { state: DynastyState }) {
           <h2>Moved Out</h2>
           <TrendingDown size={20} />
         </div>
-        <MovementList entries={latest.movedOut} empty="No teams dropped out this poll." />
+        <MovementList entries={latest.movedOut} empty="No teams dropped out this poll." mode="out" />
       </section>
     </>
   );
@@ -96,14 +96,15 @@ function Movement({ entry }: { entry: PollEntry }) {
   return <span className="movement-chip neutral">0</span>;
 }
 
-function MovementList({ entries, empty }: { entries: PollEntry[]; empty: string }) {
+function MovementList({ entries, empty, mode }: { entries: PollEntry[]; empty: string; mode: "in" | "out" }) {
   if (!entries.length) return <p className="muted">{empty}</p>;
   return (
     <div className="table-list movement-list">
       {entries.slice(0, 8).map((entry) => (
         <div key={entry.teamId} className="table-row movement-row" data-testid="ranking-movement-row">
-          <span>#{entry.rank}</span>
+          <span>{mode === "out" ? `Now #${entry.rank}` : `#${entry.rank}`}</span>
           <strong>{entry.teamName}</strong>
+          <span>{entry.previousRank ? `From #${entry.previousRank}` : "New"}</span>
           <span>
             {entry.wins}-{entry.losses}
           </span>

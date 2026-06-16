@@ -15,7 +15,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Each recruiting class should include thousands of recruits with about 2-4% five-stars and 10-20% four-stars.
 - Dynasty length is 20 years.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
-- National poll snapshots live on `DynastyState.rankings` and should preserve votes, first-place votes, and movement history.
+- National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
 
 ## Frequent Commands

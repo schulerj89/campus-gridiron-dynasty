@@ -1,4 +1,4 @@
-import type { DynastyState } from "./types";
+import type { DynastyState, PollSnapshot } from "./types";
 import { createPollSnapshot } from "./polls";
 
 const DB_NAME = "campus-gridiron-dynasty";
@@ -62,12 +62,26 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     ...team,
     helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
   }));
-  const rankings = raw.rankings?.length ? raw.rankings : [createPollSnapshot(teams, raw.calendarYear, raw.week, raw.phase).poll];
+  const rankings = normalizeRankings(raw.rankings, teams, raw);
   return {
     ...raw,
     teams,
     rankings,
   };
+}
+
+function normalizeRankings(rankings: DynastyState["rankings"] | undefined, teams: DynastyState["teams"], state: DynastyState): PollSnapshot[] {
+  if (!rankings?.length) return [createPollSnapshot(teams, state.calendarYear, state.week, state.phase).poll];
+  return rankings.map((poll) => {
+    if (poll.allEntries?.length === teams.length) return poll;
+    const rebuilt = createPollSnapshot(teams, poll.year, poll.week, poll.phase).poll;
+    return {
+      ...rebuilt,
+      entries: poll.entries,
+      movedIn: poll.movedIn,
+      movedOut: poll.movedOut.map((entry) => rebuilt.allEntries.find((candidate) => candidate.teamId === entry.teamId) ?? entry),
+    };
+  });
 }
 
 function fallbackHelmetIndex(teamId: string, index: number): number {

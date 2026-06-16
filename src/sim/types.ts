@@ -310,6 +310,7 @@ export interface PollSnapshot {
   week: number;
   phase: Phase;
   entries: PollEntry[];
+  allEntries: PollEntry[];
   movedIn: PollEntry[];
   movedOut: PollEntry[];
 }

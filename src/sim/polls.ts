@@ -8,15 +8,17 @@ const FIRST_PLACE_VOTES = 62;
 export function createPollSnapshot(teams: Team[], year: number, week: number, phase: Phase, previous?: PollSnapshot): { teams: Team[]; poll: PollSnapshot } {
   const rankedTeams = rankTeams(teams);
   const topTeams = rankedTeams.slice(0, POLL_SIZE);
-  const previousRankByTeam = new Map(previous?.entries.map((entry) => [entry.teamId, entry.rank]) ?? []);
-  const currentTeamIds = new Set(topTeams.map((team) => team.id));
+  const previousAllEntries = previous?.allEntries?.length ? previous.allEntries : previous?.entries ?? [];
+  const previousTopEntries = previous?.entries ?? [];
+  const previousRankByTeam = new Map(previousAllEntries.map((entry) => [entry.teamId, entry.rank]));
+  const previousTopTeamIds = new Set(previousTopEntries.map((entry) => entry.teamId));
   const firstPlaceVotes = distributeFirstPlaceVotes(topTeams, year, week, phase);
   let previousVotes = Number.POSITIVE_INFINITY;
-  const entries = topTeams.map((team, index): PollEntry => {
+  const allEntries = rankedTeams.map((team, index): PollEntry => {
     const rank = index + 1;
     const priorRank = previousRankByTeam.get(team.id);
     const rawVotes = pollVotesFor(team, rank, firstPlaceVotes.get(team.id) ?? 0, year, week, phase);
-    const votes = Math.min(rawVotes, previousVotes - 1);
+    const votes = Math.max(0, Math.min(rawVotes, previousVotes - 1));
     previousVotes = votes;
     return {
       teamId: team.id,
@@ -31,9 +33,16 @@ export function createPollSnapshot(teams: Team[], year: number, week: number, ph
       losses: team.season.losses,
     };
   });
+  const entries = allEntries.slice(0, POLL_SIZE);
+  const currentTeamIds = new Set(entries.map((entry) => entry.teamId));
+  const currentEntryByTeam = new Map(allEntries.map((entry) => [entry.teamId, entry]));
 
-  const movedIn = previous ? entries.filter((entry) => !previousRankByTeam.has(entry.teamId)) : [];
-  const movedOut = previous ? previous.entries.filter((entry) => !currentTeamIds.has(entry.teamId)) : [];
+  const movedIn = previous ? entries.filter((entry) => !previousTopTeamIds.has(entry.teamId)) : [];
+  const movedOut = previous
+    ? previousTopEntries
+        .filter((entry) => !currentTeamIds.has(entry.teamId))
+        .map((entry) => currentEntryByTeam.get(entry.teamId) ?? entry)
+    : [];
 
   return {
     teams: rankedTeams,
@@ -42,6 +51,7 @@ export function createPollSnapshot(teams: Team[], year: number, week: number, ph
       week,
       phase,
       entries,
+      allEntries,
       movedIn,
       movedOut,
     },

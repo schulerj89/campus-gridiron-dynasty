@@ -81,6 +81,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.locator(".movement-chip.down").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("rankings-moved-in-panel").getByTestId("ranking-movement-row").first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("rankings-moved-out-panel").getByTestId("ranking-movement-row").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("rankings-moved-out-panel")).toContainText("Now #");
+  await expect(page.getByTestId("rankings-moved-out-panel")).toContainText("From #");
   await page.screenshot({ path: path.join(screenshotDir, "rankings-movement-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Recruiting" }).click();

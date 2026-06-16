@@ -937,7 +937,7 @@ select {
 }
 
 .movement-row {
-  grid-template-columns: 52px minmax(140px, 1fr) 64px;
+  grid-template-columns: 84px minmax(140px, 1fr) 78px 64px;
 }
 
 .movement-chip {

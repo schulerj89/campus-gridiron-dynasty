@@ -11,6 +11,8 @@ describe("dynasty flow", () => {
     expect(advanced.week).toBe(2);
     expect(advanced.rankings.length).toBe(2);
     expect(advanced.rankings[0]?.entries).toHaveLength(25);
+    expect(advanced.rankings[0]?.allEntries).toHaveLength(advanced.teams.length);
+    expect(advanced.rankings[0]?.allEntries.at(-1)?.rank).toBe(advanced.teams.length);
     expect(advanced.rankings[0]?.entries.reduce((sum, entry) => sum + entry.firstPlaceVotes, 0)).toBe(62);
     expect(advanced.rankings[0]?.entries.some((entry) => entry.previousRank !== undefined)).toBe(true);
     expect(advanced.weeklyAwards.length).toBe(1);

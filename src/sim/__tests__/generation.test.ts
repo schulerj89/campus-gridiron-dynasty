@@ -19,6 +19,8 @@ describe("world generation", () => {
     const state = createDynasty(1357);
     const poll = state.rankings[0]!;
     expect(poll.entries).toHaveLength(25);
+    expect(poll.allEntries).toHaveLength(state.teams.length);
+    expect(poll.allEntries.at(-1)?.rank).toBe(state.teams.length);
     expect(poll.entries.reduce((sum, entry) => sum + entry.firstPlaceVotes, 0)).toBe(62);
     expect(poll.entries[0]!.votes).toBeGreaterThan(poll.entries[1]!.votes);
     expect(poll.movedIn).toHaveLength(0);
