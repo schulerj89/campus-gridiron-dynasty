@@ -622,6 +622,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const seasonBudget = state.recruiting.seasonBudget ?? state.recruiting.weeklyPoints;
   const pointsSpent = state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining);
   const boardLimit = state.recruiting.boardLimit ?? 35;
+  const teamNameById = new Map(state.teams.map((team) => [team.id, team.name]));
   const board = state.recruiting.board
     .map((id) => state.recruits.find((recruit) => recruit.id === id))
     .filter((recruit): recruit is Recruit => recruit !== undefined)
@@ -629,7 +630,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const boardFull = board.length >= boardLimit;
   const stateOptions = Array.from(new Set(state.recruits.map((recruit) => recruit.state))).sort();
   const available = state.recruits
-    .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId && !state.recruiting.board.includes(recruit.id))
+    .filter((recruit) => recruit.stage !== "signed" && !state.recruiting.board.includes(recruit.id))
     .filter((recruit) => positionFilter === "ALL" || recruit.position === positionFilter)
     .filter((recruit) => stateFilter === "ALL" || recruit.state === stateFilter)
     .filter((recruit) => starsFilter === "ALL" || recruit.stars === Number(starsFilter))
@@ -699,7 +700,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           </label>
           <label>
             State
-            <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
+            <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} data-testid="recruit-state-filter">
               <option value="ALL">All states</option>
               {stateOptions.map((stateName) => (
                 <option key={stateName} value={stateName}>{stateName}{stateName === userTeam.state ? " (pipeline)" : ""}</option>
@@ -708,7 +709,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           </label>
           <label>
             Stars
-            <select value={starsFilter} onChange={(event) => setStarsFilter(event.target.value as RecruitStarsFilter)}>
+            <select value={starsFilter} onChange={(event) => setStarsFilter(event.target.value as RecruitStarsFilter)} data-testid="recruit-stars-filter">
               <option value="ALL">All stars</option>
               {[5, 4, 3, 2, 1].map((stars) => (
                 <option key={stars} value={stars}>{stars} stars</option>
@@ -731,13 +732,16 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         </div>
         <div className="table-list recruit-table" data-testid="recruiting-database">
           {available.map((recruit) => (
-            <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))} disabled={boardFull}>
+            <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))} disabled={boardFull || Boolean(recruit.committedTeamId)}>
               <Stars count={recruit.stars} />
               <strong>{recruit.name}</strong>
               <span>{recruit.position}</span>
               <span>#{recruit.nationalRank}</span>
               <span>{recruit.hometown}{isPipelineRecruit(userTeam, recruit) ? " - Pipeline" : ""}</span>
               <span>{recruit.interest[userTeam.id] ?? 0}%</span>
+              <span className={clsx("status-pill", recruit.committedTeamId && "committed")}>
+                {recruit.committedTeamId ? `Committed to ${teamNameById.get(recruit.committedTeamId) ?? "another school"}` : recruit.stage}
+              </span>
             </button>
           ))}
         </div>
@@ -762,6 +766,7 @@ function RecruitCard({
   boardFull: boolean;
 }) {
   const known = recruit.knownAttributes.slice(0, 5);
+  const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
   return (
     <article className="card recruit-card">
       <div className="card-title">
@@ -776,7 +781,7 @@ function RecruitCard({
       </div>
       <div className="mini-metrics">
         <span>Interest {recruit.interest[userTeam.id] ?? 0}</span>
-        <span>{recruit.stage}</span>
+        <span>{committedElsewhere ? "Committed elsewhere" : recruit.stage}</span>
         <span>Scout {recruit.scoutProgress}%</span>
       </div>
       <div className="known-attrs">
@@ -785,14 +790,14 @@ function RecruitCard({
       <p className={clsx("trait-chip", recruit.gemBust)}>{recruit.traitRevealed ? recruit.hiddenTrait : recruit.gemBust ? gemBustFor(recruit) : "trait hidden"}</p>
       <div className="button-row compact-row">
         {!onBoard && (
-          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull}>
+          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || committedElsewhere}>
             Add
           </button>
         )}
-        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < 50}>
+        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < 50 || committedElsewhere}>
           Scout
         </button>
-        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={pointsRemaining < 100}>
+        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={pointsRemaining < 100 || committedElsewhere}>
           Pitch
         </button>
       </div>
@@ -925,6 +930,7 @@ function Awards({ state }: { state: DynastyState }) {
   const playoffGames = state.playoff?.games ?? [];
   const latestHistory = state.history[0];
   const latestWeeklyAwards = state.weeklyAwards[0]?.national ?? [];
+  const latestConferenceWeeklyAwards = userConference ? state.weeklyAwards[0]?.conference[userConference.id] ?? [] : [];
   const seasonAwardWatch = !state.seasonAwards && state.phase === "regular" && state.week >= 8 ? createSeasonAwards(state.teams, state.conferences, state.calendarYear).nationalAwards : undefined;
   const awardSource = state.seasonAwards?.nationalAwards ?? seasonAwardWatch ?? (state.phase === "regular" ? [] : latestHistory?.awardWinners ?? []);
   const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
@@ -932,10 +938,17 @@ function Awards({ state }: { state: DynastyState }) {
     <>
       <section className="panel span-2" data-testid="player-of-week-panel">
         <div className="panel-head compact">
-          <h2>Player of the Week</h2>
+          <h2>National Players of the Week</h2>
           <Award size={20} />
         </div>
-        <AwardGrid awards={latestWeeklyAwards.slice(0, 1)} />
+        <AwardGrid awards={latestWeeklyAwards.slice(0, 2)} />
+      </section>
+      <section className="panel span-2" data-testid="conference-player-of-week-panel">
+        <div className="panel-head compact">
+          <h2>{userConference?.name ?? "Conference"} Players of the Week</h2>
+          <Medal size={20} />
+        </div>
+        <AwardGrid awards={latestConferenceWeeklyAwards.slice(0, 2)} />
       </section>
       <section className="panel span-2" data-testid="awards-panel">
         <div className="panel-head compact">

@@ -1,6 +1,12 @@
 import { AWARD_NAMES, POSITION_LABELS } from "./names";
 import { teamPower } from "./ratings";
-import type { AwardWinner, Conference, Player, Position, SeasonAwards, Team, WeeklyAwards } from "./types";
+import type { AwardWinner, Conference, Game, Player, PlayerStats, Position, SeasonAwards, Team, WeeklyAwards } from "./types";
+
+type PlayerEntry = { team: Team; player: Player };
+type AwardEntry = { team: Team; player: Pick<Player, "id" | "name" | "position" | "stats"> };
+
+const OFFENSIVE_PLAYER_POSITIONS: Position[] = ["QB", "HB", "WR", "TE"];
+const DEFENSIVE_PLAYER_POSITIONS: Position[] = ["DL", "LB", "CB", "S"];
 
 export function rankTeams(teams: Team[]): Team[] {
   const ranked = [...teams].sort((a, b) => rankingScore(b) - rankingScore(a));
@@ -22,22 +28,22 @@ export function selectPlayoffSeeds(teams: Team[], userTeamId: string, forceUser 
   return seeds;
 }
 
-export function createWeeklyAwards(teams: Team[], conferences: Conference[], year: number, week: number): WeeklyAwards {
-  const candidates = playersWithTeams(teams);
+export function createWeeklyAwards(teams: Team[], conferences: Conference[], year: number, week: number, games: Game[] = []): WeeklyAwards {
+  const candidates = weeklyPlayersWithTeams(games, teams);
+  const awardCandidates = candidates.length ? candidates : playersWithTeams(teams);
   const national = [
-    winner("Player of the Week", topBy(candidates, playerValue, undefined)),
-    winner("National Spark", topBy(candidates, (entry) => entry.player.stats.passYards + entry.player.stats.passTd * 90 - entry.player.stats.interceptionsThrown * 55, ["QB"])),
-    winner("Ground Surge", topBy(candidates, (entry) => entry.player.stats.rushYards + entry.player.stats.rushTd * 75, ["HB"])),
-    winner("Sky Route", topBy(candidates, (entry) => entry.player.stats.receivingYards + entry.player.stats.receivingTd * 80, ["WR", "TE"])),
-    winner("Stone Wall", topBy(candidates, (entry) => entry.player.stats.tackles * 9 + entry.player.stats.sacks * 30 + entry.player.stats.interceptions * 40, ["DL", "LB", "CB", "S"])),
+    winner("National Offensive Player of the Week", topBy(awardCandidates, weeklyOffenseValue, OFFENSIVE_PLAYER_POSITIONS)),
+    winner("National Defensive Player of the Week", topBy(awardCandidates, weeklyDefenseValue, DEFENSIVE_PLAYER_POSITIONS)),
+    winner("Ground Surge", topBy(awardCandidates, (entry) => entry.player.stats.rushYards + entry.player.stats.rushTd * 75, ["HB"])),
+    winner("Sky Route", topBy(awardCandidates, (entry) => entry.player.stats.receivingYards + entry.player.stats.receivingTd * 80, ["WR", "TE"])),
   ].filter(Boolean) as AwardWinner[];
 
   const conference: Record<string, AwardWinner[]> = {};
   for (const conf of conferences) {
-    const confCandidates = candidates.filter((entry) => entry.team.conferenceId === conf.id);
+    const confCandidates = awardCandidates.filter((entry) => entry.team.conferenceId === conf.id);
     conference[conf.id] = [
-      winner(`${conf.name} Signal`, topBy(confCandidates, (entry) => entry.player.stats.passYards + entry.player.stats.passTd * 90, ["QB"])),
-      winner(`${conf.name} Defender`, topBy(confCandidates, (entry) => entry.player.stats.tackles * 9 + entry.player.stats.sacks * 30 + entry.player.stats.interceptions * 40, ["DL", "LB", "CB", "S"])),
+      winner(`${conf.name} Offensive Player of the Week`, topBy(confCandidates, weeklyOffenseValue, OFFENSIVE_PLAYER_POSITIONS)),
+      winner(`${conf.name} Defensive Player of the Week`, topBy(confCandidates, weeklyDefenseValue, DEFENSIVE_PLAYER_POSITIONS)),
     ].filter(Boolean) as AwardWinner[];
   }
 
@@ -111,7 +117,32 @@ function playersWithTeams(teams: Team[]) {
   return teams.flatMap((team) => team.roster.map((player) => ({ team, player })));
 }
 
-function winner(label: string, entry?: { team: Team; player: Player }): AwardWinner | undefined {
+function weeklyPlayersWithTeams(games: Game[], teams: Team[]): AwardEntry[] {
+  const teamById = new Map(teams.map((team) => [team.id, team]));
+  const byPlayer = new Map<string, AwardEntry>();
+  for (const game of games) {
+    for (const box of [game.result?.boxScore?.home, game.result?.boxScore?.away]) {
+      if (!box) continue;
+      const team = teamById.get(box.teamId);
+      if (!team) continue;
+      for (const line of box.players) {
+        const previous = byPlayer.get(line.playerId);
+        byPlayer.set(line.playerId, {
+          team,
+          player: {
+            id: line.playerId,
+            name: line.playerName,
+            position: line.position,
+            stats: previous ? addStats(previous.player.stats, line.stats) : { ...line.stats },
+          },
+        });
+      }
+    }
+  }
+  return Array.from(byPlayer.values());
+}
+
+function winner(label: string, entry?: AwardEntry): AwardWinner | undefined {
   if (!entry) return undefined;
   return {
     awardName: label,
@@ -124,17 +155,17 @@ function winner(label: string, entry?: { team: Team; player: Player }): AwardWin
   };
 }
 
-function topBy(
-  entries: { team: Team; player: Player }[],
-  score: (entry: { team: Team; player: Player }) => number,
+function topBy<T extends AwardEntry>(
+  entries: T[],
+  score: (entry: T) => number,
   positions?: Position[],
-): { team: Team; player: Player } | undefined {
+): T | undefined {
   return entries
     .filter((entry) => !positions || positions.includes(entry.player.position))
     .sort((a, b) => score(b) - score(a))[0];
 }
 
-function allTeam(entries: { team: Team; player: Player }[], tier: 1 | 2): AwardWinner[] {
+function allTeam(entries: PlayerEntry[], tier: 1 | 2): AwardWinner[] {
   const groups: Position[][] = [["QB"], ["HB"], ["WR"], ["WR"], ["TE"], ["OL"], ["OL"], ["DL"], ["DL"], ["LB"], ["CB"], ["S"], ["K"]];
   const used = new Set<string>();
   const winners: AwardWinner[] = [];
@@ -167,7 +198,33 @@ function playerValue(entry: { player: Player }): number {
   return entry.player.overall * 2.2 + offense + defense + special;
 }
 
-function noteFor(player: Player): string {
+function weeklyOffenseValue(entry: AwardEntry): number {
+  const stats = entry.player.stats;
+  return (
+    stats.passYards * 0.09 +
+    stats.passTd * 32 -
+    stats.interceptionsThrown * 22 +
+    stats.rushYards * 0.16 +
+    stats.rushTd * 24 +
+    stats.receivingYards * 0.17 +
+    stats.receivingTd * 26
+  );
+}
+
+function weeklyDefenseValue(entry: AwardEntry): number {
+  const stats = entry.player.stats;
+  return stats.tackles * 4 + stats.sacks * 18 + stats.interceptions * 24 + (stats.sacks >= 2 ? 12 : 0) + (stats.interceptions >= 2 ? 16 : 0);
+}
+
+function addStats(left: PlayerStats, right: PlayerStats): PlayerStats {
+  const total = { ...left };
+  for (const key of Object.keys(total) as (keyof PlayerStats)[]) {
+    total[key] += right[key];
+  }
+  return total;
+}
+
+function noteFor(player: AwardEntry["player"]): string {
   const stats = player.stats;
   if (player.position === "QB") return `${stats.passYards.toLocaleString()} pass yards, ${stats.passTd} TD`;
   if (player.position === "HB") return `${stats.rushYards.toLocaleString()} rush yards, ${stats.rushTd} TD`;

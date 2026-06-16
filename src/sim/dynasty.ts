@@ -137,7 +137,7 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
   }
   const schedule = state.schedule.map((game) => playedGames.find((played) => played.id === game.id) ?? game);
   teams = rankTeams(teams);
-  const weeklyAward = createWeeklyAwards(teams, state.conferences, state.calendarYear, state.week);
+  const weeklyAward = createWeeklyAwards(teams, state.conferences, state.calendarYear, state.week, playedGames);
   let nextState: DynastyState = {
     ...state,
     rngState: rng.currentState(),

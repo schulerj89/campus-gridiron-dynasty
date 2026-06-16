@@ -40,6 +40,7 @@ This repo includes local skill briefs under `skills/`:
 - `skills/code-review-integrity`: code review, integrity checks, test coverage, screenshots, and version-bump hygiene.
 - `skills/dynasty-game-qa`: test and smoke coverage checklist.
 - `skills/sim-game-director`: game-director review priorities.
+- `skills/stat-pace-expert`: stat pacing, box-score realism, weekly awards, and leaderboard balance.
 
 Update this file when core simulation rules, commands, storage, or QA expectations change.
 

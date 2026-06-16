@@ -74,6 +74,24 @@ describe("recruiting", () => {
     expect(overflowAttempt.recruiting.lastActions).toEqual(prepared.recruiting.lastActions);
   });
 
+  it("blocks board, scout, and pitch actions once a recruit commits elsewhere", () => {
+    const state = createDynasty(5794);
+    const otherTeam = state.teams.find((team) => team.id !== state.userTeamId)!;
+    const committedRecruit = { ...state.recruits[0]!, committedTeamId: otherTeam.id, stage: "softPledge" as const };
+    const prepared = {
+      ...state,
+      recruits: [committedRecruit, ...state.recruits.slice(1)],
+    };
+    const addAttempt = addRecruitToBoard(prepared, committedRecruit.id);
+    const scoutAttempt = scoutRecruit(prepared, committedRecruit.id);
+    const pitchAttempt = pitchRecruit(prepared, committedRecruit.id);
+    expect(addAttempt.recruiting.board).toEqual(prepared.recruiting.board);
+    expect(scoutAttempt.recruiting.pointsRemaining).toBe(prepared.recruiting.pointsRemaining);
+    expect(pitchAttempt.recruiting.pointsRemaining).toBe(prepared.recruiting.pointsRemaining);
+    expect(scoutAttempt.recruiting.lastActions).toEqual(prepared.recruiting.lastActions);
+    expect(pitchAttempt.recruiting.lastActions).toEqual(prepared.recruiting.lastActions);
+  });
+
   it("reveals hidden traits for user-team signees after signing day", () => {
     let state = createDynasty(6789);
     const recruit = state.recruits.find((candidate) => candidate.interest[state.userTeamId] > 60)!;

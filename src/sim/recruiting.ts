@@ -24,7 +24,7 @@ export function addRecruitToBoard(state: DynastyState, recruitId: string): Dynas
 
 export function scoutRecruit(state: DynastyState, recruitId: string): DynastyState {
   const target = state.recruits.find((recruit) => recruit.id === recruitId);
-  if (!target || target.stage === "signed") return state;
+  if (!target || target.stage === "signed" || target.committedTeamId) return state;
   if (state.recruiting.pointsRemaining < SCOUT_COST) return state;
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
@@ -48,7 +48,7 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
 
 export function pitchRecruit(state: DynastyState, recruitId: string): DynastyState {
   const target = state.recruits.find((recruit) => recruit.id === recruitId);
-  if (!target || target.stage === "signed") return state;
+  if (!target || target.stage === "signed" || target.committedTeamId) return state;
   if (state.recruiting.pointsRemaining < PITCH_COST) return state;
   const team = getUserTeam(state);
   const rng = new Rng(state.rngState);

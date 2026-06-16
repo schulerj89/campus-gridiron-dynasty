@@ -54,14 +54,27 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Awards" }).click();
   await expect(page.getByText("Season Award Watch Opens Week 8")).toBeVisible();
   await expect(page.getByTestId("player-of-week-panel")).toBeVisible();
+  await expect(page.getByTestId("player-of-week-panel")).toContainText("National Offensive Player of the Week");
+  await expect(page.getByTestId("player-of-week-panel")).toContainText("National Defensive Player of the Week");
   await page.getByTestId("player-of-week-panel").screenshot({ path: path.join(screenshotDir, "player-of-week-desktop.png") });
+  await expect(page.getByTestId("conference-player-of-week-panel")).toBeVisible();
+  await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
   await page.getByTestId("leaderboard-panel").screenshot({ path: path.join(screenshotDir, "leaderboard-desktop.png") });
+
+  for (let week = 0; week < 7; week += 1) {
+    await page.getByTestId("advance-week").click();
+  }
+
+  await page.getByRole("button", { name: "Recruiting" }).click();
+  await page.getByTestId("recruit-stars-filter").selectOption("2");
+  await expect(page.getByTestId("recruiting-database")).toContainText("Committed to", { timeout: 30_000 });
+  await page.screenshot({ path: path.join(screenshotDir, "recruiting-commitments-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Debug" }).click();
   await page.getByRole("button", { name: "Force User Playoff" }).click();
   await page.getByRole("button", { name: "Force User Award" }).click();
 
-  for (let week = 0; week < 11; week += 1) {
+  for (let week = 0; week < 4; week += 1) {
     await page.getByTestId("advance-week").click();
   }
 

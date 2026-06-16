@@ -472,6 +472,25 @@ select {
   vertical-align: -2px;
 }
 
+.status-pill {
+  background: rgba(219, 229, 222, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: #dce8e2;
+  justify-content: center;
+  max-width: 220px;
+  overflow: hidden;
+  padding: 6px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-pill.committed {
+  background: rgba(216, 95, 85, 0.16);
+  border-color: rgba(216, 95, 85, 0.5);
+  color: #ffd8d4;
+}
+
 .filter-grid {
   display: grid;
   gap: 10px;
@@ -817,7 +836,7 @@ select {
 }
 
 .recruit-table .table-row {
-  grid-template-columns: 92px minmax(160px, 1.1fr) 54px 78px minmax(180px, 1fr) 70px;
+  grid-template-columns: 92px minmax(160px, 1.1fr) 54px 78px minmax(170px, 1fr) 70px minmax(150px, 0.9fr);
 }
 
 .leaderboard-row {

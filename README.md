@@ -41,7 +41,9 @@ QA screenshots are written to:
 - `artifacts/screenshots/program-staff-desktop.png`
 - `artifacts/screenshots/box-score-desktop.png`
 - `artifacts/screenshots/player-of-week-desktop.png`
+- `artifacts/screenshots/conference-player-of-week-desktop.png`
 - `artifacts/screenshots/leaderboard-desktop.png`
+- `artifacts/screenshots/recruiting-commitments-desktop.png`
 - `artifacts/screenshots/awards-desktop.png`
 - `artifacts/screenshots/all-american-desktop.png`
 - `artifacts/screenshots/all-american-second-desktop.png`
@@ -70,6 +72,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, and the 10-portrait co
 - Generated players and recruits also use position-specific off-skill caps so non-role attributes stay plausible.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
+- Recruits committed to other programs remain visible in the database with destination indicators but cannot be added, scouted, or pitched.
 - The game should stay playable on WebKit and on mobile-width screens.
 
 ## Research Notes
