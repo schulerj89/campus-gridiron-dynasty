@@ -421,7 +421,8 @@ select {
 .playoff-grid,
 .staff-grid,
 .investment-grid,
-.debug-grid {
+.debug-grid,
+.attribute-grid {
   display: grid;
   gap: 12px;
 }
@@ -435,8 +436,28 @@ select {
 
 .playoff-grid,
 .investment-grid,
-.debug-grid {
+.debug-grid,
+.attribute-grid {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.attribute-board {
+  display: grid;
+  gap: 16px;
+}
+
+.featured-player {
+  align-items: center;
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+}
+
+.featured-player h3 {
+  margin-bottom: 4px;
 }
 
 .card {
@@ -635,7 +656,8 @@ select {
   .staff-grid,
   .playoff-grid,
   .investment-grid,
-  .debug-grid {
+  .debug-grid,
+  .attribute-grid {
     grid-template-columns: 1fr;
   }
 

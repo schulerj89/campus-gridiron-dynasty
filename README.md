@@ -27,8 +27,16 @@ QA screenshots are written to:
 
 - `artifacts/screenshots/home-desktop.png`
 - `artifacts/screenshots/dashboard-desktop.png`
+- `artifacts/screenshots/roster-desktop.png`
+- `artifacts/screenshots/attributes-desktop.png`
 - `artifacts/screenshots/recruiting-desktop.png`
+- `artifacts/screenshots/program-staff-desktop.png`
+- `artifacts/screenshots/awards-desktop.png`
+- `artifacts/screenshots/all-american-desktop.png`
+- `artifacts/screenshots/playoffs-desktop.png`
 - `artifacts/screenshots/awards-playoff-desktop.png`
+- `artifacts/screenshots/offseason-dashboard-desktop.png`
+- `artifacts/screenshots/offseason-recruiting-desktop.png`
 - `artifacts/screenshots/mobile-dashboard.png`
 
 ## Generated Assets

@@ -39,6 +39,22 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "debug", label: "Debug", icon: Wrench },
 ];
 
+const ATTRIBUTE_KEYS_FOR_UI: AttributeKey[] = [
+  "throwPower",
+  "accuracy",
+  "awareness",
+  "speed",
+  "catching",
+  "tackle",
+  "interception",
+  "defAwareness",
+  "runBlock",
+  "passBlock",
+  "routeRunning",
+  "kickPower",
+  "kickAccuracy",
+];
+
 export default function App() {
   const previewWorld = useMemo(() => createDynasty(20260616), []);
   const [selectedTeamId, setSelectedTeamId] = useState(previewWorld.userTeamId);
@@ -294,6 +310,7 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
 
 function Roster({ team }: { team: Team }) {
   const sorted = [...team.roster].sort((a, b) => b.overall - a.overall);
+  const featured = sorted[0];
   const byPosition = Object.entries(
     team.roster.reduce<Record<string, number>>((counts, player) => {
       counts[player.position] = (counts[player.position] ?? 0) + 1;
@@ -320,6 +337,37 @@ function Roster({ team }: { team: Team }) {
           ))}
         </div>
       </section>
+      {featured && (
+        <section className="panel span-2" data-testid="attributes-panel">
+          <div className="panel-head compact">
+            <h2>Attribute Board</h2>
+            <LineChart size={20} />
+          </div>
+          <div className="attribute-board">
+            <div className="featured-player">
+              <Portrait index={featured.profileIndex} />
+              <div>
+                <p className="eyebrow">Featured Player</p>
+                <h3>{featured.name}</h3>
+                <p className="muted">
+                  {featured.year} · {featured.position} · OVR {featured.overall} · Potential {featured.potential}
+                </p>
+              </div>
+            </div>
+            <div className="attribute-grid">
+              {ATTRIBUTE_KEYS_FOR_UI.map((key) => (
+                <div key={key} className="unit-bar">
+                  <span>{title(key)}</span>
+                  <strong>{featured.attributes[key]}</strong>
+                  <div>
+                    <i style={{ width: `${featured.attributes[key]}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </>
   );
 }
@@ -503,7 +551,7 @@ function Awards({ state }: { state: DynastyState }) {
         <AwardGrid awards={awardSource} />
       </section>
       {state.seasonAwards && (
-        <section className="panel span-2">
+        <section className="panel span-2" data-testid="all-american-panel">
           <div className="panel-head compact">
             <h2>All-American Teams</h2>
             <Medal size={20} />
