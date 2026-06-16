@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.4.0 - 2026-06-16
+
+- Reworked game stat simulation so only active rotations appear in box scores and roster games-played totals.
+- Balanced box score stat allocation so passing touchdowns match receiving touchdowns and rushing/receiving TD labels are explicit.
+- Changed recruiting to a capped season-long budget with board caps, no weekly point refill, and signing-day budget reset.
+- Added offseason reports for graduates, pro declarations, recruiting class rankings, and stored yearly user recruiting rank history.
+
 ## 0.3.0 - 2026-06-16
 
 - Added played-game box score drilldowns with team totals and player stat lines.

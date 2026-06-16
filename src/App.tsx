@@ -39,7 +39,7 @@ import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart } from "./sim/depthChart";
 import { teamPower, teamUnitRatings } from "./sim/ratings";
 import { createSeasonAwards } from "./sim/awards";
-import { POSITIONS, type AttributeKey, type AwardWinner, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerGameStats, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team, type TeamBoxScore } from "./sim/types";
+import { POSITIONS, type AttributeKey, type AwardWinner, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team, type TeamBoxScore } from "./sim/types";
 import { APP_VERSION } from "./version";
 
 type Tab = "overview" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
@@ -308,6 +308,7 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
   const rankings = topTeams(state, 8);
   const recentAwards = state.weeklyAwards[0]?.national ?? [];
   const playoffTeams = state.playoff?.seeds.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
+  const offseasonTeamReport = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === userTeam.id);
 
   return (
     <>
@@ -363,6 +364,8 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
         </ol>
       </section>
 
+      {state.offseasonReport && offseasonTeamReport && <OffseasonRecap reportYear={state.offseasonReport.year} teamReport={offseasonTeamReport} topClasses={state.offseasonReport.topClasses} />}
+
       <section className="panel action-panel">
         <div className="panel-head compact">
           <h2>Action Items</h2>
@@ -384,6 +387,81 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
         <AwardGrid awards={recentAwards} />
       </section>
     </>
+  );
+}
+
+function OffseasonRecap({
+  reportYear,
+  teamReport,
+  topClasses,
+}: {
+  reportYear: number;
+  teamReport: NonNullable<DynastyState["offseasonReport"]>["teams"][number];
+  topClasses: NonNullable<DynastyState["offseasonReport"]>["topClasses"];
+}) {
+  const graduates = teamReport.departures.filter((departure) => departure.reason === "graduated");
+  const proDepartures = teamReport.departures.filter((departure) => departure.reason === "pro");
+  return (
+    <section className="panel span-2" data-testid="offseason-report-panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Offseason Report</p>
+          <h2>
+            {reportYear} Departures {teamReport.recruitingRank ? `- Recruiting #${teamReport.recruitingRank}` : ""}
+          </h2>
+        </div>
+        <GraduationCap size={20} />
+      </div>
+      <div className="metric-grid offseason-metrics">
+        <Metric label="Graduated" value={graduates.length} />
+        <Metric label="Went Pro" value={proDepartures.length} />
+        <Metric label="Class Rank" value={teamReport.recruitingRank ? `#${teamReport.recruitingRank}` : "Pending"} />
+        <Metric label="Top Class" value={topClasses[0]?.teamName ?? "Pending"} />
+      </div>
+      <div className="offseason-grid">
+        <DepartureGroup title="Graduated" departures={graduates} />
+        <DepartureGroup title="Went Pro" departures={proDepartures} />
+        <section className="offseason-column" data-testid="recruiting-ranking-panel">
+          <h3>Recruiting Class Leaderboard</h3>
+          {topClasses.length ? (
+            <div className="table-list class-ranking-list">
+              {topClasses.map((entry, index) => (
+                <div key={entry.teamId} className="table-row class-rank-row">
+                  <span>{index + 1}</span>
+                  <strong>{entry.teamName}</strong>
+                  <span>{entry.points} pts</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="muted">Class rankings post after signing day.</p>
+          )}
+        </section>
+      </div>
+    </section>
+  );
+}
+
+function DepartureGroup({ title: groupTitle, departures }: { title: string; departures: PlayerDeparture[] }) {
+  return (
+    <section className="offseason-column" data-testid={groupTitle === "Graduated" ? "graduated-panel" : "pro-departures-panel"}>
+      <h3>{groupTitle}</h3>
+      {departures.length ? (
+        <div className="table-list departure-list">
+          {departures.slice(0, 12).map((departure) => (
+            <div key={departure.playerId} className="table-row departure-row">
+              <strong>{departure.playerName}</strong>
+              <span>{departure.position}</span>
+              <span>{departure.year}</span>
+              <span>OVR {departure.overall}</span>
+              <span>{departure.note}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">No players in this group.</p>
+      )}
+    </section>
   );
 }
 
@@ -541,10 +619,17 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [pipelineOnly, setPipelineOnly] = useState(false);
   const [sortBy, setSortBy] = useState<RecruitSort>("rank");
   const needs = positionNeeds(userTeam);
-  const board = state.recruiting.board.map((id) => state.recruits.find((recruit) => recruit.id === id)).filter((recruit): recruit is Recruit => Boolean(recruit));
+  const seasonBudget = state.recruiting.seasonBudget ?? state.recruiting.weeklyPoints;
+  const pointsSpent = state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining);
+  const boardLimit = state.recruiting.boardLimit ?? 35;
+  const board = state.recruiting.board
+    .map((id) => state.recruits.find((recruit) => recruit.id === id))
+    .filter((recruit): recruit is Recruit => recruit !== undefined)
+    .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId);
+  const boardFull = board.length >= boardLimit;
   const stateOptions = Array.from(new Set(state.recruits.map((recruit) => recruit.state))).sort();
   const available = state.recruits
-    .filter((recruit) => recruit.stage !== "signed" && !state.recruiting.board.includes(recruit.id))
+    .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId && !state.recruiting.board.includes(recruit.id))
     .filter((recruit) => positionFilter === "ALL" || recruit.position === positionFilter)
     .filter((recruit) => stateFilter === "ALL" || recruit.state === stateFilter)
     .filter((recruit) => starsFilter === "ALL" || recruit.stars === Number(starsFilter))
@@ -566,13 +651,20 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           <div>
             <p className="eyebrow">Recruiting Board</p>
             <h2>
-              {state.recruiting.pointsRemaining} / {state.recruiting.weeklyPoints} points
+              {state.recruiting.pointsRemaining.toLocaleString()} / {seasonBudget.toLocaleString()} season points
             </h2>
+            <p className="muted">Board {board.length}/{boardLimit} - weekly estimate {state.recruiting.weeklyPoints.toLocaleString()} - spent {pointsSpent.toLocaleString()}</p>
           </div>
-          <button className="primary" data-testid="auto-recruit" onClick={() => onUpdate((current) => autoRecruit(current, "Manual auto-recruit run."))}>
+          <button className="primary" data-testid="auto-recruit" onClick={() => onUpdate((current) => autoRecruit(current, "Manual auto-recruit run."))} disabled={state.recruiting.pointsRemaining < 50}>
             <Search size={18} />
             Auto Recruit
           </button>
+        </div>
+        <div className="metric-grid recruiting-budget-grid" data-testid="recruiting-budget-panel">
+          <Metric label="Remaining" value={state.recruiting.pointsRemaining.toLocaleString()} />
+          <Metric label="Spent" value={pointsSpent.toLocaleString()} />
+          <Metric label="Board Cap" value={`${board.length}/${boardLimit}`} />
+          <Metric label="Next Refill" value="Signing Day" />
         </div>
         <div className="need-row">
           {needs.slice(0, 5).map((need) => (
@@ -583,7 +675,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         </div>
         <div className="recruit-grid" data-testid="recruiting-board">
           {(board.length ? board : available.slice(0, 6)).map((recruit) => (
-            <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onBoard={board.some((item) => item.id === recruit.id)} />
+            <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onBoard={board.some((item) => item.id === recruit.id)} pointsRemaining={state.recruiting.pointsRemaining} boardFull={boardFull} />
           ))}
         </div>
       </section>
@@ -639,7 +731,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         </div>
         <div className="table-list recruit-table" data-testid="recruiting-database">
           {available.map((recruit) => (
-            <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))}>
+            <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))} disabled={boardFull}>
               <Stars count={recruit.stars} />
               <strong>{recruit.name}</strong>
               <span>{recruit.position}</span>
@@ -659,11 +751,15 @@ function RecruitCard({
   userTeam,
   onUpdate,
   onBoard,
+  pointsRemaining,
+  boardFull,
 }: {
   recruit: Recruit;
   userTeam: Team;
   onUpdate: (recipe: (state: DynastyState) => DynastyState) => void;
   onBoard: boolean;
+  pointsRemaining: number;
+  boardFull: boolean;
 }) {
   const known = recruit.knownAttributes.slice(0, 5);
   return (
@@ -689,14 +785,14 @@ function RecruitCard({
       <p className={clsx("trait-chip", recruit.gemBust)}>{recruit.traitRevealed ? recruit.hiddenTrait : recruit.gemBust ? gemBustFor(recruit) : "trait hidden"}</p>
       <div className="button-row compact-row">
         {!onBoard && (
-          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))}>
+          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull}>
             Add
           </button>
         )}
-        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))}>
+        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < 50}>
           Scout
         </button>
-        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))}>
+        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={pointsRemaining < 100}>
           Pitch
         </button>
       </div>
@@ -798,9 +894,9 @@ function TeamBoxScorePanel({ box }: { box: TeamBoxScore }) {
         <strong>{box.score}</strong>
       </div>
       <div className="mini-metrics">
-        <span>{box.totals.passYards} pass</span>
-        <span>{box.totals.rushYards} rush</span>
-        <span>{box.totals.receivingYards} rec</span>
+        <span>{box.totals.passYards} pass, {box.totals.passTd} PaTD</span>
+        <span>{box.totals.rushYards} rush, {box.totals.rushTd} RuTD</span>
+        <span>{box.totals.receivingYards} rec, {box.totals.receivingTd} RecTD</span>
         <span>{box.totals.tackles} tackles</span>
       </div>
       <div className="box-player-list">
@@ -882,6 +978,7 @@ function Awards({ state }: { state: DynastyState }) {
               <strong>{entry.championName ?? "No champion"}</strong>
               <span>{entry.awardWinners[0]?.playerName ?? "Awards pending"}</span>
               <span>{entry.topClasses[0]?.teamName ?? "Class pending"}</span>
+              <span>{entry.userRecruitingRank ? `Recruiting #${entry.userRecruitingRank}` : "Recruiting pending"}</span>
             </div>
           ))}
         </div>
@@ -1286,9 +1383,9 @@ function playerStatRows(player: Player): { label: string; stats: PlayerStats }[]
 
 function gameLineSummary(stats: PlayerStats): string {
   const parts: string[] = [];
-  if (stats.passYards || stats.passTd || stats.interceptionsThrown) parts.push(`${stats.passYards} PYD, ${stats.passTd} TD, ${stats.interceptionsThrown} INT`);
-  if (stats.rushYards || stats.rushTd) parts.push(`${stats.rushYards} RYD, ${stats.rushTd} TD`);
-  if (stats.receivingYards || stats.receivingTd) parts.push(`${stats.receivingYards} REC, ${stats.receivingTd} TD`);
+  if (stats.passYards || stats.passTd || stats.interceptionsThrown) parts.push(`${stats.passYards} PYD, ${stats.passTd} PaTD, ${stats.interceptionsThrown} INT`);
+  if (stats.rushYards || stats.rushTd) parts.push(`${stats.rushYards} RYD, ${stats.rushTd} RuTD`);
+  if (stats.receivingYards || stats.receivingTd) parts.push(`${stats.receivingYards} REC, ${stats.receivingTd} RecTD`);
   if (stats.tackles || stats.sacks || stats.interceptions) parts.push(`${stats.tackles} TKL, ${stats.sacks} SCK, ${stats.interceptions} INT`);
   if (stats.pancakes) parts.push(`${stats.pancakes} PAN`);
   if (stats.fieldGoalAttempts) parts.push(`${stats.fieldGoals}/${stats.fieldGoalAttempts} FG`);

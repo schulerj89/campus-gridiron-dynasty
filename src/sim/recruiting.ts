@@ -1,5 +1,5 @@
 import { clamp, Rng } from "./rng";
-import { calculateWeeklyRecruitingPoints, createSignedPlayerFromRecruit } from "./generate";
+import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, createSignedPlayerFromRecruit } from "./generate";
 import { ATTRIBUTE_KEYS, type AttributeKey, type DynastyState, type Position, type Recruit, type Team } from "./types";
 import { TARGET_ROSTER } from "./ratings";
 
@@ -10,7 +10,8 @@ const PIPELINE_BONUS = 8;
 
 export function addRecruitToBoard(state: DynastyState, recruitId: string): DynastyState {
   const recruit = state.recruits.find((candidate) => candidate.id === recruitId);
-  if (!recruit || recruit.stage === "signed" || state.recruiting.board.includes(recruitId) || state.recruiting.board.length >= BOARD_LIMIT) return state;
+  const limit = recruitingBoardLimit(state);
+  if (!recruit || recruit.stage === "signed" || recruit.committedTeamId || state.recruiting.board.includes(recruitId) || state.recruiting.board.length >= limit) return state;
   return {
     ...state,
     recruiting: {
@@ -38,6 +39,7 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
     recruiting: {
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - SCOUT_COST,
+      pointsSpent: (state.recruiting.pointsSpent ?? 0) + SCOUT_COST,
       board: boardWithRecruit(state.recruiting.board, recruitId),
       lastActions: [`Scouted ${recruit?.name ?? "recruit"} for ${SCOUT_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
@@ -71,6 +73,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
     recruiting: {
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - PITCH_COST,
+      pointsSpent: (state.recruiting.pointsSpent ?? 0) + PITCH_COST,
       board: boardWithRecruit(state.recruiting.board, recruitId),
       lastActions: [`Pitched ${recruit?.name ?? "recruit"} for ${PITCH_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
@@ -81,7 +84,8 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
   const team = getUserTeam(state);
   const rng = new Rng(state.rngState);
   let points = state.recruiting.pointsRemaining;
-  let board = ensureSmartBoard(state.recruits, state.recruiting.board, team, 24);
+  let spent = state.recruiting.pointsSpent ?? 0;
+  let board = ensureSmartBoard(state.recruits, activeBoard(state.recruiting.board, state.recruits), team, 24, recruitingBoardLimit(state));
   let recruits = state.recruits;
   const actions: string[] = [];
 
@@ -105,13 +109,15 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
         );
       });
       points -= PITCH_COST;
+      spent += PITCH_COST;
       actions.push(`Auto-pitched ${target.name}.`);
     } else {
       recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 22) : recruit));
       points -= SCOUT_COST;
+      spent += SCOUT_COST;
       actions.push(`Auto-scouted ${target.name}.`);
     }
-    board = ensureSmartBoard(recruits, board, team, 24);
+    board = ensureSmartBoard(recruits, activeBoard(board, recruits), team, 24, recruitingBoardLimit(state));
   }
 
   return {
@@ -121,6 +127,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
     recruiting: {
       ...state.recruiting,
       pointsRemaining: points,
+      pointsSpent: spent,
       board,
       lastActions: [reason, ...actions, ...state.recruiting.lastActions].slice(0, 10),
     },
@@ -135,7 +142,9 @@ export function advanceRecruitingWeek(state: DynastyState): DynastyState {
     return maybeCommit(rng, narrowTopSchools(rng, moved, state.week), state.week);
   });
   const userTeam = getUserTeam(state);
+  const seasonBudget = state.recruiting.seasonBudget ?? calculateSeasonRecruitingBudget(userTeam);
   const weeklyPoints = calculateWeeklyRecruitingPoints(userTeam);
+  const board = activeBoard(state.recruiting.board, recruits);
   return {
     ...state,
     rngState: rng.currentState(),
@@ -143,7 +152,11 @@ export function advanceRecruitingWeek(state: DynastyState): DynastyState {
     recruiting: {
       ...state.recruiting,
       weeklyPoints,
-      pointsRemaining: weeklyPoints,
+      seasonBudget,
+      pointsRemaining: Math.min(state.recruiting.pointsRemaining, seasonBudget),
+      pointsSpent: state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining),
+      boardLimit: recruitingBoardLimit(state),
+      board,
     },
   };
 }
@@ -232,11 +245,11 @@ export function isPipelineRecruit(team: Team, recruit: Recruit): boolean {
   return recruit.state === team.state;
 }
 
-function ensureSmartBoard(recruits: Recruit[], existingBoard: string[], team: Team, minimum: number): string[] {
+function ensureSmartBoard(recruits: Recruit[], existingBoard: string[], team: Team, minimum: number, boardLimit = BOARD_LIMIT): string[] {
   const board = [...existingBoard];
   const needs = positionNeeds(team);
   const available = recruits
-    .filter((recruit) => recruit.stage !== "signed" && !board.includes(recruit.id))
+    .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId && !board.includes(recruit.id))
     .sort((a, b) => {
       const needA = needs.find((need) => need.position === a.position)?.need ?? 0;
       const needB = needs.find((need) => need.position === b.position)?.need ?? 0;
@@ -245,11 +258,11 @@ function ensureSmartBoard(recruits: Recruit[], existingBoard: string[], team: Te
       return needB * 20 + b.stars * 12 + interestB + b.overall - (needA * 20 + a.stars * 12 + interestA + a.overall);
     });
   for (const recruit of available) {
-    if (board.length >= Math.max(minimum, BOARD_LIMIT)) break;
-    if (board.length >= BOARD_LIMIT) break;
+    if (board.length >= Math.max(minimum, boardLimit)) break;
+    if (board.length >= boardLimit) break;
     board.push(recruit.id);
   }
-  return board.slice(0, BOARD_LIMIT);
+  return board.slice(0, boardLimit);
 }
 
 function pickAutoTarget(recruits: Recruit[], board: string[], team: Team, points: number): Recruit | undefined {
@@ -383,4 +396,16 @@ function getUserTeam(state: DynastyState): Team {
 function boardWithRecruit(board: string[], recruitId: string): string[] {
   if (board.includes(recruitId) || board.length >= BOARD_LIMIT) return board;
   return [...board, recruitId];
+}
+
+function recruitingBoardLimit(state: DynastyState): number {
+  return state.recruiting.boardLimit ?? BOARD_LIMIT;
+}
+
+function activeBoard(board: string[], recruits: Recruit[]): string[] {
+  const recruitById = new Map(recruits.map((recruit) => [recruit.id, recruit]));
+  return board.filter((id) => {
+    const recruit = recruitById.get(id);
+    return recruit && recruit.stage !== "signed" && !recruit.committedTeamId;
+  });
 }

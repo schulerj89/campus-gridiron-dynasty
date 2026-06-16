@@ -53,6 +53,7 @@ export function createDynasty(seed = Date.now(), userTeamId?: string): DynastySt
   const userTeam = teams.find((team) => team.id === userTeamId) ?? teams[0]!;
   const selectedTeamId = userTeam.id;
   const recruits = createRecruitClass(rng, teams, 2600);
+  const seasonBudget = calculateSeasonRecruitingBudget(userTeam);
   const weeklyPoints = calculateWeeklyRecruitingPoints(userTeam);
   const schedule = createSchedule(rng, teams, 1);
 
@@ -74,11 +75,14 @@ export function createDynasty(seed = Date.now(), userTeamId?: string): DynastySt
     recruits,
     recruiting: {
       weeklyPoints,
-      pointsRemaining: weeklyPoints,
+      seasonBudget,
+      pointsRemaining: seasonBudget,
+      pointsSpent: 0,
+      boardLimit: 35,
       board: [],
       autoEnabled: true,
       profile: "balanced",
-      lastActions: [`Opened ${userTeam.name} dynasty with ${weeklyPoints} weekly recruiting points.`],
+      lastActions: [`Opened ${userTeam.name} dynasty with ${seasonBudget.toLocaleString()} season recruiting points.`],
     },
     schedule,
     weeklyAwards: [],
@@ -246,7 +250,19 @@ export function createCoachPool(rng: Rng, count: number): Coach[] {
 }
 
 export function calculateWeeklyRecruitingPoints(team: Team): number {
-  return Math.round(500 + team.program.prestige * 5 + team.program.recruitingReach * 4 + team.coaches.head.recruiting * 3 + team.coaches.offense.recruiting + team.coaches.defense.recruiting);
+  return Math.round(calculateSeasonRecruitingBudget(team) / 12);
+}
+
+export function calculateSeasonRecruitingBudget(team: Team): number {
+  const programStrength =
+    team.program.prestige * 12 +
+    team.program.recruitingReach * 11 +
+    team.program.facilities * 5 +
+    team.program.academics * 3 +
+    team.program.fanSupport * 3;
+  const staffStrength = team.coaches.head.recruiting * 10 + team.coaches.offense.recruiting * 4 + team.coaches.defense.recruiting * 4;
+  const recordBonus = team.season.wins * 90 - team.season.losses * 35 + (team.season.rank && team.season.rank <= 10 ? 450 : team.season.rank && team.season.rank <= 25 ? 220 : 0);
+  return clamp(Math.round(2600 + programStrength + staffStrength + recordBonus), 4800, 12500);
 }
 
 export function createPersonName(rng: Rng): string {

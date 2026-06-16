@@ -50,6 +50,8 @@ QA screenshots are written to:
 - `artifacts/screenshots/playoffs-desktop.png`
 - `artifacts/screenshots/awards-playoff-desktop.png`
 - `artifacts/screenshots/offseason-dashboard-desktop.png`
+- `artifacts/screenshots/offseason-departures-desktop.png`
+- `artifacts/screenshots/offseason-recruiting-rankings-desktop.png`
 - `artifacts/screenshots/offseason-recruiting-desktop.png`
 - `artifacts/screenshots/mobile-dashboard.png`
 

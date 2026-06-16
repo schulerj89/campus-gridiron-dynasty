@@ -89,7 +89,7 @@ export function createSeasonAwards(teams: Team[], conferences: Conference[], yea
   };
 }
 
-export function recruitingClassRankings(teams: Team[], signedCounts: Record<string, number> = {}): { teamId: string; teamName: string; points: number }[] {
+export function recruitingClassRankings(teams: Team[], signedCounts: Record<string, number> = {}, limit = 10): { teamId: string; teamName: string; points: number }[] {
   return teams
     .map((team) => ({
       teamId: team.id,
@@ -97,7 +97,7 @@ export function recruitingClassRankings(teams: Team[], signedCounts: Record<stri
       points: Math.round(team.program.prestige * 0.7 + team.program.recruitingReach * 0.8 + (signedCounts[team.id] ?? 0) * 3 + teamPower(team.roster) * 0.5),
     }))
     .sort((a, b) => b.points - a.points)
-    .slice(0, 10);
+    .slice(0, limit);
 }
 
 function rankingScore(team: Team): number {

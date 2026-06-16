@@ -13,6 +13,12 @@ describe("dynasty flow", () => {
     expect(advanced.weeklyAwards[0]?.national[0]?.awardName).toBe("Player of the Week");
     expect(playedGame?.result?.boxScore?.home.players.length).toBeGreaterThan(0);
     expect(playedGame?.result?.boxScore?.away.totals.passYards).toBeGreaterThanOrEqual(0);
+    expect(playedGame?.result?.boxScore?.home.totals.receivingTd).toBe(playedGame?.result?.boxScore?.home.totals.passTd);
+    expect(playedGame?.result?.boxScore?.away.totals.receivingTd).toBe(playedGame?.result?.boxScore?.away.totals.passTd);
+    const homeTeam = advanced.teams.find((team) => team.id === playedGame?.homeTeamId)!;
+    const activeHomePlayers = homeTeam.roster.filter((player) => player.stats.games > 0);
+    expect(activeHomePlayers.length).toBeGreaterThan(25);
+    expect(activeHomePlayers.length).toBeLessThan(homeTeam.roster.length);
     expect(advanced.teams.some((team) => team.season.wins + team.season.losses > 0)).toBe(true);
   });
 
@@ -27,6 +33,21 @@ describe("dynasty flow", () => {
     const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
     expect(userTeam.roster.some((player) => player.awards.length > 0)).toBe(true);
   });
+
+  it("creates offseason departures and records recruiting class rank", () => {
+    let state = forceUserPlayoff(forceUserAward(createDynasty(8933)));
+    for (let week = 1; week <= 15; week += 1) {
+      state = advanceWeek(state);
+    }
+    expect(state.phase).toBe("offseason");
+    const userReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
+    expect(userReport?.departures.some((departure) => departure.reason === "graduated" || departure.reason === "pro")).toBe(true);
+    state = advanceWeek(state);
+    expect(state.phase).toBe("regular");
+    expect(state.offseasonReport?.topClasses.length).toBeGreaterThan(0);
+    expect(state.history[0]?.userRecruitingRank).toBeGreaterThan(0);
+    expect(state.teams.find((team) => team.id === state.userTeamId)?.history[0]?.recruitingClassRank).toBe(state.history[0]?.userRecruitingRank);
+  }, 20_000);
 
   it("does not log a coach point spend when no point is available", () => {
     const state = createDynasty(9021);

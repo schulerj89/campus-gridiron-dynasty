@@ -47,7 +47,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("game-row").first()).toContainText(/W1/);
   await page.getByTestId("game-row").first().click();
   await expect(page.getByTestId("box-score-modal")).toBeVisible();
-  await expect(page.getByTestId("box-score-modal")).toContainText("pass");
+  await expect(page.getByTestId("box-score-modal")).toContainText("PaTD");
   await page.getByTestId("box-score-modal").screenshot({ path: path.join(screenshotDir, "box-score-desktop.png") });
   await page.getByRole("button", { name: "Close box score" }).click();
 
@@ -81,8 +81,15 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
 
   await expect(page.getByText(/offseason/)).toBeVisible({ timeout: 90_000 });
   await page.getByRole("button", { name: "Overview" }).click();
+  await expect(page.getByTestId("offseason-report-panel")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-dashboard-desktop.png"), fullPage: true });
+  await page.getByTestId("offseason-report-panel").screenshot({ path: path.join(screenshotDir, "offseason-departures-desktop.png") });
+  await page.getByTestId("advance-week").click();
+  await expect(page.getByText(/Year 2 of 20/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId("recruiting-ranking-panel")).toContainText("Recruiting Class Leaderboard");
+  await page.getByTestId("recruiting-ranking-panel").screenshot({ path: path.join(screenshotDir, "offseason-recruiting-rankings-desktop.png") });
   await page.getByRole("button", { name: "Recruiting" }).click();
+  await expect(page.getByTestId("recruiting-budget-panel")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-recruiting-desktop.png"), fullPage: true });
 });
 

@@ -483,6 +483,10 @@ select {
   grid-template-columns: repeat(2, minmax(160px, 240px));
 }
 
+.recruiting-budget-grid {
+  margin-bottom: 14px;
+}
+
 .check-label {
   align-content: end;
   align-items: center;
@@ -820,6 +824,45 @@ select {
   grid-template-columns: 44px minmax(160px, 1fr) 64px minmax(180px, 1fr) 90px;
 }
 
+.offseason-grid {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.offseason-column {
+  align-content: start;
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.offseason-column h3 {
+  margin-bottom: 0;
+}
+
+.offseason-column .table-list {
+  align-content: start;
+}
+
+.departure-row {
+  align-self: start;
+  grid-template-columns: minmax(150px, 1fr) 46px 46px 76px;
+}
+
+.departure-row span:last-child {
+  grid-column: 1 / -1;
+}
+
+.class-rank-row {
+  grid-template-columns: 40px minmax(150px, 1fr) 80px;
+}
+
 .investment {
   align-items: flex-start;
   background: #0f171b;
@@ -1057,7 +1100,8 @@ select {
 
   .content-grid,
   .metric-grid,
-  .unit-grid {
+  .unit-grid,
+  .offseason-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1092,7 +1136,9 @@ select {
   }
 
   .compact-table .table-row,
-  .roster-row {
+  .roster-row,
+  .departure-row,
+  .class-rank-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
   }
 

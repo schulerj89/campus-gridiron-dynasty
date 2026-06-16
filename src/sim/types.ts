@@ -173,6 +173,7 @@ export interface TeamHistoryEntry {
   conferenceFinish: number;
   postseason: string;
   awards: string[];
+  recruitingClassRank?: number;
 }
 
 export interface Recruit {
@@ -208,7 +209,10 @@ export interface Recruit {
 
 export interface RecruitingState {
   weeklyPoints: number;
+  seasonBudget: number;
   pointsRemaining: number;
+  pointsSpent: number;
+  boardLimit: number;
   board: string[];
   autoEnabled: boolean;
   profile: AutomationProfile;
@@ -284,6 +288,33 @@ export interface SeasonHistory {
   playoffTeams: string[];
   awardWinners: AwardWinner[];
   topClasses: { teamId: string; teamName: string; points: number }[];
+  userRecruitingRank?: number;
+}
+
+export type DepartureReason = "graduated" | "pro";
+
+export interface PlayerDeparture {
+  playerId: string;
+  playerName: string;
+  position: Position;
+  year: CollegeYear;
+  overall: number;
+  reason: DepartureReason;
+  note: string;
+}
+
+export interface TeamOffseasonReport {
+  teamId: string;
+  teamName: string;
+  departures: PlayerDeparture[];
+  recruitingRank?: number;
+}
+
+export interface OffseasonReport {
+  year: number;
+  teams: TeamOffseasonReport[];
+  topClasses: { teamId: string; teamName: string; points: number }[];
+  userRecruitingRank?: number;
 }
 
 export interface DebugFlags {
@@ -313,6 +344,7 @@ export interface DynastyState {
   weeklyAwards: WeeklyAwards[];
   seasonAwards?: SeasonAwards;
   playoff?: Playoff;
+  offseasonReport?: OffseasonReport;
   coachPool: Coach[];
   history: SeasonHistory[];
   debugFlags: DebugFlags;

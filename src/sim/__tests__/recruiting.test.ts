@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
+import { advanceWeek } from "../dynasty";
 import { addRecruitToBoard, autoRecruit, isPipelineRecruit, pitchRecruit, scoutRecruit, signRecruitingClass } from "../recruiting";
 
 describe("recruiting", () => {
@@ -21,6 +22,18 @@ describe("recruiting", () => {
     expect(scouted.knownAttributes.length).toBeGreaterThan(0);
     expect(scouted.scoutProgress).toBeGreaterThanOrEqual(100);
     expect(scouted.gemBust).toMatch(/gem|solid|bust/);
+  });
+
+  it("uses a season-long recruiting budget instead of refilling every week", () => {
+    let state = createDynasty(5680);
+    const recruit = state.recruits[0]!;
+    state = addRecruitToBoard(state, recruit.id);
+    state = scoutRecruit(state, recruit.id);
+    const afterSpend = state.recruiting.pointsRemaining;
+    state = advanceWeek(state);
+    expect(state.recruiting.pointsRemaining).toBeLessThanOrEqual(afterSpend);
+    expect(state.recruiting.pointsSpent).toBeGreaterThanOrEqual(50);
+    expect(state.recruiting.seasonBudget).toBeGreaterThan(state.recruiting.weeklyPoints);
   });
 
   it("does not spend points or log actions for invalid recruit targets", () => {

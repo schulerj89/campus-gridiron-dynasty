@@ -85,7 +85,7 @@ export function resetSeasonStats(teams: Team[]): Team[] {
 }
 
 function updateTeamAfterGame(rng: Rng, team: Team, opponent: Team, pointsFor: number, pointsAgainst: number, won: boolean, conferenceGame: boolean): Team {
-  const roster = applyPlayerStats(rng, team.roster, opponent, pointsFor, pointsAgainst, won);
+  const roster = applyPlayerStats(rng, team.roster, opponent, pointsFor, pointsAgainst);
   const wins = team.season.wins + (won ? 1 : 0);
   const losses = team.season.losses + (won ? 0 : 1);
   return {
@@ -104,57 +104,106 @@ function updateTeamAfterGame(rng: Rng, team: Team, opponent: Team, pointsFor: nu
   };
 }
 
-function applyPlayerStats(rng: Rng, roster: Player[], opponent: Team, pointsFor: number, pointsAgainst: number, won: boolean): Player[] {
+function applyPlayerStats(rng: Rng, roster: Player[], opponent: Team, pointsFor: number, pointsAgainst: number): Player[] {
   const units = teamUnitRatings(roster);
   const opponentUnits = teamUnitRatings(opponent.roster);
   const qb = topAt(roster, ["QB"], 1)[0];
-  const backs = topAt(roster, ["HB"], 3);
-  const targets = topAt(roster, ["WR", "TE"], 5);
-  const blockers = topAt(roster, ["OL", "TE"], 5);
-  const defenders = topAt(roster, ["DL", "LB", "CB", "S"], 9);
+  const backs = rotationAt(rng, roster, ["HB"], rng.nextInt(2, 3));
+  const targets = rotationAt(rng, roster, ["WR", "TE"], rng.nextInt(5, 7));
+  const blockers = uniquePlayers([...topAt(roster, ["OL"], 5), ...topAt(roster, ["TE"], 1)]);
+  const defenders = uniquePlayers([
+    ...rotationAt(rng, roster, ["DL"], 4),
+    ...rotationAt(rng, roster, ["LB"], 4),
+    ...rotationAt(rng, roster, ["CB"], 4),
+    ...rotationAt(rng, roster, ["S"], 3),
+  ]);
   const kicker = topAt(roster, ["K"], 1)[0];
-  const passYards = clamp(Math.round(175 + (units.passing + units.receiving - opponentUnits.coverage) * 2.2 + rng.nextInt(-55, 95)), 65, 520);
-  const rushYards = clamp(Math.round(110 + (units.rushing + units.blocking - opponentUnits.defense) * 1.8 + rng.nextInt(-45, 85)), 20, 390);
-  const passTd = clamp(Math.round(pointsFor / 14 + rng.nextInt(-1, 2)), 0, 6);
-  const rushTd = clamp(Math.round(pointsFor / 21 + rng.nextInt(-1, 2)), 0, 5);
+  const passRate = clamp(0.5 + (units.passing - units.rushing) / 180 + (pointsFor < pointsAgainst ? 0.04 : -0.02), 0.38, 0.64);
+  const plays = rng.nextInt(58, 74);
+  const passAttempts = Math.round(plays * passRate);
+  const rushAttempts = Math.max(18, plays - passAttempts);
+  const passYards = clamp(Math.round(passAttempts * (5.7 + (units.passing + units.receiving - opponentUnits.coverage) / 70) + rng.nextInt(-30, 52)), 70, 455);
+  const rushYards = clamp(Math.round(rushAttempts * (3.6 + (units.rushing + units.blocking - opponentUnits.defense) / 80) + rng.nextInt(-24, 42)), 25, 330);
+  const offensiveTd = clamp(Math.round(pointsFor / 7 - (pointsFor % 7 >= 3 ? 0.45 : 0) + rng.nextInt(-1, 1)), 0, 8);
+  const passTd = clamp(Math.round(offensiveTd * clamp(0.53 + (units.passing - units.rushing) / 150, 0.34, 0.72) + rng.nextInt(-1, 1)), 0, Math.min(6, offensiveTd));
+  const rushTd = clamp(offensiveTd - passTd, 0, 6);
   const picks = clamp(Math.round((opponentUnits.coverage - units.passing) / 18 + rng.nextInt(0, 2)), 0, 4);
-  const updated = roster.map((player) => ({ ...player, stats: { ...player.stats, games: player.stats.games + 1 } }));
+  const updated = roster.map((player) => ({ ...player, stats: { ...player.stats } }));
+  const appeared = new Set<string>();
 
-  mutatePlayer(updated, qb?.id, (player) => {
+  mutateActivePlayer(updated, appeared, qb?.id, (player) => {
     player.stats.passYards += passYards;
     player.stats.passTd += passTd;
     player.stats.interceptionsThrown += picks;
-    player.stats.rushYards += rng.nextInt(0, Math.max(8, Math.round(player.attributes.speed * 0.5)));
   });
-  distribute(updated, backs, rushYards, (player, value) => {
-    player.stats.rushYards += value;
-    player.stats.rushTd += rng.chance(value / Math.max(1, rushYards)) ? Math.min(rushTd, 2) : 0;
+  const qbRushYards = qb ? clamp(Math.round(Math.max(0, qb.attributes.speed - 45) * rng.next() * 0.45), 0, Math.min(85, Math.round(rushYards * 0.28))) : 0;
+  const qbRushTd = qb && rushTd > 0 && rng.chance(clamp((qb.attributes.speed - 50) / 170, 0.03, 0.28)) ? 1 : 0;
+  mutateActivePlayer(updated, appeared, qb?.id, (player) => {
+    player.stats.rushYards += qbRushYards;
+    player.stats.rushTd += qbRushTd;
   });
-  distribute(updated, targets, passYards, (player, value) => {
-    player.stats.receivingYards += value;
-    player.stats.receivingTd += rng.chance(value / Math.max(1, passYards)) ? Math.min(passTd, 2) : 0;
-  });
-  distribute(updated, blockers, Math.round(pointsFor + rushYards / 10), (player, value) => {
-    player.stats.pancakes += Math.round(value / 18);
-  });
-  distribute(updated, defenders, clamp(72 - Math.round(pointsAgainst * 0.45), 35, 85), (player, value) => {
-    player.stats.tackles += Math.max(1, Math.round(value / 5));
-    player.stats.sacks += rng.chance(player.position === "DL" || player.position === "LB" ? 0.18 : 0.04) ? 1 : 0;
-    player.stats.interceptions += rng.chance(player.position === "CB" || player.position === "S" ? 0.11 : 0.03) ? 1 : 0;
-  });
-  mutatePlayer(updated, kicker?.id, (player) => {
-    const attempts = clamp(Math.round(pointsFor / 16 + rng.nextInt(0, 2)), 0, 5);
-    player.stats.fieldGoalAttempts += attempts;
-    player.stats.fieldGoals += clamp(attempts - (rng.chance(player.attributes.kickAccuracy / 120) ? 0 : 1), 0, attempts);
-  });
-
-  if (won && qb) {
-    mutatePlayer(updated, qb.id, (player) => {
-      player.stats.rushTd += rng.chance(0.15) ? 1 : 0;
+  for (const [playerId, value] of splitAmount(backs, Math.max(0, rushYards - qbRushYards), (player) => player.overall + player.attributes.speed * 0.4 + player.attributes.awareness * 0.2)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.rushYards += value;
     });
   }
+  for (const [playerId, value] of splitScores(rng, backs, Math.max(0, rushTd - qbRushTd), (player) => player.overall + player.attributes.speed * 0.35)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.rushTd += value;
+    });
+  }
+  for (const [playerId, value] of splitAmount(targets, passYards, (player) => player.overall + player.attributes.catching * 0.5 + player.attributes.routeRunning * 0.45)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.receivingYards += value;
+    });
+  }
+  for (const [playerId, value] of splitScores(rng, targets, passTd, (player) => player.overall + player.attributes.catching * 0.5 + player.attributes.routeRunning * 0.4)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.receivingTd += value;
+    });
+  }
+  for (const [playerId, value] of splitAmount(blockers, Math.round(pointsFor + rushYards / 9), (player) => player.overall + player.attributes.runBlock + player.attributes.passBlock)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.pancakes += Math.round(value / 26);
+    });
+  }
+  const tacklePool = clamp(54 + Math.round(pointsAgainst * 0.35) + rng.nextInt(-5, 8), 42, 82);
+  for (const [playerId, value] of splitAmount(defenders, tacklePool, (player) => player.overall + player.attributes.tackle * 0.55 + player.attributes.defAwareness * 0.35)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.tackles += Math.max(1, Math.round(value / 6));
+    });
+  }
+  const sackTargets = defenders.filter((player) => player.position === "DL" || player.position === "LB");
+  const sackCount = clamp(Math.round((units.defense - opponentUnits.blocking) / 22 + rng.nextInt(0, 3)), 0, 6);
+  for (const [playerId, value] of splitScores(rng, sackTargets, sackCount, (player) => player.overall + player.attributes.tackle * 0.6)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.sacks += value;
+    });
+  }
+  const interceptionTargets = defenders.filter((player) => player.position === "CB" || player.position === "S" || player.position === "LB");
+  const interceptionCount = clamp(Math.round((units.coverage - opponentUnits.passing) / 24 + rng.nextInt(0, 2)), 0, 4);
+  for (const [playerId, value] of splitScores(rng, interceptionTargets, interceptionCount, (player) => player.overall + player.attributes.interception * 0.7 + player.attributes.defAwareness * 0.25)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.interceptions += value;
+    });
+  }
+  mutateActivePlayer(updated, appeared, kicker?.id, (player) => {
+    const attempts = clamp(Math.round((pointsFor - offensiveTd * 7) / 3 + rng.nextInt(0, 1)), pointsFor >= 3 ? 1 : 0, 5);
+    player.stats.fieldGoalAttempts += attempts;
+    player.stats.fieldGoals += clamp(attempts - (rng.chance(player.attributes.kickAccuracy / 118) ? 0 : 1), 0, attempts);
+  });
 
-  return updated;
+  return updated.map((player) =>
+    appeared.has(player.id)
+      ? {
+          ...player,
+          stats: {
+            ...player.stats,
+            games: player.stats.games + 1,
+          },
+        }
+      : player,
+  );
 }
 
 function topAt(roster: Player[], positions: string[], count: number): Player[] {
@@ -164,24 +213,66 @@ function topAt(roster: Player[], positions: string[], count: number): Player[] {
     .slice(0, count);
 }
 
+function rotationAt(rng: Rng, roster: Player[], positions: string[], count: number): Player[] {
+  const ranked = roster.filter((player) => positions.includes(player.position)).sort((a, b) => b.overall - a.overall);
+  const core = ranked.slice(0, Math.max(1, count - 1));
+  const rotationPool = ranked.slice(core.length, Math.min(ranked.length, count + 3));
+  const extra = rotationPool.length ? rng.shuffle(rotationPool).slice(0, Math.max(0, count - core.length)) : [];
+  return uniquePlayers([...core, ...extra]).slice(0, count);
+}
+
+function uniquePlayers(players: Player[]): Player[] {
+  const seen = new Set<string>();
+  return players.filter((player) => {
+    if (seen.has(player.id)) return false;
+    seen.add(player.id);
+    return true;
+  });
+}
+
+function splitAmount(targets: Player[], amount: number, weightFor: (player: Player) => number): Map<string, number> {
+  const values = new Map<string, number>();
+  if (!targets.length || amount <= 0) return values;
+  const weighted = targets.map((player) => ({ player, weight: Math.max(1, weightFor(player)) }));
+  const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+  let assigned = 0;
+  const fractions: { playerId: string; fraction: number }[] = [];
+  for (const entry of weighted) {
+    const exact = (amount * entry.weight) / totalWeight;
+    const value = Math.floor(exact);
+    assigned += value;
+    values.set(entry.player.id, value);
+    fractions.push({ playerId: entry.player.id, fraction: exact - value });
+  }
+  fractions.sort((a, b) => b.fraction - a.fraction);
+  for (let index = 0; assigned < amount && fractions.length; index += 1) {
+    const target = fractions[index % fractions.length]!;
+    values.set(target.playerId, (values.get(target.playerId) ?? 0) + 1);
+    assigned += 1;
+  }
+  return values;
+}
+
+function splitScores(rng: Rng, targets: Player[], count: number, weightFor: (player: Player) => number): Map<string, number> {
+  const values = new Map<string, number>();
+  if (!targets.length || count <= 0) return values;
+  const weighted = targets.map((player) => ({ value: player, weight: Math.max(1, weightFor(player)) }));
+  for (let index = 0; index < count; index += 1) {
+    const scorer = rng.weighted(weighted);
+    values.set(scorer.id, (values.get(scorer.id) ?? 0) + 1);
+  }
+  return values;
+}
+
 function coachTactics(team: Team): number {
   return (team.coaches.head.tactics + team.coaches.offense.tactics + team.coaches.defense.tactics) / 3;
 }
 
-function mutatePlayer(players: Player[], playerId: string | undefined, mutate: (player: Player) => void): void {
+function mutateActivePlayer(players: Player[], appeared: Set<string>, playerId: string | undefined, mutate: (player: Player) => void): void {
   const player = players.find((candidate) => candidate.id === playerId);
-  if (player) mutate(player);
-}
-
-function distribute(players: Player[], targets: Player[], amount: number, apply: (player: Player, value: number) => void): void {
-  if (!targets.length) return;
-  const total = targets.reduce((sum, player) => sum + Math.max(1, player.overall), 0);
-  for (const target of targets) {
-    const player = players.find((candidate) => candidate.id === target.id);
-    if (!player) continue;
-    const share = Math.round((amount * Math.max(1, target.overall)) / total);
-    apply(player, share);
-  }
+  if (!player) return;
+  appeared.add(player.id);
+  mutate(player);
 }
 
 function buildTeamBoxScore(before: Team, after: Team, score: number): TeamBoxScore {
