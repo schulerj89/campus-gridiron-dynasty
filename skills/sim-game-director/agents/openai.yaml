@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sim Game Director"
+  short_description: "Review dynasty game clarity and pacing"
+  default_prompt: "Use -game-director to review player-facing dynasty flow, menu clarity, and simulation feedback."

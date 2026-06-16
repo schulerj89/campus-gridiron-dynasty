@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dynasty Game QA"
+  short_description: "Verify seasons, recruiting, awards, UI"
+  default_prompt: "Use -game-qa to test dynasty simulation flows, debug controls, and responsive browser smoke coverage."

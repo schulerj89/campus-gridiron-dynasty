@@ -1,0 +1,4 @@
+interface:
+  display_name: "CFB Game Expert"
+  short_description: "Research dynasty football sim mechanics"
+  default_prompt: "Use -game-expert to research dynasty-mode inspiration and translate it into original simulation features."
