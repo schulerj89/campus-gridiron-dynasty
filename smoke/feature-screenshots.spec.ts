@@ -68,14 +68,27 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("player-of-week-panel").screenshot({ path: path.join(screenshotDir, "player-of-week-desktop.png") });
   await expect(page.getByTestId("conference-player-of-week-panel")).toBeVisible();
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("Pass Yds");
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("Rush TD");
   await page.getByTestId("leaderboard-panel").screenshot({ path: path.join(screenshotDir, "leaderboard-desktop.png") });
 
   for (let week = 0; week < 7; week += 1) {
     await page.getByTestId("advance-week").click();
   }
 
+  await page.getByRole("button", { name: "Rankings" }).click();
+  await expect(page.locator(".movement-chip.up").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".movement-chip.down").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("rankings-moved-in-panel").getByTestId("ranking-movement-row").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("rankings-moved-out-panel").getByTestId("ranking-movement-row").first()).toBeVisible({ timeout: 30_000 });
+  await page.screenshot({ path: path.join(screenshotDir, "rankings-movement-desktop.png"), fullPage: true });
+
   await page.getByRole("button", { name: "Recruiting" }).click();
   await page.getByTestId("recruit-stars-filter").selectOption("2");
+  await expect(page.getByTestId("recruiting-database")).toContainText("Committed to", { timeout: 30_000 });
+  await page.getByTestId("recruit-commitment-filter").selectOption("open");
+  await expect(page.getByTestId("recruiting-database")).not.toContainText("Committed to");
+  await page.getByTestId("recruit-commitment-filter").selectOption("committed");
   await expect(page.getByTestId("recruiting-database")).toContainText("Committed to", { timeout: 30_000 });
   await page.screenshot({ path: path.join(screenshotDir, "recruiting-commitments-desktop.png"), fullPage: true });
 

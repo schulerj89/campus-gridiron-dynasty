@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.6.1 - 2026-06-16
+
+- Replaced CSS-only helmet drawings with image-generated 16-bit helmet PNG assets for team identity.
+- Converted stat leaderboards to separate stat columns with the selected sorted stat highlighted.
+- Added a recruiting commitment filter for all, uncommitted, and committed-only prospect views.
+- Expanded smoke screenshots to capture rankings after poll movement with teams moving up, down, in, and out.
+
 ## 0.6.0 - 2026-06-16
 
 - Added a national rankings page with poll movement, votes, first-place votes, moved-in teams, and moved-out teams.

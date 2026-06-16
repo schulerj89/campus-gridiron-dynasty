@@ -70,7 +70,7 @@ export function Rankings({ state }: { state: DynastyState }) {
         <PaginationControls page={page} pageCount={pageCount} total={entries.length} pageSize={PAGE_SIZE} label="rankings" onPageChange={setPage} />
       </section>
 
-      <section className="panel">
+      <section className="panel" data-testid="rankings-moved-in-panel">
         <div className="panel-head compact">
           <h2>Moved In</h2>
           <TrendingUp size={20} />
@@ -78,7 +78,7 @@ export function Rankings({ state }: { state: DynastyState }) {
         <MovementList entries={latest.movedIn} empty="No new teams entered this poll." />
       </section>
 
-      <section className="panel">
+      <section className="panel" data-testid="rankings-moved-out-panel">
         <div className="panel-head compact">
           <h2>Moved Out</h2>
           <TrendingDown size={20} />
@@ -101,7 +101,7 @@ function MovementList({ entries, empty }: { entries: PollEntry[]; empty: string 
   return (
     <div className="table-list movement-list">
       {entries.slice(0, 8).map((entry) => (
-        <div key={entry.teamId} className="table-row movement-row">
+        <div key={entry.teamId} className="table-row movement-row" data-testid="ranking-movement-row">
           <span>#{entry.rank}</span>
           <strong>{entry.teamName}</strong>
           <span>

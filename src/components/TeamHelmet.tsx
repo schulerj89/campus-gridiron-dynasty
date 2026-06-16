@@ -1,22 +1,15 @@
-import type { CSSProperties } from "react";
 import type { Team } from "../sim/types";
 
 export function TeamHelmet({ team, size = "md" }: { team: Team; size?: "sm" | "md" | "lg" }) {
   const variant = (team.helmetIndex ?? fallbackHelmetIndex(team.id)) % 14;
+  const src = `/assets/team-helmets/helmet-${variant.toString().padStart(2, "0")}.png`;
   return (
     <span
-      className={`team-helmet helmet-${variant} helmet-${size}`}
-      style={
-        {
-          "--helmet-primary": team.primary,
-          "--helmet-secondary": team.secondary,
-        } as CSSProperties
-      }
+      className={`team-helmet helmet-${size}`}
       aria-label={`${team.name} helmet`}
       role="img"
     >
-      <i />
-      <b />
+      <img src={src} alt="" draggable={false} />
     </span>
   );
 }

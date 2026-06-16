@@ -32,6 +32,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/home-desktop.png`
 - `artifacts/screenshots/dashboard-desktop.png`
 - `artifacts/screenshots/rankings-desktop.png`
+- `artifacts/screenshots/rankings-movement-desktop.png`
 - `artifacts/screenshots/roster-desktop.png`
 - `artifacts/screenshots/depth-chart-desktop.png`
 - `artifacts/screenshots/player-profile-modal-desktop.png`
@@ -61,18 +62,19 @@ QA screenshots are written to:
 
 ## Generated Assets
 
-The home hero, the 14-portrait 8-bit player sprite sheet, and the 10-portrait coach sprite sheet were generated with the built-in image generator and copied into:
+The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach sprite sheet, and the 14 generated helmet images were generated with the built-in image generator and copied into:
 
 - `public/assets/dynasty-hero.png`
 - `public/assets/portrait-sprite.png`
 - `public/assets/coach-portrait-sprite.png`
+- `public/assets/team-helmets/helmet-00.png` through `helmet-13.png`
 
 ## Design Rules
 
 - Do not use real college names, real awards, real athletes, real coaches, real conferences, or real logos.
 - Initial generated players must not exceed 93 in any rating.
 - Generated players and recruits also use position-specific off-skill caps so non-role attributes stay plausible.
-- Team helmets are CSS-generated fictional 16-bit style variants with no logos or licensed marks.
+- Team helmets use generated fictional 16-bit PNG assets with no logos, letters, mascots, or licensed marks.
 - National poll rankings are stored as dynasty snapshots with votes, first-place votes, and weekly movement.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.

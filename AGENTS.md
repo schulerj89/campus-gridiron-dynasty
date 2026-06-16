@@ -16,7 +16,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Dynasty length is 20 years.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
 - National poll snapshots live on `DynastyState.rankings` and should preserve votes, first-place votes, and movement history.
-- Team helmets are CSS-rendered fictional variants; do not add real logos or licensed marks.
+- Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
 
 ## Frequent Commands
 
@@ -31,7 +31,7 @@ Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium de
 ## QA Expectations
 
 - Use the Debug tab for forced playoff, forced award, auto recruit, and multi-season checks.
-- Keep screenshots in `artifacts/screenshots`, including roster/depth chart, player modal, awards, all-conference, playoff bracket, program, and mobile dashboard coverage.
+- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, player modal, awards, all-conference, playoff bracket, program, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
 ## UI Organization
@@ -40,6 +40,7 @@ Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium de
 - `src/components/AwardsView.tsx` owns awards, stat leaderboard, honor-team, and playoff bracket presentation.
 - `src/components/RankingsView.tsx` owns national poll presentation.
 - `src/components/PaginationControls.tsx` owns reusable table pagination controls.
+- `src/components/TeamHelmet.tsx` maps `Team.helmetIndex` to generated helmet PNG assets.
 
 ## Repo-Local Skills
 

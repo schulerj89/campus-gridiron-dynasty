@@ -50,6 +50,7 @@ type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
 type RecruitPositionFilter = "ALL" | Position;
 type RecruitStarsFilter = "ALL" | "1" | "2" | "3" | "4" | "5";
 type RecruitSort = "rank" | "interest" | "stars" | "need";
+type RecruitCommitmentFilter = "all" | "open" | "committed";
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
@@ -599,6 +600,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [positionFilter, setPositionFilter] = useState<RecruitPositionFilter>("ALL");
   const [stateFilter, setStateFilter] = useState("ALL");
   const [starsFilter, setStarsFilter] = useState<RecruitStarsFilter>("ALL");
+  const [commitmentFilter, setCommitmentFilter] = useState<RecruitCommitmentFilter>("all");
   const [pipelineOnly, setPipelineOnly] = useState(false);
   const [sortBy, setSortBy] = useState<RecruitSort>("rank");
   const [recruitPage, setRecruitPage] = useState(1);
@@ -618,6 +620,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
     .filter((recruit) => positionFilter === "ALL" || recruit.position === positionFilter)
     .filter((recruit) => stateFilter === "ALL" || recruit.state === stateFilter)
     .filter((recruit) => starsFilter === "ALL" || recruit.stars === Number(starsFilter))
+    .filter((recruit) => commitmentFilter === "all" || (commitmentFilter === "open" ? !recruit.committedTeamId : Boolean(recruit.committedTeamId)))
     .filter((recruit) => !pipelineOnly || isPipelineRecruit(userTeam, recruit))
     .sort((a, b) => {
       const needA = needs.find((need) => need.position === a.position)?.need ?? 0;
@@ -710,6 +713,14 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
               <option value="interest">Interest</option>
               <option value="stars">Stars</option>
               <option value="need">Team need</option>
+            </select>
+          </label>
+          <label>
+            Commitment
+            <select value={commitmentFilter} onChange={(event) => { setCommitmentFilter(event.target.value as RecruitCommitmentFilter); resetRecruitPage(); }} data-testid="recruit-commitment-filter">
+              <option value="all">All prospects</option>
+              <option value="open">Uncommitted only</option>
+              <option value="committed">Committed only</option>
             </select>
           </label>
           <label className="check-label">

@@ -12,6 +12,7 @@ type LeaderboardStatKey = keyof PlayerStats;
 const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
   { key: "passYards", label: "Passing Yards" },
   { key: "passTd", label: "Passing TD" },
+  { key: "interceptionsThrown", label: "INT Thrown" },
   { key: "rushYards", label: "Rushing Yards" },
   { key: "rushTd", label: "Rushing TD" },
   { key: "receivingYards", label: "Receiving Yards" },
@@ -21,6 +22,21 @@ const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
   { key: "interceptions", label: "Interceptions" },
   { key: "pancakes", label: "Pancakes" },
   { key: "fieldGoals", label: "Field Goals" },
+];
+
+const leaderboardColumns: { key: LeaderboardStatKey; label: string }[] = [
+  { key: "passYards", label: "Pass Yds" },
+  { key: "passTd", label: "Pass TD" },
+  { key: "interceptionsThrown", label: "INT Thrown" },
+  { key: "rushYards", label: "Rush Yds" },
+  { key: "rushTd", label: "Rush TD" },
+  { key: "receivingYards", label: "Rec Yds" },
+  { key: "receivingTd", label: "Rec TD" },
+  { key: "tackles", label: "Tackles" },
+  { key: "sacks", label: "Sacks" },
+  { key: "interceptions", label: "INT" },
+  { key: "pancakes", label: "Pancakes" },
+  { key: "fieldGoals", label: "FG" },
 ];
 
 const LEADERBOARD_PAGE_SIZE = 10;
@@ -189,6 +205,15 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
         </label>
       </div>
       <div className="table-list leaderboard-list">
+        <div className="table-row leaderboard-row leaderboard-header">
+          <span>Rank</span>
+          <strong>Player</strong>
+          <span>Pos</span>
+          <span>Team</span>
+          {leaderboardColumns.map((column) => (
+            <span key={column.key} className={clsx(column.key === statKey && "selected-stat")}>{column.label}</span>
+          ))}
+        </div>
         {visibleRows.length ? (
           visibleRows.map((row, index) => (
             <div key={`${row.player.id}-${statKey}`} className="table-row leaderboard-row">
@@ -196,11 +221,11 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
               <strong>{row.player.name}</strong>
               <span>{row.player.position}</span>
               <span>{row.team.name}</span>
-              <span className="selected-stat">{row.value.toLocaleString()}</span>
-              <span>{row.player.stats.passYards.toLocaleString()} PYD, {row.player.stats.passTd} PaTD</span>
-              <span>{row.player.stats.rushYards.toLocaleString()} RYD, {row.player.stats.rushTd} RuTD</span>
-              <span>{row.player.stats.receivingYards.toLocaleString()} REC, {row.player.stats.receivingTd} RecTD</span>
-              <span>{row.player.stats.tackles} TKL, {row.player.stats.sacks} SCK, {row.player.stats.interceptions} INT</span>
+              {leaderboardColumns.map((column) => (
+                <span key={column.key} className={clsx(column.key === statKey && "selected-stat")}>
+                  {row.player.stats[column.key].toLocaleString()}
+                </span>
+              ))}
             </div>
           ))
         ) : (
