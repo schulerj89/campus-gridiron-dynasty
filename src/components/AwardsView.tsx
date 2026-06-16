@@ -237,7 +237,7 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
   );
 }
 
-function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }: { games: Game[]; teams: Team[]; priorPlayoffTeams: string[]; championName?: string }) {
+export function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }: { games: Game[]; teams: Team[]; priorPlayoffTeams: string[]; championName?: string }) {
   if (!games.length && priorPlayoffTeams.length) {
     return (
       <div className="playoff-bracket field-only">

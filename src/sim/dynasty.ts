@@ -6,7 +6,41 @@ import { clamp, Rng } from "./rng";
 import { createPollSnapshot } from "./polls";
 import { createNextPlayoffRound, createPlayoffGames, createSchedule } from "./schedule";
 import { advanceRecruitingWeek, autoRecruit, signRecruitingClass } from "./recruiting";
-import type { Coach, CollegeYear, DynastyState, Game, OffseasonReport, Phase, Player, PlayerDeparture, ProgramRatings, Recruit, SeasonAwards, Team } from "./types";
+import {
+  ATTRIBUTE_KEYS,
+  type AttributeKey,
+  type Attributes,
+  type Coach,
+  type CollegeYear,
+  type DynastyState,
+  type Game,
+  type OffseasonReport,
+  type Phase,
+  type Player,
+  type PlayerDeparture,
+  type PlayerProgression,
+  type Position,
+  type ProgramChange,
+  type ProgramRatings,
+  type Recruit,
+  type RecruitSigning,
+  type SeasonAwards,
+  type Team,
+} from "./types";
+
+const PROGRESSION_FOCUS: Record<Position, AttributeKey[]> = {
+  QB: ["throwPower", "accuracy", "awareness"],
+  HB: ["speed", "awareness", "catching"],
+  WR: ["catching", "routeRunning", "speed"],
+  TE: ["catching", "routeRunning", "runBlock"],
+  OL: ["runBlock", "passBlock", "awareness"],
+  DL: ["tackle", "defAwareness", "speed"],
+  LB: ["tackle", "defAwareness", "interception"],
+  CB: ["interception", "defAwareness", "speed"],
+  S: ["interception", "defAwareness", "tackle"],
+  K: ["kickPower", "kickAccuracy", "awareness"],
+  P: ["kickPower", "kickAccuracy", "awareness"],
+};
 
 export function advanceWeek(input: DynastyState): DynastyState {
   if (input.phase === "complete") return input;
@@ -14,8 +48,8 @@ export function advanceWeek(input: DynastyState): DynastyState {
   let state = { ...withAuto, updatedAt: new Date().toISOString() };
   if (state.phase === "regular") return advanceRegularWeek(state);
   if (state.phase === "postseason") return advancePostseasonWeek(state);
-  if (state.phase === "offseason") return runOffseason(state);
-  if (state.phase === "preseason") return { ...state, phase: "regular", week: 1 };
+  if (state.phase === "offseason") return advanceOffseasonWeek(state);
+  if (state.phase === "preseason") return startRegularSeason(state);
   return state;
 }
 
@@ -24,7 +58,7 @@ export function simulateSeasons(input: DynastyState, seasons: number): DynastySt
   let completed = 0;
   const targetYear = Math.min(state.maxYears, state.year + seasons);
   let guard = 0;
-  while (state.phase !== "complete" && (state.year < targetYear || (state.phase !== "regular" && completed < seasons)) && guard < seasons * 40 + 80) {
+  while (state.phase !== "complete" && (state.year < targetYear || state.phase !== "regular") && guard < seasons * 44 + 100) {
     const beforeYear = state.year;
     state = advanceWeek(state);
     if (state.year > beforeYear) completed += 1;
@@ -232,15 +266,35 @@ function advancePostseasonWeek(state: DynastyState): DynastyState {
   };
 }
 
-function runOffseason(state: DynastyState): DynastyState {
+function advanceOffseasonWeek(state: DynastyState): DynastyState {
+  if (!state.offseasonReport?.signingComplete || state.week <= 16) return runSigningDay(state);
+  return runPreseasonDevelopment(state);
+}
+
+function runSigningDay(state: DynastyState): DynastyState {
   const signedState = signRecruitingClass(state);
-  const rng = new Rng(signedState.rngState);
-  const fullClassRankings = recruitingClassRankings(signedState.teams, signedClassCounts(signedState.recruits), signedState.teams.length);
-  const topClasses = fullClassRankings.slice(0, 10);
-  const recruitingRankByTeam = new Map(fullClassRankings.map((entry, index) => [entry.teamId, index + 1]));
+  const { fullClassRankings, recruitingRankByTeam } = classRankingContext(signedState);
   const baseReport = signedState.offseasonReport ?? createOffseasonReport(signedState.teams, signedState.calendarYear);
-  const offseasonReport = enrichOffseasonReport(baseReport, topClasses, recruitingRankByTeam, signedState.userTeamId);
-  const departuresByTeam = new Map(offseasonReport.teams.map((teamReport) => [teamReport.teamId, teamReport.departures]));
+  const offseasonReport = enrichOffseasonReport(baseReport, fullClassRankings, recruitingRankByTeam, signedState.userTeamId, signedState.recruits);
+  return {
+    ...signedState,
+    week: 17,
+    offseasonReport: {
+      ...offseasonReport,
+      signingComplete: true,
+      developmentComplete: false,
+    },
+    debugLog: [`Signing day complete. ${offseasonReport.topClasses.length} team classes are available in the offseason report.`, ...signedState.debugLog].slice(0, 20),
+  };
+}
+
+function runPreseasonDevelopment(state: DynastyState): DynastyState {
+  const signedState = state.offseasonReport?.signingComplete ? state : runSigningDay(state);
+  const rng = new Rng(signedState.rngState);
+  const { fullClassRankings, recruitingRankByTeam } = classRankingContext(signedState);
+  const baseReport =
+    signedState.offseasonReport ?? enrichOffseasonReport(createOffseasonReport(signedState.teams, signedState.calendarYear), fullClassRankings, recruitingRankByTeam, signedState.userTeamId, signedState.recruits);
+  const departuresByTeam = new Map(baseReport.teams.map((teamReport) => [teamReport.teamId, teamReport.departures]));
   const champion = signedState.playoff?.championTeamId ? signedState.teams.find((team) => team.id === signedState.playoff?.championTeamId) : undefined;
   const historyEntry = {
     year: signedState.calendarYear,
@@ -248,13 +302,15 @@ function runOffseason(state: DynastyState): DynastyState {
     championName: champion?.name,
     playoffTeams: signedState.playoff?.seeds ?? [],
     awardWinners: signedState.seasonAwards?.nationalAwards ?? [],
-    topClasses,
+    topClasses: fullClassRankings.slice(0, 10),
     userRecruitingRank: recruitingRankByTeam.get(signedState.userTeamId),
   };
-  const withHistoryTeams = signedState.teams.map((team) =>
+  const developmentResults = signedState.teams.map((team) =>
     recordAndDevelopTeam(rng, team, signedState.calendarYear, champion?.id === team.id, departuresByTeam.get(team.id) ?? [], recruitingRankByTeam.get(team.id)),
   );
-  const carousel = runCoachCarousel(rng, withHistoryTeams, signedState.coachPool);
+  const reportUpdates = new Map(developmentResults.map((result) => [result.team.id, { progressions: result.progressions, programChanges: result.programChanges }]));
+  const offseasonReport = completeDevelopmentReport(baseReport, reportUpdates);
+  const carousel = runCoachCarousel(rng, developmentResults.map((result) => result.team), signedState.coachPool);
   if (signedState.year >= signedState.maxYears) {
     return {
       ...signedState,
@@ -268,7 +324,7 @@ function runOffseason(state: DynastyState): DynastyState {
     };
   }
   const nextYear = signedState.year + 1;
-  const preseasonPollUpdate = createPollSnapshot(resetForNextSeason(carousel.teams), signedState.calendarYear + 1, 0, "regular", (signedState.rankings ?? [])[0]);
+  const preseasonPollUpdate = createPollSnapshot(resetForNextSeason(carousel.teams), signedState.calendarYear + 1, 0, "preseason", (signedState.rankings ?? [])[0]);
   const teams = preseasonPollUpdate.teams;
   const userTeam = teams.find((team) => team.id === signedState.userTeamId) ?? teams[0]!;
   const seasonBudget = calculateSeasonRecruitingBudget(userTeam);
@@ -278,8 +334,8 @@ function runOffseason(state: DynastyState): DynastyState {
     rngState: rng.currentState(),
     year: nextYear,
     calendarYear: signedState.calendarYear + 1,
-    phase: "regular",
-    week: 1,
+    phase: "preseason",
+    week: 0,
     teams,
     coachPool: carousel.pool,
     recruits: createRecruitClass(rng, teams, 2600),
@@ -288,6 +344,7 @@ function runOffseason(state: DynastyState): DynastyState {
       seasonBudget,
       pointsRemaining: seasonBudget,
       pointsSpent: 0,
+      investedByRecruit: {},
       boardLimit: signedState.recruiting.boardLimit ?? 35,
       board: [],
       autoEnabled: signedState.recruiting.autoEnabled,
@@ -305,7 +362,17 @@ function runOffseason(state: DynastyState): DynastyState {
       ...signedState.debugFlags,
       forceUserPlayoff: false,
     },
-    debugLog: [`Advanced to Year ${nextYear}. Recruiting class ranked #${offseasonReport.userRecruitingRank ?? "-"}. Coach carousel made ${carousel.moves} moves.`, ...signedState.debugLog].slice(0, 20),
+    debugLog: [`Preseason opened for Year ${nextYear}. Recruiting class ranked #${offseasonReport.userRecruitingRank ?? "-"}. Coach carousel made ${carousel.moves} moves.`, ...signedState.debugLog].slice(0, 20),
+  };
+}
+
+function startRegularSeason(state: DynastyState): DynastyState {
+  return {
+    ...state,
+    phase: "regular",
+    week: 1,
+    offseasonReport: undefined,
+    debugLog: [`Kickoff week opened. Offseason reports are archived in dynasty history.`, ...state.debugLog].slice(0, 20),
   };
 }
 
@@ -348,70 +415,141 @@ function signedClassCounts(recruits: Recruit[]): Record<string, number> {
   }, {});
 }
 
-function recordAndDevelopTeam(rng: Rng, team: Team, year: number, champion: boolean, departures: PlayerDeparture[], recruitingClassRank?: number): Team {
+function recordAndDevelopTeam(
+  rng: Rng,
+  team: Team,
+  year: number,
+  champion: boolean,
+  departures: PlayerDeparture[],
+  recruitingClassRank?: number,
+): { team: Team; progressions: PlayerProgression[]; programChanges: ProgramChange[] } {
   const awards = team.roster.flatMap((player) => player.awards);
   const conferencePeers = 10;
   const conferenceFinish = Math.min(conferencePeers, team.season.confLosses + 1);
   const postseason = champion ? "Crown Bowl Champion" : team.season.rank && team.season.rank <= 8 ? "Summit Four" : team.season.wins >= 7 ? "Bowl Eligible" : "Missed Bowls";
   const pointsEarned = 2 + Math.floor(team.season.wins / 3) + (champion ? 5 : 0) + (team.season.rank && team.season.rank <= 10 ? 2 : 0);
+  const developed = developAndGraduate(rng, team, year, departures);
+  const review = reviewProgramPerformance(team, champion);
   return {
-    ...team,
-    programPoints: team.programPoints + pointsEarned,
-    coachPoints: team.coachPoints + Math.floor(pointsEarned / 2),
-    program: {
-      ...team.program,
-      prestige: clamp(team.program.prestige + (team.season.wins >= 9 ? 2 : team.season.losses >= 8 ? -2 : 0) + (champion ? 4 : 0), 1, 99),
-      fanSupport: clamp(team.program.fanSupport + (team.season.wins >= 8 ? 2 : -1), 1, 99),
+    team: {
+      ...team,
+      programPoints: team.programPoints + pointsEarned,
+      coachPoints: team.coachPoints + Math.floor(pointsEarned / 2),
+      program: review.program,
+      roster: developed.roster,
+      history: [
+        {
+          year,
+          record: `${team.season.wins}-${team.season.losses}`,
+          finalRank: team.season.rank,
+          conferenceFinish,
+          postseason,
+          awards,
+          recruitingClassRank,
+        },
+        ...team.history,
+      ].slice(0, 20),
     },
-    roster: developAndGraduate(rng, team, year, departures),
-    history: [
-      {
-        year,
-        record: `${team.season.wins}-${team.season.losses}`,
-        finalRank: team.season.rank,
-        conferenceFinish,
-        postseason,
-        awards,
-        recruitingClassRank,
-      },
-      ...team.history,
-    ].slice(0, 20),
+    progressions: developed.progressions,
+    programChanges: review.changes,
   };
 }
 
-function developAndGraduate(rng: Rng, team: Team, year: number, departures: PlayerDeparture[]): Player[] {
+function developAndGraduate(rng: Rng, team: Team, year: number, departures: PlayerDeparture[]): { roster: Player[]; progressions: PlayerProgression[] } {
   const departingIds = new Set(departures.map((departure) => departure.playerId));
-  return team.roster
+  const progressions: PlayerProgression[] = [];
+  const roster = team.roster
     .filter((player) => !departingIds.has(player.id))
     .map((player) => {
-      const traitBoost = player.development === "elite" ? 4 : player.development === "starter" ? 3 : player.development === "rotation" ? 2 : player.development === "depth" ? 1 : 0;
-      const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 170;
-      const growth = clamp(Math.round(rng.nextInt(0, 3) + traitBoost * 0.65 + coachBoost), 0, Math.max(0, player.potential - player.overall));
-      const attributes = applyPositionCaps(
-        player.position,
-        Object.fromEntries(Object.entries(player.attributes).map(([key, value]) => [key, clamp(value + Math.round(growth * rng.next()), 20, 99)])) as typeof player.attributes,
-        99,
-      );
-      const nextYear: CollegeYear = player.year === "FR" ? "SO" : player.year === "SO" ? "JR" : "SR";
-      const nextOverall = calculateOverall(player.position, attributes);
-      return {
-        ...resetPlayerStats({
-          ...player,
-          careerStats: [
-            ...(player.careerStats ?? []),
-            {
-              year,
-              teamName: team.name,
-              collegeYear: player.year,
-              stats: player.stats,
-            },
-          ],
-        }),
-        year: nextYear,
-        attributes,
-        overall: clamp(Math.max(player.overall + growth, nextOverall), 35, player.potential),
-      };
+      const result = developPlayer(rng, team, player, year);
+      if (result.progression) progressions.push(result.progression);
+      return result.player;
     });
+  return { roster, progressions };
+}
+
+function developPlayer(rng: Rng, team: Team, player: Player, year: number): { player: Player; progression?: PlayerProgression } {
+  const traitBoost = player.development === "elite" ? 4 : player.development === "starter" ? 3 : player.development === "rotation" ? 2 : player.development === "depth" ? 1 : 0;
+  const potentialGap = Math.max(0, player.potential - player.overall);
+  const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 185;
+  const growthBudget = clamp(Math.round(rng.nextInt(0, 2) + traitBoost * 0.7 + coachBoost + potentialGap / 18), 0, Math.min(8, Math.max(0, potentialGap + 2)));
+  const focus = PROGRESSION_FOCUS[player.position];
+  const orderedKeys = [...rng.shuffle(focus), ...rng.shuffle(ATTRIBUTE_KEYS.filter((key) => !focus.includes(key)))].slice(0, 7);
+  let attributes: Attributes = { ...player.attributes };
+  const attributeGains: Partial<Record<AttributeKey, number>> = {};
+
+  for (const key of orderedKeys) {
+    const isFocus = focus.includes(key);
+    const maxGain = isFocus ? Math.max(1, growthBudget) : Math.ceil(growthBudget / 2);
+    const gain = growthBudget > 0 ? rng.nextInt(0, Math.min(5, maxGain)) : 0;
+    if (gain <= 0) continue;
+    const nextAttributes = applyPositionCaps(player.position, { ...attributes, [key]: clamp(attributes[key] + gain, 20, 99) }, 99);
+    const actualGain = nextAttributes[key] - attributes[key];
+    if (actualGain <= 0) continue;
+    attributes = nextAttributes;
+    attributeGains[key] = (attributeGains[key] ?? 0) + actualGain;
+  }
+
+  const nextYear: CollegeYear = player.year === "FR" ? "SO" : player.year === "SO" ? "JR" : "SR";
+  const recalculatedOverall = calculateOverall(player.position, attributes);
+  const afterOverall = clamp(Math.max(player.overall, recalculatedOverall), 35, player.potential);
+  const nextPlayer = {
+    ...resetPlayerStats({
+      ...player,
+      careerStats: [
+        ...(player.careerStats ?? []),
+        {
+          year,
+          teamName: team.name,
+          collegeYear: player.year,
+          stats: player.stats,
+        },
+      ],
+    }),
+    year: nextYear,
+    attributes,
+    overall: afterOverall,
+  };
+  const didImprove = afterOverall > player.overall || Object.keys(attributeGains).length > 0;
+  return {
+    player: nextPlayer,
+    progression: didImprove
+      ? {
+          playerId: player.id,
+          playerName: player.name,
+          position: player.position,
+          fromYear: player.year,
+          toYear: nextYear,
+          beforeOverall: player.overall,
+          afterOverall,
+          potential: player.potential,
+          attributeGains,
+        }
+      : undefined,
+  };
+}
+
+function reviewProgramPerformance(team: Team, champion: boolean): { program: ProgramRatings; changes: ProgramChange[] } {
+  const coachCulture = (team.coaches.head.culture + team.coaches.offense.culture + team.coaches.defense.culture) / 3;
+  const developmentStaff = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development) / 3;
+  const changes: ProgramChange[] = [];
+  let program = { ...team.program };
+  const applyChange = (key: keyof ProgramRatings, delta: number, reason: string) => {
+    if (!delta) return;
+    const before = program[key] ?? 50;
+    const after = clamp(before + delta, 1, 99);
+    if (after === before) return;
+    program = { ...program, [key]: after };
+    changes.push({ key, before, after, delta: after - before, reason });
+  };
+
+  applyChange("prestige", (team.season.wins >= 10 ? 2 : team.season.wins >= 8 ? 1 : team.season.losses >= 8 ? -2 : team.season.losses >= 6 ? -1 : 0) + (champion ? 4 : 0), champion ? "Championship season lifted national profile" : "Season record moved perception");
+  applyChange("fanSupport", team.season.wins >= 9 ? 2 : team.season.wins >= 7 ? 1 : team.season.losses >= 8 ? -2 : team.season.losses >= 6 ? -1 : 0, "Fan response to wins and losses");
+  applyChange("facilities", champion || team.season.wins >= 10 ? 1 : team.season.losses >= 9 ? -1 : 0, "Donor momentum affected facility support");
+  applyChange("training", developmentStaff >= 76 && team.season.wins >= 6 ? 1 : team.season.losses >= 9 ? -1 : 0, "Staff development reputation changed");
+  applyChange("recruitingReach", team.season.rank && team.season.rank <= 10 ? 2 : team.season.rank && team.season.rank <= 25 ? 1 : team.season.losses >= 8 ? -1 : 0, "Poll visibility affected recruiting reach");
+  applyChange("academics", coachCulture >= 80 && team.season.wins >= 6 ? 1 : team.season.losses >= 10 ? -1 : 0, "Culture and stability affected academic support");
+  return { program, changes };
 }
 
 function createOffseasonReport(teams: Team[], year: number): OffseasonReport {
@@ -421,21 +559,77 @@ function createOffseasonReport(teams: Team[], year: number): OffseasonReport {
       teamId: team.id,
       teamName: team.name,
       departures: team.roster.map((player) => playerDeparture(player, team)).filter((departure): departure is PlayerDeparture => Boolean(departure)),
+      signees: [],
+      progressions: [],
+      programChanges: [],
     })),
     topClasses: [],
   };
 }
 
-function enrichOffseasonReport(report: OffseasonReport, topClasses: OffseasonReport["topClasses"], recruitingRankByTeam: Map<string, number>, userTeamId: string): OffseasonReport {
+function enrichOffseasonReport(report: OffseasonReport, topClasses: OffseasonReport["topClasses"], recruitingRankByTeam: Map<string, number>, userTeamId: string, recruits: Recruit[] = []): OffseasonReport {
+  const signeesByTeam = signeesForTeams(recruits);
   return {
     ...report,
     topClasses,
     userRecruitingRank: recruitingRankByTeam.get(userTeamId),
     teams: report.teams.map((teamReport) => ({
       ...teamReport,
+      signees: signeesByTeam.get(teamReport.teamId) ?? teamReport.signees ?? [],
       recruitingRank: recruitingRankByTeam.get(teamReport.teamId),
     })),
   };
+}
+
+function completeDevelopmentReport(report: OffseasonReport, updates: Map<string, { progressions: PlayerProgression[]; programChanges: ProgramChange[] }>): OffseasonReport {
+  return {
+    ...report,
+    signingComplete: true,
+    developmentComplete: true,
+    teams: report.teams.map((teamReport) => {
+      const update = updates.get(teamReport.teamId);
+      return {
+        ...teamReport,
+        progressions: update?.progressions ?? teamReport.progressions ?? [],
+        programChanges: update?.programChanges ?? teamReport.programChanges ?? [],
+      };
+    }),
+  };
+}
+
+function classRankingContext(state: DynastyState): { fullClassRankings: OffseasonReport["topClasses"]; recruitingRankByTeam: Map<string, number> } {
+  const fullClassRankings = recruitingClassRankings(state.teams, signedClassCounts(state.recruits), state.teams.length);
+  return {
+    fullClassRankings,
+    recruitingRankByTeam: new Map(fullClassRankings.map((entry, index) => [entry.teamId, index + 1])),
+  };
+}
+
+function signeesForTeams(recruits: Recruit[]): Map<string, RecruitSigning[]> {
+  const byTeam = new Map<string, RecruitSigning[]>();
+  for (const recruit of recruits) {
+    if (!recruit.committedTeamId || recruit.stage !== "signed") continue;
+    const signed = byTeam.get(recruit.committedTeamId) ?? [];
+    signed.push({
+      recruitId: recruit.id,
+      playerId: `player-${recruit.id}-${recruit.committedTeamId}`,
+      playerName: recruit.name,
+      position: recruit.position,
+      stars: recruit.stars,
+      nationalRank: recruit.nationalRank,
+      overall: recruit.overall,
+      potential: recruit.potential,
+      trait: recruit.hiddenTrait,
+    });
+    byTeam.set(recruit.committedTeamId, signed);
+  }
+  for (const [teamId, signees] of byTeam) {
+    byTeam.set(
+      teamId,
+      signees.sort((a, b) => b.stars - a.stars || a.nationalRank - b.nationalRank),
+    );
+  }
+  return byTeam;
 }
 
 function playerDeparture(player: Player, team: Team): PlayerDeparture | undefined {

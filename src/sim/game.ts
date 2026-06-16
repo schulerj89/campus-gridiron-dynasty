@@ -1,6 +1,20 @@
 import { Rng, clamp } from "./rng";
-import { teamPower, teamUnitRatings } from "./ratings";
-import { emptyStats, type Game, type Player, type PlayerGameStats, type PlayerStats, type Team, type TeamBoxScore } from "./types";
+import { effectiveAttributes, effectiveOverall, teamPower, teamUnitRatings } from "./ratings";
+import { emptyStats, type AttributeKey, type Game, type Player, type PlayerGameStats, type PlayerStats, type PlayerStreakStatus, type Position, type Team, type TeamBoxScore } from "./types";
+
+const STREAK_FOCUS: Record<Position, AttributeKey[]> = {
+  QB: ["throwPower", "accuracy", "awareness"],
+  HB: ["speed", "awareness", "catching"],
+  WR: ["catching", "routeRunning", "speed"],
+  TE: ["catching", "routeRunning", "runBlock"],
+  OL: ["runBlock", "passBlock", "awareness"],
+  DL: ["tackle", "defAwareness", "speed"],
+  LB: ["tackle", "defAwareness", "interception"],
+  CB: ["interception", "defAwareness", "speed"],
+  S: ["interception", "defAwareness", "tackle"],
+  K: ["kickPower", "kickAccuracy", "awareness"],
+  P: ["kickPower", "kickAccuracy", "awareness"],
+};
 
 export function simulateGame(rng: Rng, game: Game, teams: Team[]): { game: Game; teams: Team[] } {
   const home = teams.find((team) => team.id === game.homeTeamId);
@@ -134,8 +148,8 @@ function applyPlayerStats(rng: Rng, roster: Player[], opponent: Team, pointsFor:
   const plays = rng.nextInt(58, 74);
   const passAttempts = Math.round(plays * passRate);
   const rushAttempts = Math.max(18, plays - passAttempts);
-  const passYards = clamp(Math.round(passAttempts * (5.7 + (units.passing + units.receiving - opponentUnits.coverage) / 70) + rng.nextInt(-30, 52)), 70, 455);
-  const rushYards = clamp(Math.round(rushAttempts * (3.6 + (units.rushing + units.blocking - opponentUnits.defense) / 80) + rng.nextInt(-24, 42)), 25, 330);
+  const passYards = clamp(Math.round(passAttempts * (5.7 + (units.passing + units.receiving - opponentUnits.coverage) / 70) + rng.nextInt(-30, 52)), 95, 450);
+  const rushYards = clamp(Math.round(rushAttempts * (3.6 + (units.rushing + units.blocking - opponentUnits.defense) / 80) + rng.nextInt(-24, 42)), 40, 320);
   const offensiveTd = clamp(Math.round(pointsFor / 7 - (pointsFor % 7 >= 3 ? 0.45 : 0) + rng.nextInt(-1, 1)), 0, 8);
   const passTd = clamp(Math.round(offensiveTd * clamp(0.53 + (units.passing - units.rushing) / 150, 0.34, 0.72) + rng.nextInt(-1, 1)), 0, Math.min(6, offensiveTd));
   const rushTd = clamp(offensiveTd - passTd, 0, 6);
@@ -148,52 +162,53 @@ function applyPlayerStats(rng: Rng, roster: Player[], opponent: Team, pointsFor:
     player.stats.passTd += passTd;
     player.stats.interceptionsThrown += picks;
   });
-  const qbRushYards = qb ? clamp(Math.round(Math.max(0, qb.attributes.speed - 45) * rng.next() * 0.45), 0, Math.min(85, Math.round(rushYards * 0.28))) : 0;
-  const qbRushTd = qb && rushTd > 0 && rng.chance(clamp((qb.attributes.speed - 50) / 170, 0.03, 0.28)) ? 1 : 0;
+  const qbAttributes = qb ? effectiveAttributes(qb) : undefined;
+  const qbRushYards = qbAttributes ? clamp(Math.round(Math.max(0, qbAttributes.speed - 45) * rng.next() * 0.45), 0, Math.min(85, Math.round(rushYards * 0.28))) : 0;
+  const qbRushTd = qbAttributes && rushTd > 0 && rng.chance(clamp((qbAttributes.speed - 50) / 170, 0.03, 0.28)) ? 1 : 0;
   mutateActivePlayer(updated, appeared, qb?.id, (player) => {
     player.stats.rushYards += qbRushYards;
     player.stats.rushTd += qbRushTd;
   });
-  for (const [playerId, value] of splitAmount(backs, Math.max(0, rushYards - qbRushYards), (player) => player.overall + player.attributes.speed * 0.4 + player.attributes.awareness * 0.2)) {
+  for (const [playerId, value] of splitAmount(backs, Math.max(0, rushYards - qbRushYards), (player) => effectiveOverall(player) + effectiveAttributes(player).speed * 0.4 + effectiveAttributes(player).awareness * 0.2)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.rushYards += value;
     });
   }
-  for (const [playerId, value] of splitScores(rng, backs, Math.max(0, rushTd - qbRushTd), (player) => player.overall + player.attributes.speed * 0.35)) {
+  for (const [playerId, value] of splitScores(rng, backs, Math.max(0, rushTd - qbRushTd), (player) => effectiveOverall(player) + effectiveAttributes(player).speed * 0.35)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.rushTd += value;
     });
   }
-  for (const [playerId, value] of splitAmount(targets, passYards, (player) => player.overall + player.attributes.catching * 0.5 + player.attributes.routeRunning * 0.45)) {
+  for (const [playerId, value] of splitAmount(targets, passYards, (player) => effectiveOverall(player) + effectiveAttributes(player).catching * 0.5 + effectiveAttributes(player).routeRunning * 0.45)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.receivingYards += value;
     });
   }
-  for (const [playerId, value] of splitScores(rng, targets, passTd, (player) => player.overall + player.attributes.catching * 0.5 + player.attributes.routeRunning * 0.4)) {
+  for (const [playerId, value] of splitScores(rng, targets, passTd, (player) => effectiveOverall(player) + effectiveAttributes(player).catching * 0.5 + effectiveAttributes(player).routeRunning * 0.4)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.receivingTd += value;
     });
   }
-  for (const [playerId, value] of splitAmount(blockers, Math.round(pointsFor + rushYards / 9), (player) => player.overall + player.attributes.runBlock + player.attributes.passBlock)) {
+  for (const [playerId, value] of splitAmount(blockers, Math.round(pointsFor + rushYards / 9), (player) => effectiveOverall(player) + effectiveAttributes(player).runBlock + effectiveAttributes(player).passBlock)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.pancakes += Math.round(value / 26);
     });
   }
-  const tacklePool = clamp(56 + Math.round(pointsAgainst * 0.28) + Math.round((opponentUnits.rushing + opponentUnits.passing) / 45) + rng.nextInt(-5, 9), 48, 86);
-  for (const [playerId, value] of splitAmount(defenders, tacklePool, (player) => (player.overall + player.attributes.tackle * 0.55 + player.attributes.defAwareness * 0.35) * defenderTackleShare(player))) {
+  const tacklePool = clamp(56 + Math.round(pointsAgainst * 0.28) + Math.round((opponentUnits.rushing + opponentUnits.passing) / 45) + rng.nextInt(-5, 9), 50, 85);
+  for (const [playerId, value] of splitAmount(defenders, tacklePool, (player) => (effectiveOverall(player) + effectiveAttributes(player).tackle * 0.55 + effectiveAttributes(player).defAwareness * 0.35) * defenderTackleShare(player))) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.tackles += value;
     });
   }
   const sackTargets = defenders.filter((player) => player.position === "DL" || player.position === "LB");
   const sackCount = clamp(Math.round(1.3 + (units.defense - opponentUnits.blocking) / 26 + rng.nextInt(-1, 3)), 0, 5);
-  for (const [playerId, value] of splitScores(rng, sackTargets, sackCount, (player) => player.overall + player.attributes.tackle * 0.6)) {
+  for (const [playerId, value] of splitScores(rng, sackTargets, sackCount, (player) => effectiveOverall(player) + effectiveAttributes(player).tackle * 0.6)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.sacks += value;
     });
   }
   const interceptionTargets = defenders.filter((player) => player.position === "CB" || player.position === "S" || player.position === "LB");
-  for (const [playerId, value] of splitScores(rng, interceptionTargets, defensiveInterceptions, (player) => player.overall + player.attributes.interception * 0.7 + player.attributes.defAwareness * 0.25)) {
+  for (const [playerId, value] of splitScores(rng, interceptionTargets, defensiveInterceptions, (player) => effectiveOverall(player) + effectiveAttributes(player).interception * 0.7 + effectiveAttributes(player).defAwareness * 0.25)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.interceptions += value;
     });
@@ -201,10 +216,10 @@ function applyPlayerStats(rng: Rng, roster: Player[], opponent: Team, pointsFor:
   mutateActivePlayer(updated, appeared, kicker?.id, (player) => {
     const attempts = clamp(Math.round((pointsFor - offensiveTd * 7) / 3 + rng.nextInt(0, 1)), pointsFor >= 3 ? 1 : 0, 5);
     player.stats.fieldGoalAttempts += attempts;
-    player.stats.fieldGoals += clamp(attempts - (rng.chance(player.attributes.kickAccuracy / 118) ? 0 : 1), 0, attempts);
+    player.stats.fieldGoals += clamp(attempts - (rng.chance(effectiveAttributes(player).kickAccuracy / 118) ? 0 : 1), 0, attempts);
   });
 
-  return updated.map((player) =>
+  const withGames = updated.map((player) =>
     appeared.has(player.id)
       ? {
           ...player,
@@ -215,17 +230,23 @@ function applyPlayerStats(rng: Rng, roster: Player[], opponent: Team, pointsFor:
         }
       : player,
   );
+  return withGames.map((player) => {
+    const previous = roster.find((candidate) => candidate.id === player.id);
+    if (!previous) return player;
+    if (!appeared.has(player.id)) return decayPlayerStreak(player);
+    return updatePlayerStreak(rng, previous, player, diffStats(previous.stats, player.stats));
+  });
 }
 
 function topAt(roster: Player[], positions: string[], count: number): Player[] {
   return roster
     .filter((player) => positions.includes(player.position))
-    .sort((a, b) => b.overall - a.overall)
+      .sort((a, b) => effectiveOverall(b) - effectiveOverall(a))
     .slice(0, count);
 }
 
 function rotationAt(rng: Rng, roster: Player[], positions: string[], count: number): Player[] {
-  const ranked = roster.filter((player) => positions.includes(player.position)).sort((a, b) => b.overall - a.overall);
+  const ranked = roster.filter((player) => positions.includes(player.position)).sort((a, b) => effectiveOverall(b) - effectiveOverall(a));
   const core = ranked.slice(0, Math.max(1, count - 1));
   const rotationPool = ranked.slice(core.length, Math.min(ranked.length, count + 3));
   const extra = rotationPool.length ? rng.shuffle(rotationPool).slice(0, Math.max(0, count - core.length)) : [];
@@ -276,7 +297,67 @@ function splitScores(rng: Rng, targets: Player[], count: number, weightFor: (pla
 }
 
 function passingInterceptions(rng: Rng, offensePassing: number, defenseCoverage: number): number {
-  return clamp(Math.round(0.6 + (defenseCoverage - offensePassing) / 30 + rng.nextInt(-1, 2)), 0, 3);
+  const edge = defenseCoverage - offensePassing;
+  const firstPick = clamp(0.68 + edge / 110, 0.32, 0.92);
+  const secondPick = clamp(0.1 + edge / 180, 0.03, 0.3);
+  const thirdPick = clamp((edge - 18) / 220, 0, 0.12);
+  let picks = 0;
+  if (rng.chance(firstPick)) picks += 1;
+  if (rng.chance(secondPick)) picks += 1;
+  if (picks >= 2 && rng.chance(thirdPick)) picks += 1;
+  return picks;
+}
+
+function updatePlayerStreak(rng: Rng, before: Player, after: Player, gameStats: PlayerStats): Player {
+  const decayed = decayPlayerStreak(after);
+  const hot = hotPerformanceScore(before, gameStats);
+  const cold = coldPerformanceScore(before, gameStats);
+  const potentialGap = clamp(before.potential - before.overall, 0, 30);
+  const hotChance = clamp(0.06 + hot * 0.045 + potentialGap / 180, 0.04, 0.28);
+  const coldChance = clamp(0.04 + cold * 0.055 - potentialGap / 260, 0.02, 0.2);
+  if (hot > 0 && rng.chance(hotChance)) return withNewStreak(rng, decayed, "hot", hot);
+  if (cold > 0 && rng.chance(coldChance)) return withNewStreak(rng, decayed, "cold", cold);
+  return decayed;
+}
+
+function decayPlayerStreak(player: Player): Player {
+  if (!player.streak) return player;
+  const weeks = player.streak.weeks - 1;
+  if (weeks <= 0) return { ...player, streak: undefined };
+  return { ...player, streak: { ...player.streak, weeks } };
+}
+
+function withNewStreak(rng: Rng, player: Player, status: PlayerStreakStatus, score: number): Player {
+  const focus = STREAK_FOCUS[player.position];
+  const magnitude = status === "hot" ? clamp(2 + Math.floor(score / 2) + rng.nextInt(0, 1), 2, 5) : -clamp(2 + Math.floor(score / 2), 2, 4);
+  const selected = rng.shuffle(focus).slice(0, status === "hot" ? 3 : 2);
+  const attributeBoosts = Object.fromEntries(selected.map((key) => [key, magnitude])) as Partial<Record<AttributeKey, number>>;
+  return {
+    ...player,
+    streak: {
+      status,
+      weeks: status === "hot" ? rng.nextInt(2, 4) : rng.nextInt(1, 3),
+      attributeBoosts,
+      note: status === "hot" ? "Surging after a strong performance" : "Confidence dipped after a rough outing",
+    },
+  };
+}
+
+function hotPerformanceScore(player: Player, stats: PlayerStats): number {
+  if (player.position === "QB") return stats.passYards >= 275 && stats.passTd >= 2 && stats.interceptionsThrown === 0 ? 2.5 + stats.passTd * 0.35 : 0;
+  if (player.position === "HB") return stats.rushYards >= 105 || stats.rushTd >= 2 ? 1.8 + stats.rushYards / 160 + stats.rushTd * 0.55 : 0;
+  if (player.position === "WR" || player.position === "TE") return stats.receivingYards >= 85 || stats.receivingTd >= 2 ? 1.7 + stats.receivingYards / 140 + stats.receivingTd * 0.55 : 0;
+  if (player.position === "OL") return stats.pancakes >= 2 ? 1.4 + stats.pancakes * 0.35 : 0;
+  if (["DL", "LB", "CB", "S"].includes(player.position)) return stats.tackles >= 8 || stats.sacks > 0 || stats.interceptions > 0 ? 1.4 + stats.tackles / 12 + stats.sacks * 0.8 + stats.interceptions : 0;
+  if (player.position === "K" || player.position === "P") return stats.fieldGoalAttempts >= 2 && stats.fieldGoals === stats.fieldGoalAttempts ? 1.5 : 0;
+  return 0;
+}
+
+function coldPerformanceScore(player: Player, stats: PlayerStats): number {
+  if (player.position === "QB") return stats.interceptionsThrown >= 2 || (stats.passTd === 0 && stats.passYards < 170) ? 1.8 + stats.interceptionsThrown * 0.7 : 0;
+  if (["DL", "LB", "CB", "S"].includes(player.position)) return stats.tackles <= 2 && stats.sacks === 0 && stats.interceptions === 0 ? 0.9 : 0;
+  if (player.position === "K") return stats.fieldGoalAttempts >= 2 && stats.fieldGoals < stats.fieldGoalAttempts ? 1.2 : 0;
+  return 0;
 }
 
 function defenderTackleShare(player: Player): number {
@@ -316,7 +397,7 @@ function buildTeamBoxScore(before: Team, after: Team, score: number): TeamBoxSco
     teamName: after.name,
     score,
     totals: sumStats(allPlayers.map((player) => player.stats)),
-    players: allPlayers.sort((a, b) => statImpact(b.stats) - statImpact(a.stats)).slice(0, 14),
+    players: allPlayers.sort((a, b) => statImpact(b.stats) - statImpact(a.stats)).slice(0, 18),
   };
 }
 
@@ -358,7 +439,7 @@ function statImpact(stats: PlayerStats): number {
     stats.receivingTd * 12 +
     stats.tackles * 1.5 +
     stats.sacks * 8 +
-    stats.interceptions * 10 +
+    stats.interceptions * 14 +
     stats.pancakes * 2 +
     stats.fieldGoals * 5
   );

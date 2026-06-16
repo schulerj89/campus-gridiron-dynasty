@@ -53,11 +53,15 @@ QA screenshots are written to:
 - `artifacts/screenshots/all-american-second-desktop.png`
 - `artifacts/screenshots/all-conference-first-desktop.png`
 - `artifacts/screenshots/all-conference-second-desktop.png`
+- `artifacts/screenshots/dashboard-playoff-bracket-desktop.png`
 - `artifacts/screenshots/playoffs-desktop.png`
 - `artifacts/screenshots/awards-playoff-desktop.png`
 - `artifacts/screenshots/offseason-dashboard-desktop.png`
 - `artifacts/screenshots/offseason-departures-desktop.png`
+- `artifacts/screenshots/offseason-all-classes-desktop.png`
 - `artifacts/screenshots/offseason-recruiting-rankings-desktop.png`
+- `artifacts/screenshots/preseason-progression-desktop.png`
+- `artifacts/screenshots/offseason-program-review-desktop.png`
 - `artifacts/screenshots/offseason-recruiting-desktop.png`
 - `artifacts/screenshots/mobile-dashboard.png`
 
@@ -80,7 +84,11 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
 - Recruiting scholarships are one-time offers that add prospects to the board, and pitches require an offer with a one-week cooldown per recruit.
+- Recruiting action points are tracked by recruit and return when a board prospect commits.
 - Recruits committed to other programs remain visible in the database with destination indicators but cannot be added, scouted, or pitched.
+- Offseason advancement should expose departures, signing day, preseason player development, and kickoff as distinct steps.
+- Player offseason development must never regress attributes or overall.
+- Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.
 - The game should stay playable on WebKit and on mobile-width screens.
 
 ## Research Notes

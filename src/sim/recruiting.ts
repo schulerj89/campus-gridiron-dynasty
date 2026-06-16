@@ -56,6 +56,7 @@ export function offerScholarship(state: DynastyState, recruitId: string): Dynast
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - OFFER_COST,
       pointsSpent: (state.recruiting.pointsSpent ?? 0) + OFFER_COST,
+      investedByRecruit: addRecruitInvestment(state.recruiting.investedByRecruit, recruitId, OFFER_COST),
       board: boardWithRecruit(state.recruiting.board, recruitId, limit),
       lastActions: [`Offered ${recruit?.name ?? "recruit"} a scholarship for ${OFFER_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
@@ -80,6 +81,7 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - SCOUT_COST,
       pointsSpent: (state.recruiting.pointsSpent ?? 0) + SCOUT_COST,
+      investedByRecruit: addRecruitInvestment(state.recruiting.investedByRecruit, recruitId, SCOUT_COST),
       board: boardWithRecruit(state.recruiting.board, recruitId, recruitingBoardLimit(state)),
       lastActions: [`Scouted ${recruit?.name ?? "recruit"} for ${SCOUT_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
@@ -116,6 +118,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - PITCH_COST,
       pointsSpent: (state.recruiting.pointsSpent ?? 0) + PITCH_COST,
+      investedByRecruit: addRecruitInvestment(state.recruiting.investedByRecruit, recruitId, PITCH_COST),
       board: boardWithRecruit(state.recruiting.board, recruitId, recruitingBoardLimit(state)),
       lastActions: [`Pitched ${recruit?.name ?? "recruit"} for ${PITCH_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
@@ -127,6 +130,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
   const rng = new Rng(state.rngState);
   let points = state.recruiting.pointsRemaining;
   let spent = state.recruiting.pointsSpent ?? 0;
+  let investedByRecruit = { ...(state.recruiting.investedByRecruit ?? {}) };
   let board = ensureSmartBoard(state.recruits, activeBoard(state.recruiting.board, state.recruits), team, 24, recruitingBoardLimit(state));
   let recruits = state.recruits;
   const actions: string[] = [];
@@ -156,11 +160,13 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
       });
       points -= OFFER_COST;
       spent += OFFER_COST;
+      investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, OFFER_COST);
       actions.push(`Auto-offered ${target.name}.`);
     } else if (target.scoutProgress < 65 && points >= SCOUT_COST) {
       recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 22) : recruit));
       points -= SCOUT_COST;
       spent += SCOUT_COST;
+      investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, SCOUT_COST);
       actions.push(`Auto-scouted ${target.name}.`);
     } else if (!pitchedThisWeek && points >= PITCH_COST && (target.interest[team.id] ?? 0) < topInterest(target) + 18) {
       recruits = recruits.map((recruit) => {
@@ -181,11 +187,13 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
       });
       points -= PITCH_COST;
       spent += PITCH_COST;
+      investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, PITCH_COST);
       actions.push(`Auto-pitched ${target.name}.`);
     } else if (target.scoutProgress < 100 && points >= SCOUT_COST) {
       recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 18) : recruit));
       points -= SCOUT_COST;
       spent += SCOUT_COST;
+      investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, SCOUT_COST);
       actions.push(`Auto-scouted ${target.name}.`);
     } else {
       skipped.add(target.id);
@@ -201,6 +209,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
       ...state.recruiting,
       pointsRemaining: points,
       pointsSpent: spent,
+      investedByRecruit,
       board,
       lastActions: [reason, ...actions, ...state.recruiting.lastActions].slice(0, 10),
     },
@@ -217,7 +226,17 @@ export function advanceRecruitingWeek(state: DynastyState): DynastyState {
   const userTeam = getUserTeam(state);
   const seasonBudget = state.recruiting.seasonBudget ?? calculateSeasonRecruitingBudget(userTeam);
   const weeklyPoints = calculateWeeklyRecruitingPoints(userTeam);
+  const resolvedBoardIds = state.recruiting.board.filter((id) => recruits.find((recruit) => recruit.id === id)?.committedTeamId);
+  const refund = resolvedBoardIds.reduce((sum, id) => sum + (state.recruiting.investedByRecruit?.[id] ?? 0), 0);
+  const investedByRecruit = { ...(state.recruiting.investedByRecruit ?? {}) };
+  for (const id of resolvedBoardIds) {
+    delete investedByRecruit[id];
+  }
   const board = activeBoard(state.recruiting.board, recruits);
+  const commitAction =
+    resolvedBoardIds.length && refund > 0
+      ? [`Freed ${refund.toLocaleString()} recruiting points after ${resolvedBoardIds.length} board commitment${resolvedBoardIds.length === 1 ? "" : "s"}.`]
+      : [];
   return {
     ...state,
     rngState: rng.currentState(),
@@ -226,10 +245,12 @@ export function advanceRecruitingWeek(state: DynastyState): DynastyState {
       ...state.recruiting,
       weeklyPoints,
       seasonBudget,
-      pointsRemaining: Math.min(state.recruiting.pointsRemaining, seasonBudget),
-      pointsSpent: state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining),
+      pointsRemaining: Math.min(state.recruiting.pointsRemaining + refund, seasonBudget),
+      pointsSpent: Math.max(0, (state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining)) - refund),
+      investedByRecruit,
       boardLimit: recruitingBoardLimit(state),
       board,
+      lastActions: [...commitAction, ...state.recruiting.lastActions].slice(0, 10),
     },
   };
 }
@@ -416,14 +437,23 @@ function maybeCommit(rng: Rng, recruit: Recruit, week: number): Recruit {
   const second = candidates[1];
   if (!leader) return recruit;
   const lead = leader[1] - (second?.[1] ?? 0);
-  const patience = recruit.stars === 5 && recruit.nationalRank <= 10 ? 11 : recruit.stars >= 4 ? 8 : 5;
-  const odds = week >= patience ? clamp(0.08 + lead / 85 + (week - patience) * 0.05, 0.04, 0.62) : 0.01;
+  const patience = recruit.stars === 5 && recruit.nationalRank <= 10 ? 10 : recruit.stars >= 4 ? 7 : 4;
+  const offerBonus = recruit.offers?.includes(leader[0]) ? 0.09 : -0.02;
+  const earlyOfferOdds = week >= 4 && recruit.offers?.includes(leader[0]) ? 0.035 : 0.006;
+  const odds = week >= patience ? clamp(0.1 + lead / 72 + (week - patience) * 0.065 + offerBonus, 0.04, 0.72) : earlyOfferOdds;
   if (!rng.chance(odds)) return recruit;
   return {
     ...recruit,
     stage: "softPledge",
     committedTeamId: leader[0],
     topSchools: recruit.topSchools.includes(leader[0]) ? recruit.topSchools : [leader[0], ...recruit.topSchools].slice(0, 3),
+  };
+}
+
+function addRecruitInvestment(investedByRecruit: Record<string, number> | undefined, recruitId: string, amount: number): Record<string, number> {
+  return {
+    ...(investedByRecruit ?? {}),
+    [recruitId]: (investedByRecruit?.[recruitId] ?? 0) + amount,
   };
 }
 

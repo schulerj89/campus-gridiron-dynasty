@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
 import { advanceWeek, forceUserAward, forceUserPlayoff, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
-import { buildDepthChart } from "../depthChart";
+import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 
 describe("dynasty flow", () => {
   it("simulates weekly games and creates weekly awards", () => {
@@ -27,8 +27,8 @@ describe("dynasty flow", () => {
     expect(playedGame?.result?.boxScore?.away.totals.receivingTd).toBe(playedGame?.result?.boxScore?.away.totals.passTd);
     expect(playedGame?.result?.boxScore?.home.totals.interceptions).toBe(playedGame?.result?.boxScore?.away.totals.interceptionsThrown);
     expect(playedGame?.result?.boxScore?.away.totals.interceptions).toBe(playedGame?.result?.boxScore?.home.totals.interceptionsThrown);
-    expect(playedGame?.result?.boxScore?.home.totals.tackles).toBeGreaterThanOrEqual(48);
-    expect(playedGame?.result?.boxScore?.home.totals.tackles).toBeLessThanOrEqual(86);
+    expect(playedGame?.result?.boxScore?.home.totals.tackles).toBeGreaterThanOrEqual(50);
+    expect(playedGame?.result?.boxScore?.home.totals.tackles).toBeLessThanOrEqual(85);
     expect(playedGame?.result?.boxScore?.home.players.find((line) => line.stats.tackles > 0)?.stats.tackles).toBeGreaterThan(2);
     const homeTeam = advanced.teams.find((team) => team.id === playedGame?.homeTeamId)!;
     const activeHomePlayers = homeTeam.roster.filter((player) => player.stats.games > 0);
@@ -58,10 +58,23 @@ describe("dynasty flow", () => {
     const userReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
     expect(userReport?.departures.some((departure) => departure.reason === "graduated" || departure.reason === "pro")).toBe(true);
     state = advanceWeek(state);
-    expect(state.phase).toBe("regular");
+    expect(state.phase).toBe("offseason");
+    expect(state.week).toBe(17);
+    expect(state.offseasonReport?.signingComplete).toBe(true);
     expect(state.offseasonReport?.topClasses.length).toBeGreaterThan(0);
+    expect(state.offseasonReport?.teams.some((report) => report.signees.length > 0)).toBe(true);
+
+    state = advanceWeek(state);
+    expect(state.phase).toBe("preseason");
+    expect(state.offseasonReport?.developmentComplete).toBe(true);
+    const preseasonReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
+    expect(preseasonReport?.progressions.every((progression) => progression.afterOverall >= progression.beforeOverall)).toBe(true);
     expect(state.history[0]?.userRecruitingRank).toBeGreaterThan(0);
     expect(state.teams.find((team) => team.id === state.userTeamId)?.history[0]?.recruitingClassRank).toBe(state.history[0]?.userRecruitingRank);
+
+    state = advanceWeek(state);
+    expect(state.phase).toBe("regular");
+    expect(state.offseasonReport).toBeUndefined();
   }, 20_000);
 
   it("does not log a coach point spend when no point is available", () => {
@@ -106,7 +119,7 @@ describe("dynasty flow", () => {
   it("builds a sorted depth chart for every position", () => {
     const state = createDynasty(10101);
     const team = state.teams[0]!;
-    const depthChart = buildDepthChart(team.roster, 3);
+    const depthChart = buildDepthChart(team, 3);
     expect(depthChart).toHaveLength(11);
     expect(depthChart.every((slot) => slot.players.length > 0 && slot.players.length <= 3)).toBe(true);
     for (const slot of depthChart) {
@@ -115,5 +128,14 @@ describe("dynasty flow", () => {
         expect(slot.players[index - 1]!.overall).toBeGreaterThanOrEqual(slot.players[index]!.overall);
       }
     }
+  });
+
+  it("persists manual depth chart moves", () => {
+    const state = createDynasty(10102);
+    const team = state.teams[0]!;
+    const hbSlot = buildDepthChart(team, 3).find((slot) => slot.position === "HB")!;
+    const secondBack = hbSlot.players[1]!;
+    const moved = moveDepthChartPlayer(team, "HB", secondBack.id, "up");
+    expect(buildDepthChart(moved, 3).find((slot) => slot.position === "HB")?.players[0]?.id).toBe(secondBack.id);
   });
 });

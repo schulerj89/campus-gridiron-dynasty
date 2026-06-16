@@ -80,6 +80,7 @@ export function createDynasty(seed = Date.now(), userTeamId?: string): DynastySt
       seasonBudget,
       pointsRemaining: seasonBudget,
       pointsSpent: 0,
+      investedByRecruit: {},
       boardLimit: 35,
       board: [],
       autoEnabled: true,
@@ -160,6 +161,7 @@ function createTeams(rng: Rng, conferences: Conference[], coachPool: Coach[]): T
       expectations: clamp(Math.round((prestige + program.facilities + program.fanSupport) / 3), 45, 92),
       season: freshTeamSeason(),
       history: [],
+      depthChart: {},
     };
     conference.teamIds.push(id);
     teams.push(team);
@@ -289,7 +291,7 @@ export function freshTeamSeason(): TeamSeason {
 }
 
 export function resetPlayerStats(player: Player): Player {
-  return { ...player, stats: emptyStats(), awards: [] };
+  return { ...player, stats: emptyStats(), awards: [], streak: undefined };
 }
 
 export function createSignedPlayerFromRecruit(recruit: Recruit): Player {
@@ -307,6 +309,7 @@ export function createSignedPlayerFromRecruit(recruit: Recruit): Player {
     stats: emptyStats(),
     careerStats: [],
     awards: [],
+    streak: undefined,
   };
 }
 
@@ -350,6 +353,7 @@ function createPlayer(rng: Rng, id: string, position: Position, targetOverall: n
     stats: emptyStats(),
     careerStats: [],
     awards: [],
+    streak: undefined,
   };
 }
 

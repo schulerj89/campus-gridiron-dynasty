@@ -38,6 +38,7 @@ export type RecruitTrait = "elite" | "starter" | "rotation" | "depth" | "project
 export type GemBust = "gem" | "solid" | "bust";
 export type Phase = "preseason" | "regular" | "postseason" | "offseason" | "complete";
 export type AutomationProfile = "balanced" | "recruitFirst" | "developYouth" | "retainStars";
+export type PlayerStreakStatus = "hot" | "cold";
 
 export interface PlayerStats {
   games: number;
@@ -61,6 +62,13 @@ export interface PlayerSeasonStats {
   teamName: string;
   collegeYear: CollegeYear;
   stats: PlayerStats;
+}
+
+export interface PlayerStreak {
+  status: PlayerStreakStatus;
+  weeks: number;
+  attributeBoosts: Partial<Record<AttributeKey, number>>;
+  note: string;
 }
 
 export interface PlayerGameStats {
@@ -97,6 +105,7 @@ export interface Player {
   stats: PlayerStats;
   careerStats: PlayerSeasonStats[];
   awards: string[];
+  streak?: PlayerStreak;
 }
 
 export interface Coach {
@@ -159,6 +168,7 @@ export interface Team {
   expectations: number;
   season: TeamSeason;
   history: TeamHistoryEntry[];
+  depthChart?: Partial<Record<Position, string[]>>;
 }
 
 export interface Conference {
@@ -215,6 +225,7 @@ export interface RecruitingState {
   seasonBudget: number;
   pointsRemaining: number;
   pointsSpent: number;
+  investedByRecruit: Record<string, number>;
   boardLimit: number;
   board: string[];
   autoEnabled: boolean;
@@ -329,10 +340,45 @@ export interface PlayerDeparture {
   note: string;
 }
 
+export interface RecruitSigning {
+  recruitId: string;
+  playerId: string;
+  playerName: string;
+  position: Position;
+  stars: 1 | 2 | 3 | 4 | 5;
+  nationalRank: number;
+  overall: number;
+  potential: number;
+  trait: RecruitTrait;
+}
+
+export interface PlayerProgression {
+  playerId: string;
+  playerName: string;
+  position: Position;
+  fromYear: CollegeYear;
+  toYear: CollegeYear;
+  beforeOverall: number;
+  afterOverall: number;
+  potential: number;
+  attributeGains: Partial<Record<AttributeKey, number>>;
+}
+
+export interface ProgramChange {
+  key: keyof ProgramRatings;
+  before: number;
+  after: number;
+  delta: number;
+  reason: string;
+}
+
 export interface TeamOffseasonReport {
   teamId: string;
   teamName: string;
   departures: PlayerDeparture[];
+  signees: RecruitSigning[];
+  progressions: PlayerProgression[];
+  programChanges: ProgramChange[];
   recruitingRank?: number;
 }
 
@@ -341,6 +387,8 @@ export interface OffseasonReport {
   teams: TeamOffseasonReport[];
   topClasses: { teamId: string; teamName: string; points: number }[];
   userRecruitingRank?: number;
+  signingComplete?: boolean;
+  developmentComplete?: boolean;
 }
 
 export interface DebugFlags {

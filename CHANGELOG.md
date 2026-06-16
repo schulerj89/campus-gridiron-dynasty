@@ -2,6 +2,15 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.8.0 - 2026-06-16
+
+- Split postseason advancement into visible offseason departure, signing day, preseason development, and kickoff steps.
+- Added all-team recruiting class browsing, preseason player progression reports, and program investment movement to the offseason dashboard.
+- Added dashboard playoff bracket visibility during postseason and hid offseason reports once the regular season begins.
+- Added manual depth-chart reordering plus rare hot/cold player streaks that affect effective ratings.
+- Tuned QB interception pacing, defensive award value, and commitment refunds for board recruits.
+- Expanded unit and smoke coverage for the new offseason flow, progression, depth chart, recruiting refunds, and screenshots.
+
 ## 0.7.0 - 2026-06-16
 
 - Reworked recruiting actions around scholarship offers, one-pitch-per-recruit weekly cooldowns, and tighter season budgets.

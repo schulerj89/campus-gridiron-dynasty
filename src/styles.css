@@ -726,7 +726,7 @@ select {
   cursor: pointer;
   display: grid;
   gap: 12px;
-  grid-template-columns: 58px minmax(160px, 1fr) 54px 54px 86px 82px;
+  grid-template-columns: 58px minmax(160px, 1fr) 54px 54px 82px 86px 82px;
   min-height: 78px;
   padding: 9px 12px 9px 9px;
   text-align: left;
@@ -738,10 +738,42 @@ select {
   font-weight: 750;
 }
 
+.streak-badge {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 5px;
+  justify-content: center;
+  padding: 6px 8px;
+}
+
+.streak-badge.hot {
+  background: rgba(240, 184, 74, 0.16);
+  border-color: rgba(240, 184, 74, 0.55);
+  color: #ffe0a1;
+}
+
+.streak-badge.cold {
+  background: rgba(94, 177, 191, 0.14);
+  border-color: rgba(94, 177, 191, 0.5);
+  color: #cceef3;
+}
+
+.streak-badge.neutral {
+  background: rgba(219, 229, 222, 0.06);
+  color: var(--muted);
+}
+
+.streak-badge.compact {
+  font-size: 0.68rem;
+  padding: 4px 6px;
+}
+
 .depth-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
 }
 
 .depth-card {
@@ -753,7 +785,13 @@ select {
   padding: 12px;
 }
 
-.depth-card button {
+.depth-player-row {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 76px;
+}
+
+.depth-main {
   align-items: center;
   background: #152128;
   border: 1px solid var(--line);
@@ -762,14 +800,50 @@ select {
   cursor: pointer;
   display: grid;
   gap: 8px;
-  grid-template-columns: 28px 1fr 36px;
-  min-height: 38px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "rank name streak"
+    "rank overall streak";
+  min-height: 54px;
   padding: 7px 9px;
   text-align: left;
 }
 
-.depth-card span,
-.depth-card em {
+.depth-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.icon-button.small {
+  min-height: 36px;
+  padding: 0;
+  width: 36px;
+}
+
+.depth-rank {
+  align-self: center;
+  grid-area: rank;
+}
+
+.depth-name {
+  grid-area: name;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.depth-overall {
+  grid-area: overall;
+}
+
+.depth-main .streak-badge {
+  align-self: center;
+  grid-area: streak;
+  justify-self: end;
+}
+
+.depth-main span,
+.depth-main em {
   color: var(--muted);
   font-style: normal;
   font-weight: 800;
@@ -1095,6 +1169,36 @@ select {
   grid-template-columns: 40px minmax(150px, 1fr) 80px;
 }
 
+.signee-row {
+  grid-template-columns: 68px minmax(110px, 1fr) 38px 58px minmax(86px, 0.8fr);
+}
+
+.progression-row {
+  grid-template-columns: minmax(140px, 1fr) 46px 74px minmax(150px, 1fr);
+}
+
+.progression-row span:last-child {
+  grid-column: 1 / -1;
+}
+
+.program-change-row {
+  grid-template-columns: minmax(130px, 1fr) 54px 78px;
+}
+
+.program-change-row span:last-child {
+  grid-column: 1 / -1;
+}
+
+.positive {
+  color: #a8f0c4 !important;
+  font-weight: 900;
+}
+
+.negative {
+  color: #ffb7b0 !important;
+  font-weight: 900;
+}
+
 .investment {
   align-items: flex-start;
   background: #0f171b;
@@ -1370,8 +1474,27 @@ select {
   .roster-row,
   .departure-row,
   .class-rank-row,
-  .movement-row {
+  .movement-row,
+  .signee-row,
+  .progression-row,
+  .program-change-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
+  }
+
+  .depth-player-row {
+    grid-template-columns: 1fr;
+  }
+
+  .depth-main {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+  }
+
+  .depth-main .streak-badge {
+    justify-self: end;
+  }
+
+  .depth-actions {
+    justify-content: flex-end;
   }
 
   .roster-row .portrait {

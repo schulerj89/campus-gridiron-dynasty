@@ -75,6 +75,32 @@ describe("recruiting", () => {
     expect(state.recruiting.seasonBudget).toBeGreaterThan(state.recruiting.weeklyPoints);
   });
 
+  it("returns invested recruiting points when a board recruit commits", () => {
+    let state = createDynasty(5682);
+    const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;
+    state = offerScholarship(state, recruit.id);
+    state = pitchRecruit(state, recruit.id);
+    const beforeRefund = state.recruiting.pointsRemaining;
+    const invested = state.recruiting.investedByRecruit[recruit.id] ?? 0;
+    state = {
+      ...state,
+      recruits: state.recruits.map((candidate) =>
+        candidate.id === recruit.id
+          ? {
+              ...candidate,
+              committedTeamId: state.userTeamId,
+              stage: "softPledge" as const,
+            }
+          : candidate,
+      ),
+    };
+
+    state = advanceWeek({ ...state, recruiting: { ...state.recruiting, autoEnabled: false } });
+    expect(state.recruiting.board).not.toContain(recruit.id);
+    expect(state.recruiting.investedByRecruit[recruit.id]).toBeUndefined();
+    expect(state.recruiting.pointsRemaining).toBe(beforeRefund + invested);
+  });
+
   it("does not spend points or log actions for invalid recruit targets", () => {
     const state = createDynasty(5791);
     const scouted = scoutRecruit(state, "missing-recruit");

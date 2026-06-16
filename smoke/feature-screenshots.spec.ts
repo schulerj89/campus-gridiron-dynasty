@@ -114,6 +114,9 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   }
 
   await expect(page.getByText(/postseason/)).toBeVisible({ timeout: 90_000 });
+  await page.getByRole("button", { name: "Overview" }).click();
+  await expect(page.getByTestId("dashboard-playoff-bracket")).toBeVisible();
+  await page.getByTestId("dashboard-playoff-bracket").screenshot({ path: path.join(screenshotDir, "dashboard-playoff-bracket-desktop.png") });
   await page.getByRole("button", { name: "Program" }).click();
   await expect(page.getByTestId("coach-pool-panel")).toBeVisible();
   await page.getByTestId("coach-pool-panel").screenshot({ path: path.join(screenshotDir, "coach-pool-postseason-desktop.png") });
@@ -135,13 +138,29 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("offseason-report-panel")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-dashboard-desktop.png"), fullPage: true });
   await page.getByTestId("offseason-report-panel").screenshot({ path: path.join(screenshotDir, "offseason-departures-desktop.png") });
+
   await page.getByTestId("advance-week").click();
-  await expect(page.getByText(/Year 2 of 20/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/offseason week 2 - signing day/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId("offseason-all-classes-panel")).toBeVisible();
   await expect(page.getByTestId("recruiting-ranking-panel")).toContainText("Recruiting Class Leaderboard");
   await page.getByTestId("recruiting-ranking-panel").screenshot({ path: path.join(screenshotDir, "offseason-recruiting-rankings-desktop.png") });
+  await page.getByTestId("offseason-all-classes-panel").screenshot({ path: path.join(screenshotDir, "offseason-all-classes-desktop.png") });
+
+  await page.getByTestId("advance-week").click();
+  await expect(page.getByText(/preseason week - player development/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId("preseason-progression-panel")).toBeVisible();
+  await expect(page.getByTestId("program-review-panel")).toBeVisible();
+  await page.getByTestId("preseason-progression-panel").screenshot({ path: path.join(screenshotDir, "preseason-progression-desktop.png") });
+  await page.getByTestId("program-review-panel").screenshot({ path: path.join(screenshotDir, "offseason-program-review-desktop.png") });
+
   await page.getByRole("button", { name: "Recruiting" }).click();
   await expect(page.getByTestId("recruiting-budget-panel")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-recruiting-desktop.png"), fullPage: true });
+
+  await page.getByTestId("advance-week").click();
+  await expect(page.getByText(/regular - Week 1/)).toBeVisible({ timeout: 90_000 });
+  await page.getByRole("button", { name: "Overview" }).click();
+  await expect(page.getByTestId("offseason-report-panel")).not.toBeVisible();
 });
 
 async function clearBrowserSave(page: import("@playwright/test").Page) {

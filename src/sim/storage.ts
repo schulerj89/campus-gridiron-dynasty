@@ -61,6 +61,11 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
   const teams = raw.teams.map((team, index) => ({
     ...team,
     helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
+    depthChart: team.depthChart ?? {},
+    roster: team.roster.map((player) => ({
+      ...player,
+      streak: player.streak && player.streak.weeks > 0 ? player.streak : undefined,
+    })),
   }));
   const recruits = raw.recruits.map((recruit) => ({
     ...recruit,
@@ -73,6 +78,26 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     teams,
     recruits,
     rankings,
+    offseasonReport: raw.phase === "regular" ? undefined : normalizeOffseasonReport(raw.offseasonReport),
+    recruiting: {
+      ...raw.recruiting,
+      investedByRecruit: raw.recruiting.investedByRecruit ?? {},
+    },
+  };
+}
+
+function normalizeOffseasonReport(report: DynastyState["offseasonReport"]): DynastyState["offseasonReport"] {
+  if (!report) return undefined;
+  return {
+    ...report,
+    signingComplete: Boolean(report.signingComplete),
+    developmentComplete: Boolean(report.developmentComplete),
+    teams: report.teams.map((teamReport) => ({
+      ...teamReport,
+      signees: teamReport.signees ?? [],
+      progressions: teamReport.progressions ?? [],
+      programChanges: teamReport.programChanges ?? [],
+    })),
   };
 }
 

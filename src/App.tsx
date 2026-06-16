@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
   Award,
+  ArrowDown,
+  ArrowUp,
   BadgeDollarSign,
   BookOpen,
   Building2,
@@ -16,6 +18,7 @@ import {
   GraduationCap,
   Handshake,
   Heart,
+  Flame,
   LineChart,
   MapPinned,
   Play,
@@ -24,6 +27,7 @@ import {
   Search,
   Shield,
   Star,
+  Snowflake,
   TrendingUp,
   Trophy,
   UserRound,
@@ -35,10 +39,10 @@ import { addRecruitToBoard, autoRecruit, gemBustFor, isPipelineRecruit, OFFER_CO
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, forceUserAward, forceUserPlayoff, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
-import { buildDepthChart } from "./sim/depthChart";
-import { teamPower, teamUnitRatings } from "./sim/ratings";
-import { POSITIONS, type AttributeKey, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team, type TeamBoxScore } from "./sim/types";
-import { Awards, AwardGrid } from "./components/AwardsView";
+import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
+import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
+import { POSITIONS, type AttributeKey, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
+import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
 import { PaginationControls } from "./components/PaginationControls";
 import { Rankings } from "./components/RankingsView";
 import { TeamHelmet } from "./components/TeamHelmet";
@@ -165,7 +169,7 @@ export default function App() {
           </p>
           <h1>{userTeam.name}</h1>
           <p className="muted">
-            Year {state.year} of {state.maxYears} - {state.calendarYear} - {state.phase} - Week {state.week}
+            Year {state.year} of {state.maxYears} - {state.calendarYear} - {phaseWeekLabel(state)}
           </p>
           <p className="save-status">{saveStatus}</p>
         </div>
@@ -200,7 +204,7 @@ export default function App() {
       <main className="content-grid">
         {activeTab === "overview" && <Overview state={state} onUpdate={update} />}
         {activeTab === "rankings" && <Rankings state={state} />}
-        {activeTab === "roster" && <Roster team={userTeam} />}
+        {activeTab === "roster" && <Roster state={state} onUpdate={update} />}
         {activeTab === "recruiting" && <Recruiting state={state} onUpdate={update} />}
         {activeTab === "schedule" && <Schedule state={state} />}
         {activeTab === "awards" && <Awards state={state} />}
@@ -369,29 +373,38 @@ function Overview({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe:
         )}
       </section>
 
-      {state.offseasonReport && offseasonTeamReport && <OffseasonRecap reportYear={state.offseasonReport.year} teamReport={offseasonTeamReport} topClasses={state.offseasonReport.topClasses} />}
+      {state.phase === "postseason" && state.playoff && (
+        <section className="panel span-2" data-testid="dashboard-playoff-bracket">
+          <div className="panel-head compact">
+            <h2>Summit Four Playoff</h2>
+            <Trophy size={20} />
+          </div>
+          <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={undefined} />
+        </section>
+      )}
+
+      {state.phase !== "regular" && state.offseasonReport && offseasonTeamReport && <OffseasonRecap report={state.offseasonReport} teamReport={offseasonTeamReport} />}
     </>
   );
 }
 
 function OffseasonRecap({
-  reportYear,
+  report,
   teamReport,
-  topClasses,
 }: {
-  reportYear: number;
+  report: NonNullable<DynastyState["offseasonReport"]>;
   teamReport: NonNullable<DynastyState["offseasonReport"]>["teams"][number];
-  topClasses: NonNullable<DynastyState["offseasonReport"]>["topClasses"];
 }) {
   const graduates = teamReport.departures.filter((departure) => departure.reason === "graduated");
   const proDepartures = teamReport.departures.filter((departure) => departure.reason === "pro");
+  const topClasses = report.topClasses;
   return (
     <section className="panel span-2" data-testid="offseason-report-panel">
       <div className="panel-head">
         <div>
-          <p className="eyebrow">Offseason Report</p>
+          <p className="eyebrow">{offseasonStageLabel(report)}</p>
           <h2>
-            {reportYear} Departures {teamReport.recruitingRank ? `- Recruiting #${teamReport.recruitingRank}` : ""}
+            {report.year} Offseason {teamReport.recruitingRank ? `- Recruiting #${teamReport.recruitingRank}` : ""}
           </h2>
         </div>
         <GraduationCap size={20} />
@@ -399,17 +412,18 @@ function OffseasonRecap({
       <div className="metric-grid offseason-metrics">
         <Metric label="Graduated" value={graduates.length} />
         <Metric label="Went Pro" value={proDepartures.length} />
+        <Metric label="Signees" value={report.signingComplete ? teamReport.signees.length : "Pending"} />
         <Metric label="Class Rank" value={teamReport.recruitingRank ? `#${teamReport.recruitingRank}` : "Pending"} />
-        <Metric label="Top Class" value={topClasses[0]?.teamName ?? "Pending"} />
       </div>
       <div className="offseason-grid">
         <DepartureGroup title="Graduated" departures={graduates} />
         <DepartureGroup title="Went Pro" departures={proDepartures} />
+        <ClassSigneesPanel reports={report.teams} />
         <section className="offseason-column" data-testid="recruiting-ranking-panel">
           <h3>Recruiting Class Leaderboard</h3>
           {topClasses.length ? (
             <div className="table-list class-ranking-list">
-              {topClasses.map((entry, index) => (
+              {topClasses.slice(0, 20).map((entry, index) => (
                 <div key={entry.teamId} className="table-row class-rank-row">
                   <span>{index + 1}</span>
                   <strong>{entry.teamName}</strong>
@@ -421,7 +435,102 @@ function OffseasonRecap({
             <p className="muted">Class rankings post after signing day.</p>
           )}
         </section>
+        <ProgressionGroup progressions={teamReport.progressions} />
+        <ProgramChangeGroup changes={teamReport.programChanges} />
       </div>
+    </section>
+  );
+}
+
+function ClassSigneesPanel({ reports }: { reports: NonNullable<DynastyState["offseasonReport"]>["teams"] }) {
+  const sortedReports = [...reports].sort((a, b) => (a.recruitingRank ?? 999) - (b.recruitingRank ?? 999) || a.teamName.localeCompare(b.teamName));
+  const [selectedTeamId, setSelectedTeamId] = useState(sortedReports[0]?.teamId ?? "");
+  const selected = sortedReports.find((report) => report.teamId === selectedTeamId) ?? sortedReports[0];
+  const signees = selected?.signees ?? [];
+  return (
+    <section className="offseason-column" data-testid="offseason-all-classes-panel">
+      <h3>All Team Classes</h3>
+      <label>
+        Team
+        <select value={selected?.teamId ?? ""} onChange={(event) => setSelectedTeamId(event.target.value)} data-testid="offseason-class-team-select">
+          {sortedReports.map((report) => (
+            <option key={report.teamId} value={report.teamId}>
+              #{report.recruitingRank ?? "-"} {report.teamName}
+            </option>
+          ))}
+        </select>
+      </label>
+      {signees.length ? (
+        <div className="table-list signee-list">
+          {signees.slice(0, 14).map((signee) => (
+            <SigneeRow key={signee.recruitId} signee={signee} />
+          ))}
+        </div>
+      ) : (
+        <p className="muted">Signing day has not posted yet.</p>
+      )}
+    </section>
+  );
+}
+
+function SigneeRow({ signee }: { signee: RecruitSigning }) {
+  return (
+    <div className="table-row signee-row">
+      <Stars count={signee.stars} />
+      <strong>{signee.playerName}</strong>
+      <span>{signee.position}</span>
+      <span>#{signee.nationalRank}</span>
+      <span>OVR/POT {signee.overall}/{signee.potential}</span>
+    </div>
+  );
+}
+
+function ProgressionGroup({ progressions }: { progressions: PlayerProgression[] }) {
+  const topProgressions = [...progressions].sort((a, b) => b.afterOverall - b.beforeOverall - (a.afterOverall - a.beforeOverall) || b.afterOverall - a.afterOverall).slice(0, 12);
+  return (
+    <section className="offseason-column" data-testid="preseason-progression-panel">
+      <h3>Preseason Development</h3>
+      {topProgressions.length ? (
+        <div className="table-list progression-list">
+          {topProgressions.map((progression) => (
+            <div key={progression.playerId} className="table-row progression-row">
+              <strong>{progression.playerName}</strong>
+              <span>{progression.position}</span>
+              <span>
+                {`${progression.fromYear}->${progression.toYear}`}
+              </span>
+              <span>
+                {`OVR +${progression.afterOverall - progression.beforeOverall} (${progression.beforeOverall}->${progression.afterOverall})`}
+              </span>
+              <span>{attributeGainText(progression.attributeGains)}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">Development posts in preseason week.</p>
+      )}
+    </section>
+  );
+}
+
+function ProgramChangeGroup({ changes }: { changes: ProgramChange[] }) {
+  return (
+    <section className="offseason-column" data-testid="program-review-panel">
+      <h3>Program Review</h3>
+      {changes.length ? (
+        <div className="table-list program-change-list">
+          {changes.map((change) => (
+            <div key={change.key} className="table-row program-change-row">
+              <strong>{title(String(change.key))}</strong>
+              <span className={clsx(change.delta > 0 ? "positive" : "negative")}>{change.delta > 0 ? `+${change.delta}` : change.delta}</span>
+              <span>{`${change.before}->${change.after}`}</span>
+              <span>{change.reason}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">Program investment movement posts after development week.</p>
+      )}
     </section>
   );
 }
@@ -449,17 +558,24 @@ function DepartureGroup({ title: groupTitle, departures }: { title: string; depa
   );
 }
 
-function Roster({ team }: { team: Team }) {
+function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
+  const team = getUserTeam(state);
   const [positionFilter, setPositionFilter] = useState<RosterFilter>("ALL");
   const [selectedPlayer, setSelectedPlayer] = useState<Player | undefined>();
   const [modalTab, setModalTab] = useState<PlayerModalTab>("profile");
   const sorted = [...team.roster].sort((a, b) => b.overall - a.overall || b.potential - a.potential);
   const filtered = positionFilter === "ALL" ? sorted : sorted.filter((player) => player.position === positionFilter);
-  const depthChart = buildDepthChart(team.roster, 3);
+  const depthChart = buildDepthChart(team, 5);
 
   const openPlayer = (player: Player) => {
     setSelectedPlayer(player);
     setModalTab("profile");
+  };
+  const movePlayer = (position: Position, playerId: string, direction: "up" | "down") => {
+    onUpdate((current) => ({
+      ...current,
+      teams: current.teams.map((candidate) => (candidate.id === team.id ? moveDepthChartPlayer(candidate, position, playerId, direction) : candidate)),
+    }));
   };
 
   return (
@@ -487,6 +603,7 @@ function Roster({ team }: { team: Team }) {
               <span>{player.position}</span>
               <span>{player.year}</span>
               <span>OVR {player.overall}</span>
+              <StreakBadge player={player} />
               <span>Pot {player.potential}</span>
             </button>
           ))}
@@ -503,11 +620,22 @@ function Roster({ team }: { team: Team }) {
             <article key={slot.position} className="depth-card">
               <p className="eyebrow">{slot.position}</p>
               {slot.players.map((player, index) => (
-                <button key={player.id} onClick={() => openPlayer(player)}>
-                  <span>{index + 1}</span>
-                  <strong>{player.name}</strong>
-                  <em>{player.overall}</em>
-                </button>
+                <div key={player.id} className="depth-player-row">
+                  <button className="depth-main" onClick={() => openPlayer(player)}>
+                    <span className="depth-rank">{index + 1}</span>
+                    <strong className="depth-name">{player.name}</strong>
+                    <em className="depth-overall">OVR {effectiveOverall(player)}</em>
+                    <StreakBadge player={player} compact showNeutral={false} />
+                  </button>
+                  <div className="depth-actions">
+                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "up")} disabled={index === 0} aria-label={`Move ${player.name} up`}>
+                      <ArrowUp size={15} />
+                    </button>
+                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "down")} disabled={index === slot.players.length - 1} aria-label={`Move ${player.name} down`}>
+                      <ArrowDown size={15} />
+                    </button>
+                  </div>
+                </div>
               ))}
             </article>
           ))}
@@ -552,8 +680,9 @@ function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Play
               <Metric label="Overall" value={player.overall} />
               <Metric label="Potential" value={player.potential} />
               <Metric label="Development" value={player.development} />
-              <Metric label="Games" value={player.stats.games} />
+              <Metric label="Form" value={player.streak ? `${title(player.streak.status)} ${player.streak.weeks}w` : "Neutral"} />
             </div>
+            {player.streak && <p className="muted">{player.streak.note}: {attributeGainText(player.streak.attributeBoosts)}</p>}
             <p className="muted">Career rows are recorded each offseason before the player advances class year.</p>
           </div>
         )}
@@ -592,6 +721,17 @@ function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Play
         )}
       </section>
     </div>
+  );
+}
+
+function StreakBadge({ player, compact = false, showNeutral = true }: { player: Player; compact?: boolean; showNeutral?: boolean }) {
+  if (!player.streak) return showNeutral ? <span className={clsx("streak-badge neutral", compact && "compact")}>Neutral</span> : null;
+  const Icon = player.streak.status === "hot" ? Flame : Snowflake;
+  return (
+    <span className={clsx("streak-badge", player.streak.status, compact && "compact")} title={player.streak.note}>
+      <Icon size={compact ? 12 : 14} />
+      {title(player.streak.status)}
+    </span>
   );
 }
 
@@ -657,7 +797,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           <Metric label="Remaining" value={state.recruiting.pointsRemaining.toLocaleString()} />
           <Metric label="Spent" value={pointsSpent.toLocaleString()} />
           <Metric label="Board Cap" value={`${board.length}/${boardLimit}`} />
-          <Metric label="Next Refill" value="Signing Day" />
+          <Metric label="Points Return" value="Commitments" />
         </div>
         <div className="need-row">
           {needs.slice(0, 5).map((need) => (
@@ -1250,6 +1390,27 @@ function advanceMultipleWeeks(state: DynastyState, weeks: number): DynastyState 
     next = advanceWeek(next);
   }
   return next;
+}
+
+function phaseWeekLabel(state: DynastyState): string {
+  if (state.phase === "offseason") return state.week <= 16 ? "offseason week 1 - departures" : "offseason week 2 - signing day";
+  if (state.phase === "preseason") return "preseason week - player development";
+  return `${state.phase} - Week ${state.week}`;
+}
+
+function offseasonStageLabel(report: NonNullable<DynastyState["offseasonReport"]>): string {
+  if (report.developmentComplete) return "Preseason Development";
+  if (report.signingComplete) return "Offseason Signing Day";
+  return "Offseason Departures";
+}
+
+function attributeGainText(gains: Partial<Record<AttributeKey, number>>): string {
+  const entries = Object.entries(gains)
+    .filter(([, value]) => value !== undefined && value !== 0)
+    .sort((a, b) => Math.abs(Number(b[1])) - Math.abs(Number(a[1])))
+    .slice(0, 4);
+  if (!entries.length) return "No attribute movement";
+  return entries.map(([key, value]) => `${Number(value) > 0 ? "+" : ""}${value} ${shortAttr(key as AttributeKey)}`).join(", ");
 }
 
 function teamIdentity(team: Team): string {

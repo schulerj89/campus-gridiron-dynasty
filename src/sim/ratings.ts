@@ -230,6 +230,20 @@ export function calculateOverall(position: Position, attributes: Attributes): nu
   return Math.round(weighted / totalWeight);
 }
 
+export function effectiveAttributes(player: Player): Attributes {
+  if (!player.streak) return player.attributes;
+  const adjusted = { ...player.attributes };
+  for (const [key, boost] of Object.entries(player.streak.attributeBoosts) as [AttributeKey, number][]) {
+    adjusted[key] = clamp(adjusted[key] + boost, 20, 99);
+  }
+  return applyPositionCaps(player.position, adjusted, 99);
+}
+
+export function effectiveOverall(player: Player): number {
+  const streakOverall = calculateOverall(player.position, effectiveAttributes(player));
+  return player.streak ? streakOverall : player.overall;
+}
+
 export function normalizeAttributesForPosition(position: Position, attributes: Attributes, targetOverall: number): Attributes {
   const current = calculateOverall(position, attributes);
   const delta = targetOverall - current;
@@ -255,7 +269,7 @@ export function teamUnitRatings(players: Player[]) {
   const byPosition = (positions: Position[]) => players.filter((player) => positions.includes(player.position));
   const top = (positions: Position[], count: number) =>
     byPosition(positions)
-      .sort((a, b) => b.overall - a.overall)
+      .sort((a, b) => effectiveOverall(b) - effectiveOverall(a))
       .slice(0, count);
 
   const passers = top(["QB"], 2);
@@ -269,21 +283,42 @@ export function teamUnitRatings(players: Player[]) {
   return {
     overall: round(average(players.map((player) => player.overall)), 1),
     passing: round(
-      average(passers.map((player) => player.attributes.throwPower * 0.35 + player.attributes.accuracy * 0.45 + player.attributes.awareness * 0.2)),
+      average(passers.map((player) => {
+        const attributes = effectiveAttributes(player);
+        return attributes.throwPower * 0.35 + attributes.accuracy * 0.45 + attributes.awareness * 0.2;
+      })),
       1,
     ),
     rushing: round(
-      average(rushers.map((player) => player.attributes.speed * 0.55 + player.attributes.awareness * 0.2 + player.overall * 0.25)),
+      average(rushers.map((player) => {
+        const attributes = effectiveAttributes(player);
+        return attributes.speed * 0.55 + attributes.awareness * 0.2 + effectiveOverall(player) * 0.25;
+      })),
       1,
     ),
     receiving: round(
-      average(receivers.map((player) => player.attributes.catching * 0.45 + player.attributes.routeRunning * 0.4 + player.attributes.speed * 0.15)),
+      average(receivers.map((player) => {
+        const attributes = effectiveAttributes(player);
+        return attributes.catching * 0.45 + attributes.routeRunning * 0.4 + attributes.speed * 0.15;
+      })),
       1,
     ),
-    blocking: round(average(blockers.map((player) => player.attributes.runBlock * 0.48 + player.attributes.passBlock * 0.48 + player.attributes.awareness * 0.04)), 1),
-    defense: round(average(front.map((player) => player.attributes.tackle * 0.55 + player.attributes.defAwareness * 0.35 + player.attributes.speed * 0.1)), 1),
-    coverage: round(average(coverage.map((player) => player.attributes.interception * 0.35 + player.attributes.defAwareness * 0.45 + player.attributes.speed * 0.2)), 1),
-    specialTeams: round(average(specialists.map((player) => player.attributes.kickPower * 0.55 + player.attributes.kickAccuracy * 0.45)), 1),
+    blocking: round(average(blockers.map((player) => {
+      const attributes = effectiveAttributes(player);
+      return attributes.runBlock * 0.48 + attributes.passBlock * 0.48 + attributes.awareness * 0.04;
+    })), 1),
+    defense: round(average(front.map((player) => {
+      const attributes = effectiveAttributes(player);
+      return attributes.tackle * 0.55 + attributes.defAwareness * 0.35 + attributes.speed * 0.1;
+    })), 1),
+    coverage: round(average(coverage.map((player) => {
+      const attributes = effectiveAttributes(player);
+      return attributes.interception * 0.35 + attributes.defAwareness * 0.45 + attributes.speed * 0.2;
+    })), 1),
+    specialTeams: round(average(specialists.map((player) => {
+      const attributes = effectiveAttributes(player);
+      return attributes.kickPower * 0.55 + attributes.kickAccuracy * 0.45;
+    })), 1),
   };
 }
 

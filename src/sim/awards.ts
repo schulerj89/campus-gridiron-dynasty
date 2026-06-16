@@ -193,7 +193,7 @@ function playerValue(entry: { player: Player }): number {
     stats.receivingYards * 0.08 +
     stats.receivingTd * 18 +
     stats.pancakes * 4;
-  const defense = stats.tackles * 3 + stats.sacks * 18 + stats.interceptions * 28;
+  const defense = stats.tackles * 3 + stats.sacks * 18 + stats.interceptions * 34;
   const special = stats.fieldGoals * 9 + stats.fieldGoalAttempts * 0.5;
   return entry.player.overall * 2.2 + offense + defense + special;
 }
@@ -213,7 +213,7 @@ function weeklyOffenseValue(entry: AwardEntry): number {
 
 function weeklyDefenseValue(entry: AwardEntry): number {
   const stats = entry.player.stats;
-  return stats.tackles * 4 + stats.sacks * 18 + stats.interceptions * 24 + (stats.sacks >= 2 ? 12 : 0) + (stats.interceptions >= 2 ? 16 : 0);
+  return stats.tackles * 4 + stats.sacks * 18 + stats.interceptions * 30 + (stats.sacks >= 2 ? 12 : 0) + (stats.interceptions >= 2 ? 24 : 0);
 }
 
 function addStats(left: PlayerStats, right: PlayerStats): PlayerStats {
