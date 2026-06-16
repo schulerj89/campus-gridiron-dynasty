@@ -129,7 +129,7 @@ export default function App() {
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} className={clsx("tab", activeTab === tab.id && "active")} onClick={() => setActiveTab(tab.id)}>
+            <button key={tab.id} className={clsx("tab", activeTab === tab.id && "active")} onClick={() => setActiveTab(tab.id)} aria-label={tab.label}>
               <Icon size={17} />
               <span>{tab.label}</span>
             </button>
@@ -490,18 +490,30 @@ function Schedule({ state }: { state: DynastyState }) {
 
 function Awards({ state }: { state: DynastyState }) {
   const playoffGames = state.playoff?.games ?? [];
+  const latestHistory = state.history[0];
+  const awardSource = state.seasonAwards?.nationalAwards ?? latestHistory?.awardWinners ?? [];
+  const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
   return (
     <>
       <section className="panel span-2" data-testid="awards-panel">
         <div className="panel-head compact">
-          <h2>Season Awards</h2>
+          <h2>{state.seasonAwards ? "Season Awards" : "Latest Season Awards"}</h2>
           <Award size={20} />
         </div>
-        <AwardGrid awards={state.seasonAwards?.nationalAwards ?? []} />
+        <AwardGrid awards={awardSource} />
       </section>
+      {state.seasonAwards && (
+        <section className="panel span-2">
+          <div className="panel-head compact">
+            <h2>All-American Teams</h2>
+            <Medal size={20} />
+          </div>
+          <AwardGrid awards={[...state.seasonAwards.allAmericans.first.slice(0, 6), ...state.seasonAwards.allAmericans.second.slice(0, 6), ...state.seasonAwards.allAmericans.freshman.slice(0, 4)]} />
+        </section>
+      )}
       <section className="panel span-2" data-testid="playoff-panel">
         <div className="panel-head compact">
-          <h2>Summit Four Playoff</h2>
+          <h2>{state.playoff ? "Summit Four Playoff" : "Latest Playoff Field"}</h2>
           <Trophy size={20} />
         </div>
         <div className="playoff-grid">
@@ -517,6 +529,14 @@ function Awards({ state }: { state: DynastyState }) {
                 </article>
               );
             })
+          ) : priorPlayoffTeams.length ? (
+            priorPlayoffTeams.map((teamName, index) => (
+              <article key={`${teamName}-${index}`} className="card">
+                <p className="eyebrow">Seed {index + 1}</p>
+                <strong>{teamName}</strong>
+                <span>{latestHistory?.championName === teamName ? "Crown Bowl Champion" : "Playoff qualifier"}</span>
+              </article>
+            ))
           ) : (
             <p className="muted">Playoff bracket forms after Week 12.</p>
           )}

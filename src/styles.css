@@ -450,6 +450,15 @@ select {
   margin-bottom: 6px;
 }
 
+.playoff-grid .card strong,
+.playoff-grid .card span {
+  display: block;
+}
+
+.playoff-grid .card strong {
+  margin-bottom: 8px;
+}
+
 .card-title {
   align-items: center;
   display: flex;
@@ -594,6 +603,12 @@ select {
   .primary,
   .secondary {
     flex: 1 1 145px;
+  }
+
+  .panel-head > .primary,
+  .panel-head > .secondary {
+    flex: 0 0 auto;
+    width: 100%;
   }
 
   .table-row {

@@ -334,7 +334,8 @@ function createAttributes(rng: Rng, position: Position, targetOverall: number, c
     const base = focus.has(key) ? targetOverall + rng.nextInt(-7, 7) : targetOverall + rng.nextInt(-23, 3);
     raw[key] = clamp(base, 35, cap);
   }
-  return normalizeAttributesForPosition(position, raw, targetOverall);
+  const normalized = normalizeAttributesForPosition(position, raw, targetOverall);
+  return Object.fromEntries(Object.entries(normalized).map(([key, value]) => [key, clamp(value, 35, cap)])) as Attributes;
 }
 
 function rollStars(rng: Rng): 1 | 2 | 3 | 4 | 5 {
