@@ -31,15 +31,24 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "attributes-desktop.png") });
   await page.getByRole("button", { name: "Close player card" }).click();
 
+  await page.getByRole("button", { name: "Rankings" }).click();
+  await expect(page.getByTestId("rankings-panel")).toContainText("Top 25");
+  await expect(page.getByTestId("rankings-panel")).toContainText("1st");
+  await page.screenshot({ path: path.join(screenshotDir, "rankings-desktop.png"), fullPage: true });
+
   await page.getByRole("button", { name: "Recruiting" }).click();
   await expect(page.getByTestId("recruit-filter-panel")).toBeVisible();
   await expect(page.locator(".stars svg").first()).toBeVisible();
   await page.getByTestId("recruit-position-filter").selectOption("QB");
   await expect(page.getByTestId("recruiting-database")).toContainText("QB");
+  await expect(page.getByTestId("recruits-pagination")).toContainText("recruits:");
+  await page.getByRole("button", { name: "Next recruits page" }).click();
+  await expect(page.getByTestId("recruits-pagination")).toContainText("Page 2");
   await page.screenshot({ path: path.join(screenshotDir, "recruiting-filters-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Program" }).click();
   await expect(page.getByText("Program Investments")).toBeVisible();
+  await expect(page.getByTestId("coach-pool-panel")).not.toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "program-staff-desktop.png"), fullPage: true });
 
   await page.getByTestId("advance-week").click();
@@ -79,6 +88,9 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   }
 
   await expect(page.getByText(/postseason/)).toBeVisible({ timeout: 90_000 });
+  await page.getByRole("button", { name: "Program" }).click();
+  await expect(page.getByTestId("coach-pool-panel")).toBeVisible();
+  await page.getByTestId("coach-pool-panel").screenshot({ path: path.join(screenshotDir, "coach-pool-postseason-desktop.png") });
   await page.getByRole("button", { name: "Awards" }).click();
   await expect(page.getByText("Season Awards")).toBeVisible();
   await page.getByTestId("awards-panel").screenshot({ path: path.join(screenshotDir, "awards-desktop.png") });

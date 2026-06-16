@@ -2,6 +2,15 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.6.0 - 2026-06-16
+
+- Added a national rankings page with poll movement, votes, first-place votes, moved-in teams, and moved-out teams.
+- Added poll snapshot history to dynasty state with migration support for older local saves.
+- Added paginated recruiting and stat leaderboard tables, with leaderboards showing supporting stat columns.
+- Reworked the dashboard to remove Action Items and Top Programs, surface latest awards higher, clarify wins/losses, and show team helmets.
+- Added CSS-generated 16-bit helmet variants and assigned them across all teams.
+- Expanded the coach pool and limited coach hiring to postseason and offseason windows.
+
 ## 0.5.1 - 2026-06-16
 
 - Extracted the awards, stat leaderboard, honor-team, and playoff bracket UI into `src/components/AwardsView.tsx`.

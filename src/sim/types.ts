@@ -144,6 +144,7 @@ export interface Team {
   city: string;
   state: string;
   conferenceId: string;
+  helmetIndex: number;
   primary: string;
   secondary: string;
   roster: Player[];
@@ -291,6 +292,28 @@ export interface SeasonHistory {
   userRecruitingRank?: number;
 }
 
+export interface PollEntry {
+  teamId: string;
+  teamName: string;
+  conferenceId: string;
+  rank: number;
+  previousRank?: number;
+  movement: number;
+  votes: number;
+  firstPlaceVotes: number;
+  wins: number;
+  losses: number;
+}
+
+export interface PollSnapshot {
+  year: number;
+  week: number;
+  phase: Phase;
+  entries: PollEntry[];
+  movedIn: PollEntry[];
+  movedOut: PollEntry[];
+}
+
 export type DepartureReason = "graduated" | "pro";
 
 export interface PlayerDeparture {
@@ -346,6 +369,7 @@ export interface DynastyState {
   playoff?: Playoff;
   offseasonReport?: OffseasonReport;
   coachPool: Coach[];
+  rankings: PollSnapshot[];
   history: SeasonHistory[];
   debugFlags: DebugFlags;
   debugLog: string[];

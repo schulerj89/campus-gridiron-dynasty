@@ -168,6 +168,133 @@ p {
   margin-bottom: 6px;
 }
 
+.team-card-heading,
+.dashboard-identity {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.team-helmet {
+  --helmet-primary: #0f6b7c;
+  --helmet-secondary: #f0b84a;
+  background:
+    linear-gradient(90deg, transparent 0 45%, rgba(255, 255, 255, 0.24) 45% 50%, transparent 50% 100%),
+    var(--helmet-primary);
+  border: 2px solid rgba(236, 244, 239, 0.75);
+  border-radius: 54% 46% 48% 52% / 48% 46% 54% 52%;
+  box-shadow: inset -8px -8px 0 rgba(0, 0, 0, 0.24);
+  display: inline-block;
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.team-helmet i,
+.team-helmet b {
+  display: block;
+  position: absolute;
+}
+
+.team-helmet i {
+  background: var(--helmet-secondary);
+  border-radius: 999px;
+  bottom: 18%;
+  height: 18%;
+  left: 10%;
+  right: 4%;
+}
+
+.team-helmet b {
+  border: 2px solid rgba(236, 244, 239, 0.86);
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
+  bottom: 20%;
+  height: 34%;
+  right: -12%;
+  width: 34%;
+}
+
+.helmet-sm {
+  height: 34px;
+  width: 42px;
+}
+
+.helmet-md {
+  height: 48px;
+  width: 58px;
+}
+
+.helmet-lg {
+  height: 70px;
+  width: 84px;
+}
+
+.helmet-1 {
+  background:
+    linear-gradient(90deg, transparent 0 32%, var(--helmet-secondary) 32% 42%, transparent 42% 58%, var(--helmet-secondary) 58% 68%, transparent 68%),
+    var(--helmet-primary);
+}
+
+.helmet-2 {
+  background: linear-gradient(135deg, var(--helmet-secondary) 0 38%, transparent 38%), var(--helmet-primary);
+}
+
+.helmet-3 {
+  background: radial-gradient(circle at 62% 32%, var(--helmet-secondary) 0 12%, transparent 13%), var(--helmet-primary);
+}
+
+.helmet-4 {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(255, 255, 255, 0.18) 9px 11px),
+    var(--helmet-primary);
+}
+
+.helmet-5 {
+  background: linear-gradient(90deg, var(--helmet-secondary) 0 26%, transparent 26% 100%), var(--helmet-primary);
+}
+
+.helmet-6 {
+  background: linear-gradient(160deg, transparent 0 50%, var(--helmet-secondary) 50% 64%, transparent 64%), var(--helmet-primary);
+}
+
+.helmet-7 {
+  background:
+    linear-gradient(90deg, transparent 0 48%, var(--helmet-secondary) 48% 58%, transparent 58%),
+    linear-gradient(0deg, transparent 0 42%, rgba(255,255,255,0.2) 42% 46%, transparent 46%),
+    var(--helmet-primary);
+}
+
+.helmet-8 {
+  background: radial-gradient(circle at 36% 40%, var(--helmet-secondary) 0 18%, transparent 19%), var(--helmet-primary);
+}
+
+.helmet-9 {
+  background:
+    linear-gradient(90deg, transparent 0 42%, var(--helmet-secondary) 42% 48%, transparent 48% 54%, var(--helmet-secondary) 54% 60%, transparent 60%),
+    var(--helmet-primary);
+}
+
+.helmet-10 {
+  background: linear-gradient(24deg, transparent 0 46%, var(--helmet-secondary) 46% 54%, transparent 54%), var(--helmet-primary);
+}
+
+.helmet-11 {
+  background:
+    linear-gradient(135deg, transparent 0 35%, rgba(255,255,255,0.18) 35% 43%, transparent 43%),
+    linear-gradient(90deg, transparent 0 48%, var(--helmet-secondary) 48% 55%, transparent 55%),
+    var(--helmet-primary);
+}
+
+.helmet-12 {
+  background: linear-gradient(180deg, var(--helmet-secondary) 0 18%, transparent 18% 100%), var(--helmet-primary);
+}
+
+.helmet-13 {
+  background:
+    radial-gradient(circle at 68% 50%, transparent 0 22%, var(--helmet-secondary) 23% 30%, transparent 31%),
+    var(--helmet-primary);
+}
+
 .team-picker-metrics {
   display: grid;
   gap: 10px;
@@ -270,6 +397,13 @@ select {
   color: var(--muted);
   line-height: 1.45;
   margin-bottom: 0;
+}
+
+.save-status {
+  color: var(--blue);
+  font-size: 0.78rem;
+  font-weight: 800;
+  margin: 8px 0 0;
 }
 
 .tabbar {
@@ -395,6 +529,23 @@ select {
   background: linear-gradient(90deg, var(--green), var(--gold));
   display: block;
   height: 100%;
+}
+
+.poll-snapshot-card {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+}
+
+.poll-snapshot-card strong {
+  color: var(--text);
+}
+
+.poll-snapshot-card span {
+  color: var(--muted);
 }
 
 .rank-list,
@@ -812,6 +963,12 @@ select {
   gap: 8px;
 }
 
+.recruit-table,
+.leaderboard-list,
+.rankings-table {
+  overflow-x: auto;
+}
+
 .table-row {
   align-items: center;
   background: #0f171b;
@@ -836,11 +993,84 @@ select {
 }
 
 .recruit-table .table-row {
+  min-width: 970px;
   grid-template-columns: 92px minmax(160px, 1.1fr) 54px 78px minmax(170px, 1fr) 70px minmax(150px, 0.9fr);
 }
 
 .leaderboard-row {
-  grid-template-columns: 44px minmax(160px, 1fr) 64px minmax(180px, 1fr) 90px;
+  min-width: 1180px;
+  grid-template-columns: 44px minmax(150px, 1fr) 54px minmax(150px, 1fr) 80px repeat(4, minmax(130px, 1fr));
+}
+
+.rankings-row,
+.rankings-header {
+  grid-template-columns: 64px minmax(230px, 1.2fr) 82px 78px 90px 58px;
+}
+
+.rankings-header {
+  background: transparent;
+  border-color: transparent;
+  min-height: auto;
+  padding-bottom: 0;
+}
+
+.rankings-row strong {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.movement-row {
+  grid-template-columns: 52px minmax(140px, 1fr) 64px;
+}
+
+.movement-chip {
+  border-radius: 999px;
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  padding: 5px 8px;
+}
+
+.movement-chip.up,
+.movement-chip.new {
+  background: rgba(79, 180, 119, 0.16);
+  color: #a8f0c4;
+}
+
+.movement-chip.down {
+  background: rgba(216, 95, 85, 0.16);
+  color: #ffb7b0;
+}
+
+.movement-chip.neutral {
+  background: rgba(219, 229, 222, 0.08);
+  color: var(--muted);
+}
+
+.selected-stat {
+  color: var(--gold) !important;
+  font-weight: 900;
+}
+
+.pagination {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.pagination > span,
+.pagination strong {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.pagination > div {
+  align-items: center;
+  display: flex;
+  gap: 10px;
 }
 
 .offseason-grid {
@@ -1125,7 +1355,6 @@ select {
   }
 
   .dashboard-panel .desktop-units,
-  .action-panel,
   .latest-awards-panel {
     display: none;
   }
@@ -1157,7 +1386,8 @@ select {
   .compact-table .table-row,
   .roster-row,
   .departure-row,
-  .class-rank-row {
+  .class-rank-row,
+  .movement-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
   }
 
@@ -1252,10 +1482,6 @@ select {
   .coach-portrait {
     height: 58px;
     width: 58px;
-  }
-
-  .standings-panel .rank-list li:nth-child(n + 5) {
-    display: none;
   }
 
   .tab span {

@@ -3,6 +3,7 @@ import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, creat
 import { simulateGame } from "./game";
 import { applyPositionCaps, calculateOverall } from "./ratings";
 import { clamp, Rng } from "./rng";
+import { createPollSnapshot } from "./polls";
 import { createNextPlayoffRound, createPlayoffGames, createSchedule } from "./schedule";
 import { advanceRecruitingWeek, autoRecruit, signRecruitingClass } from "./recruiting";
 import type { Coach, CollegeYear, DynastyState, Game, OffseasonReport, Phase, Player, PlayerDeparture, ProgramRatings, Recruit, SeasonAwards, Team } from "./types";
@@ -95,6 +96,7 @@ export function spendCoachPoint(state: DynastyState, coachRole: Coach["role"], s
 }
 
 export function hireCoach(state: DynastyState, coachId: string): DynastyState {
+  if (state.phase !== "postseason" && state.phase !== "offseason") return state;
   const coach = state.coachPool.find((candidate) => candidate.id === coachId);
   if (!coach) return state;
   const teams = state.teams.map((team) => {
@@ -136,7 +138,8 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
     playedGames.push(result.game);
   }
   const schedule = state.schedule.map((game) => playedGames.find((played) => played.id === game.id) ?? game);
-  teams = rankTeams(teams);
+  const pollUpdate = createPollSnapshot(teams, state.calendarYear, state.week, "regular", (state.rankings ?? [])[0]);
+  teams = pollUpdate.teams;
   const weeklyAward = createWeeklyAwards(teams, state.conferences, state.calendarYear, state.week, playedGames);
   let nextState: DynastyState = {
     ...state,
@@ -144,6 +147,7 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
     teams,
     schedule,
     weeklyAwards: [weeklyAward, ...state.weeklyAwards].slice(0, 24),
+    rankings: [pollUpdate.poll, ...(state.rankings ?? [])].slice(0, 320),
   };
 
   if (state.week < 12) {
@@ -212,7 +216,8 @@ function advancePostseasonWeek(state: DynastyState): DynastyState {
     debug = [`${champion?.name ?? "A program"} won the Crown Bowl championship.`, ...debug].slice(0, 20);
   }
 
-  const rankedTeams = rankTeams(teams);
+  const pollUpdate = createPollSnapshot(teams, state.calendarYear, state.week, phase, (state.rankings ?? [])[0]);
+  const rankedTeams = pollUpdate.teams;
 
   return {
     ...state,
@@ -220,6 +225,7 @@ function advancePostseasonWeek(state: DynastyState): DynastyState {
     teams: rankedTeams,
     playoff: nextPlayoff,
     offseasonReport: phase === "offseason" ? createOffseasonReport(rankedTeams, state.calendarYear) : state.offseasonReport,
+    rankings: [pollUpdate.poll, ...(state.rankings ?? [])].slice(0, 320),
     phase,
     week: nextWeek,
     debugLog: debug,
@@ -262,7 +268,8 @@ function runOffseason(state: DynastyState): DynastyState {
     };
   }
   const nextYear = signedState.year + 1;
-  const teams = resetForNextSeason(carousel.teams);
+  const preseasonPollUpdate = createPollSnapshot(resetForNextSeason(carousel.teams), signedState.calendarYear + 1, 0, "regular", (signedState.rankings ?? [])[0]);
+  const teams = preseasonPollUpdate.teams;
   const userTeam = teams.find((team) => team.id === signedState.userTeamId) ?? teams[0]!;
   const seasonBudget = calculateSeasonRecruitingBudget(userTeam);
   const weeklyPoints = calculateWeeklyRecruitingPoints(userTeam);
@@ -292,6 +299,7 @@ function runOffseason(state: DynastyState): DynastyState {
     seasonAwards: undefined,
     playoff: undefined,
     offseasonReport,
+    rankings: [preseasonPollUpdate.poll, ...(signedState.rankings ?? [])].slice(0, 320),
     history: [historyEntry, ...signedState.history],
     debugFlags: {
       ...signedState.debugFlags,
@@ -505,7 +513,7 @@ function runCoachCarousel(rng: Rng, teams: Team[], pool: Coach[]): { teams: Team
       },
     };
   });
-  return { teams: updatedTeams, pool: openPool.slice(0, 36), moves };
+  return { teams: updatedTeams, pool: openPool.slice(0, 72), moves };
 }
 
 function maybeCoordinatorMove(rng: Rng, coach: Coach, pool: Coach[], teamId: string): Coach {

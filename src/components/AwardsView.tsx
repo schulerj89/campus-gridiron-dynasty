@@ -1,6 +1,7 @@
 import { useState } from "react";
 import clsx from "clsx";
 import { Award, ClipboardList, LineChart, Medal, Trophy } from "lucide-react";
+import { PaginationControls } from "./PaginationControls";
 import { createSeasonAwards } from "../sim/awards";
 import { getUserTeam } from "../sim/dynasty";
 import type { AwardWinner, DynastyState, Game, PlayerStats, Team } from "../sim/types";
@@ -21,6 +22,8 @@ const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
   { key: "pancakes", label: "Pancakes" },
   { key: "fieldGoals", label: "Field Goals" },
 ];
+
+const LEADERBOARD_PAGE_SIZE = 10;
 
 export function Awards({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
@@ -134,6 +137,7 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
   const [scope, setScope] = useState<LeaderboardScope>("national");
   const [statKey, setStatKey] = useState<LeaderboardStatKey>("passYards");
+  const [page, setPage] = useState(1);
   const userConferenceTeamIds = new Set(state.conferences.find((conference) => conference.id === userTeam.conferenceId)?.teamIds ?? []);
   const rows = state.teams
     .filter((team) => scope === "national" || (scope === "conference" ? userConferenceTeamIds.has(team.id) : team.id === userTeam.id))
@@ -145,8 +149,17 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
       })),
     )
     .filter((row) => row.value > 0)
-    .sort((a, b) => b.value - a.value || b.player.overall - a.player.overall)
-    .slice(0, 12);
+    .sort((a, b) => b.value - a.value || b.player.overall - a.player.overall);
+  const pageCount = Math.max(1, Math.ceil(rows.length / LEADERBOARD_PAGE_SIZE));
+  const visibleRows = rows.slice((page - 1) * LEADERBOARD_PAGE_SIZE, page * LEADERBOARD_PAGE_SIZE);
+  const changeScope = (nextScope: LeaderboardScope) => {
+    setScope(nextScope);
+    setPage(1);
+  };
+  const changeStat = (nextStat: LeaderboardStatKey) => {
+    setStatKey(nextStat);
+    setPage(1);
+  };
 
   return (
     <section className="panel span-2" data-testid="leaderboard-panel">
@@ -160,7 +173,7 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
       <div className="filter-grid compact-filters">
         <label>
           Scope
-          <select value={scope} onChange={(event) => setScope(event.target.value as LeaderboardScope)}>
+          <select value={scope} onChange={(event) => changeScope(event.target.value as LeaderboardScope)}>
             <option value="national">National</option>
             <option value="conference">Conference</option>
             <option value="team">Team</option>
@@ -168,7 +181,7 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
         </label>
         <label>
           Statistic
-          <select value={statKey} onChange={(event) => setStatKey(event.target.value as LeaderboardStatKey)}>
+          <select value={statKey} onChange={(event) => changeStat(event.target.value as LeaderboardStatKey)}>
             {leaderboardStats.map((stat) => (
               <option key={stat.key} value={stat.key}>{stat.label}</option>
             ))}
@@ -176,20 +189,25 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
         </label>
       </div>
       <div className="table-list leaderboard-list">
-        {rows.length ? (
-          rows.map((row, index) => (
+        {visibleRows.length ? (
+          visibleRows.map((row, index) => (
             <div key={`${row.player.id}-${statKey}`} className="table-row leaderboard-row">
-              <span>{index + 1}</span>
+              <span>{(page - 1) * LEADERBOARD_PAGE_SIZE + index + 1}</span>
               <strong>{row.player.name}</strong>
               <span>{row.player.position}</span>
               <span>{row.team.name}</span>
-              <span>{row.value.toLocaleString()}</span>
+              <span className="selected-stat">{row.value.toLocaleString()}</span>
+              <span>{row.player.stats.passYards.toLocaleString()} PYD, {row.player.stats.passTd} PaTD</span>
+              <span>{row.player.stats.rushYards.toLocaleString()} RYD, {row.player.stats.rushTd} RuTD</span>
+              <span>{row.player.stats.receivingYards.toLocaleString()} REC, {row.player.stats.receivingTd} RecTD</span>
+              <span>{row.player.stats.tackles} TKL, {row.player.stats.sacks} SCK, {row.player.stats.interceptions} INT</span>
             </div>
           ))
         ) : (
           <p className="muted">Stat leaders populate after games are played.</p>
         )}
       </div>
+      <PaginationControls page={page} pageCount={pageCount} total={rows.length} pageSize={LEADERBOARD_PAGE_SIZE} label="leaders" onPageChange={setPage} />
     </section>
   );
 }

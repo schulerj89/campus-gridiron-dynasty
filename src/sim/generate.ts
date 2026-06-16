@@ -16,6 +16,7 @@ import {
   type TeamSeason,
 } from "./types";
 import { applyPositionCaps, blankAttributes, calculateOverall, normalizeAttributesForPosition, RECRUIT_TRAIT_BANDS, TARGET_ROSTER, teamPower } from "./ratings";
+import { createPollSnapshot } from "./polls";
 import { createSchedule } from "./schedule";
 
 const COLORS = [
@@ -48,8 +49,9 @@ const POSITION_ATTRIBUTE_FOCUS: Record<Position, readonly (keyof Attributes)[]> 
 export function createDynasty(seed = Date.now(), userTeamId?: string): DynastyState {
   const rng = new Rng(seed);
   const conferences = createConferences();
-  const coachPool = createCoachPool(rng, 260);
-  const teams = createTeams(rng, conferences, coachPool);
+  const coachPool = createCoachPool(rng, 360);
+  const createdTeams = createTeams(rng, conferences, coachPool);
+  const { teams, poll } = createPollSnapshot(createdTeams, 2026, 0, "regular");
   const userTeam = teams.find((team) => team.id === userTeamId) ?? teams[0]!;
   const selectedTeamId = userTeam.id;
   const recruits = createRecruitClass(rng, teams, 2600);
@@ -86,7 +88,8 @@ export function createDynasty(seed = Date.now(), userTeamId?: string): DynastySt
     },
     schedule,
     weeklyAwards: [],
-    coachPool: coachPool.filter((coach) => !coach.hiredBy).slice(0, 28),
+    coachPool: coachPool.filter((coach) => !coach.hiredBy).slice(0, 72),
+    rankings: [poll],
     history: [],
     debugFlags: {
       forceUserPlayoff: false,
@@ -146,6 +149,7 @@ function createTeams(rng: Rng, conferences: Conference[], coachPool: Coach[]): T
       city,
       state,
       conferenceId: conference.id,
+      helmetIndex: index % 14,
       primary: color[0],
       secondary: color[1],
       roster,

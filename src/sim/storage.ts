@@ -1,4 +1,5 @@
 import type { DynastyState } from "./types";
+import { createPollSnapshot } from "./polls";
 
 const DB_NAME = "campus-gridiron-dynasty";
 const STORE_NAME = "dynasties";
@@ -19,7 +20,7 @@ export async function loadActiveDynasty(): Promise<DynastyState | undefined> {
   const db = await openDb();
   const result = await requestToPromise<DynastyState | undefined>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(activeId));
   db.close();
-  return result;
+  return result ? normalizeDynastyState(result) : undefined;
 }
 
 export async function clearDynasty(): Promise<void> {
@@ -53,4 +54,23 @@ function requestToPromise<T = unknown>(request: IDBRequest<T>): Promise<T> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+export function normalizeDynastyState(input: DynastyState): DynastyState {
+  const raw = input as DynastyState & { rankings?: DynastyState["rankings"] };
+  const teams = raw.teams.map((team, index) => ({
+    ...team,
+    helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
+  }));
+  const rankings = raw.rankings?.length ? raw.rankings : [createPollSnapshot(teams, raw.calendarYear, raw.week, raw.phase).poll];
+  return {
+    ...raw,
+    teams,
+    rankings,
+  };
+}
+
+function fallbackHelmetIndex(teamId: string, index: number): number {
+  const numeric = Number(teamId.replace(/\D/g, ""));
+  return Number.isFinite(numeric) && numeric > 0 ? (numeric - 1) % 14 : index % 14;
 }

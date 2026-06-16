@@ -10,6 +10,19 @@ describe("world generation", () => {
     const rosterAverage = state.teams.reduce((sum, team) => sum + team.roster.length, 0) / state.teams.length;
     expect(rosterAverage).toBe(85);
     expect(state.teams.every((team) => team.roster.length === 85)).toBe(true);
+    expect(state.teams.every((team) => team.coaches.head && team.coaches.offense && team.coaches.defense)).toBe(true);
+    expect(state.teams.every((team) => team.helmetIndex >= 0 && team.helmetIndex < 14)).toBe(true);
+    expect(state.coachPool.length).toBeGreaterThanOrEqual(60);
+  });
+
+  it("creates an initial national poll with votes and first-place votes", () => {
+    const state = createDynasty(1357);
+    const poll = state.rankings[0]!;
+    expect(poll.entries).toHaveLength(25);
+    expect(poll.entries.reduce((sum, entry) => sum + entry.firstPlaceVotes, 0)).toBe(62);
+    expect(poll.entries[0]!.votes).toBeGreaterThan(poll.entries[1]!.votes);
+    expect(poll.movedIn).toHaveLength(0);
+    expect(poll.movedOut).toHaveLength(0);
   });
 
   it("caps initial player and recruit ratings", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { advanceWeek, forceUserAward, forceUserPlayoff, simulateSeasons, spendCoachPoint } from "../dynasty";
+import { advanceWeek, forceUserAward, forceUserPlayoff, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart } from "../depthChart";
 
 describe("dynasty flow", () => {
@@ -9,6 +9,10 @@ describe("dynasty flow", () => {
     const advanced = advanceWeek(state);
     const playedGame = advanced.schedule.find((game) => game.result?.boxScore);
     expect(advanced.week).toBe(2);
+    expect(advanced.rankings.length).toBe(2);
+    expect(advanced.rankings[0]?.entries).toHaveLength(25);
+    expect(advanced.rankings[0]?.entries.reduce((sum, entry) => sum + entry.firstPlaceVotes, 0)).toBe(62);
+    expect(advanced.rankings[0]?.entries.some((entry) => entry.previousRank !== undefined)).toBe(true);
     expect(advanced.weeklyAwards.length).toBe(1);
     expect(advanced.weeklyAwards[0]?.national[0]?.awardName).toBe("National Offensive Player of the Week");
     expect(advanced.weeklyAwards[0]?.national[1]?.awardName).toBe("National Defensive Player of the Week");
@@ -79,6 +83,13 @@ describe("dynasty flow", () => {
     };
     const updated = spendCoachPoint(prepared, "head", "recruiting");
     expect(updated).toBe(prepared);
+  });
+
+  it("blocks coach pool hiring during the regular season", () => {
+    const state = createDynasty(9031);
+    const coach = state.coachPool[0]!;
+    const updated = hireCoach(state, coach.id);
+    expect(updated).toBe(state);
   });
 
   it("can smoke simulate multiple seasons", () => {

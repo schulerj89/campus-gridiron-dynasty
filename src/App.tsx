@@ -18,14 +18,13 @@ import {
   Heart,
   LineChart,
   MapPinned,
-  Medal,
   Play,
   RotateCcw,
   Save,
   Search,
   Shield,
-  Sparkles,
   Star,
+  TrendingUp,
   Trophy,
   UserRound,
   Users,
@@ -34,15 +33,18 @@ import {
 } from "lucide-react";
 import { addRecruitToBoard, autoRecruit, gemBustFor, isPipelineRecruit, pitchRecruit, positionNeeds, scoutRecruit } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
-import { advanceWeek, forceUserAward, forceUserPlayoff, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint, topTeams } from "./sim/dynasty";
+import { advanceWeek, forceUserAward, forceUserPlayoff, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart } from "./sim/depthChart";
 import { teamPower, teamUnitRatings } from "./sim/ratings";
 import { POSITIONS, type AttributeKey, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid } from "./components/AwardsView";
+import { PaginationControls } from "./components/PaginationControls";
+import { Rankings } from "./components/RankingsView";
+import { TeamHelmet } from "./components/TeamHelmet";
 import { APP_VERSION } from "./version";
 
-type Tab = "overview" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
+type Tab = "overview" | "rankings" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
 type RecruitPositionFilter = "ALL" | Position;
@@ -51,6 +53,7 @@ type RecruitSort = "rank" | "interest" | "stars" | "need";
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
+  { id: "rankings", label: "Rankings", icon: TrendingUp },
   { id: "roster", label: "Roster", icon: Users },
   { id: "recruiting", label: "Recruiting", icon: Search },
   { id: "schedule", label: "Schedule", icon: CalendarDays },
@@ -58,6 +61,8 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "program", label: "Program", icon: GraduationCap },
   { id: "debug", label: "Debug", icon: Wrench },
 ];
+
+const RECRUIT_PAGE_SIZE = 25;
 
 const ATTRIBUTE_KEYS_FOR_UI: AttributeKey[] = [
   "throwPower",
@@ -161,6 +166,7 @@ export default function App() {
           <p className="muted">
             Year {state.year} of {state.maxYears} - {state.calendarYear} - {state.phase} - Week {state.week}
           </p>
+          <p className="save-status">{saveStatus}</p>
         </div>
         <div className="topbar-actions">
           <button className="secondary" onClick={() => saveDynasty(state).then(() => setSaveStatus("Saved manually"))}>
@@ -191,7 +197,8 @@ export default function App() {
       </nav>
 
       <main className="content-grid">
-        {activeTab === "overview" && <Overview state={state} onUpdate={update} saveStatus={saveStatus} />}
+        {activeTab === "overview" && <Overview state={state} onUpdate={update} />}
+        {activeTab === "rankings" && <Rankings state={state} />}
         {activeTab === "roster" && <Roster team={userTeam} />}
         {activeTab === "recruiting" && <Recruiting state={state} onUpdate={update} />}
         {activeTab === "schedule" && <Schedule state={state} />}
@@ -252,9 +259,14 @@ function HomeScreen({
                 <ChevronLeft size={18} />
               </button>
               <div className="team-card-select">
-                <p className="eyebrow">Starting program</p>
-                <h2>{selectedTeam.name}</h2>
-                <p className="muted">{teamIdentity(selectedTeam)} - {selectedConference?.name ?? "Independent"} - {selectedTeam.city}, {selectedTeam.state}</p>
+                <div className="team-card-heading">
+                  <TeamHelmet team={selectedTeam} size="md" />
+                  <div>
+                    <p className="eyebrow">Starting program</p>
+                    <h2>{selectedTeam.name}</h2>
+                    <p className="muted">{teamIdentity(selectedTeam)} - {selectedConference?.name ?? "Independent"} - {selectedTeam.city}, {selectedTeam.state}</p>
+                  </div>
+                </div>
               </div>
               <button className="icon-button" onClick={() => moveTeam(1)} data-testid="team-next" aria-label="Next team">
                 <ChevronRight size={18} />
@@ -286,23 +298,26 @@ function HomeScreen({
   );
 }
 
-function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void; saveStatus: string }) {
+function Overview({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
   const userTeam = getUserTeam(state);
   const units = teamUnitRatings(userTeam.roster);
-  const rankings = topTeams(state, 8);
   const recentAwards = state.weeklyAwards[0]?.national ?? [];
-  const playoffTeams = state.playoff?.seeds.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
+  const userPollEntry = state.rankings?.[0]?.entries.find((entry) => entry.teamId === userTeam.id);
   const offseasonTeamReport = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === userTeam.id);
 
   return (
     <>
       <section className="panel span-2 dashboard-panel">
         <div className="panel-head">
-          <div>
-            <p className="eyebrow">Dynasty Command</p>
-            <h2>
-              {userTeam.season.wins}-{userTeam.season.losses} - Power {teamPower(userTeam.roster)}
-            </h2>
+          <div className="dashboard-identity">
+            <TeamHelmet team={userTeam} size="lg" />
+            <div>
+              <p className="eyebrow">Dynasty Command</p>
+              <h2>
+                {userTeam.season.wins} wins, {userTeam.season.losses} losses
+              </h2>
+              <p className="muted">Power {teamPower(userTeam.roster)} {userPollEntry ? `- National Rank #${userPollEntry.rank}` : "- Not ranked"}</p>
+            </div>
           </div>
           <button className="primary" onClick={() => onUpdate(advanceWeek)} disabled={state.phase === "complete"}>
             <ChevronsRight size={18} />
@@ -330,46 +345,30 @@ function Overview({ state, onUpdate, saveStatus }: { state: DynastyState; onUpda
         </div>
       </section>
 
-      <section className="panel standings-panel">
-        <div className="panel-head compact">
-          <h2>Top Programs</h2>
-          <Medal size={20} />
-        </div>
-        <ol className="rank-list">
-          {rankings.map((team) => (
-            <li key={team.id}>
-              <span>{team.season.rank ?? "-"}</span>
-              <strong>{team.name}</strong>
-              <em>
-                {team.season.wins}-{team.season.losses}
-              </em>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {state.offseasonReport && offseasonTeamReport && <OffseasonRecap reportYear={state.offseasonReport.year} teamReport={offseasonTeamReport} topClasses={state.offseasonReport.topClasses} />}
-
-      <section className="panel action-panel">
-        <div className="panel-head compact">
-          <h2>Action Items</h2>
-          <Sparkles size={20} />
-        </div>
-        <ul className="action-list">
-          <li>{saveStatus}</li>
-          <li>{state.recruiting.board.length ? `${state.recruiting.board.length} recruits on your board` : "Recruiting board is empty; auto-recruit can fill it"}</li>
-          <li>{state.phase === "postseason" ? "Postseason bracket is active" : state.phase === "offseason" ? "Offseason signing day is ready" : "Weekly game simulation ready"}</li>
-          <li>{playoffTeams.length ? `Playoff field: ${playoffTeams.slice(0, 3).join(", ")}...` : "Playoff field forms after Week 12"}</li>
-        </ul>
-      </section>
-
-      <section className="panel span-2 latest-awards-panel">
+      <section className="panel latest-awards-panel">
         <div className="panel-head compact">
           <h2>Latest National Awards</h2>
           <Award size={20} />
         </div>
-        <AwardGrid awards={recentAwards} />
+        <AwardGrid awards={recentAwards.slice(0, 2)} />
       </section>
+
+      <section className="panel ranking-snapshot-panel">
+        <div className="panel-head compact">
+          <h2>Current Poll</h2>
+          <TrendingUp size={20} />
+        </div>
+        {userPollEntry ? (
+          <div className="poll-snapshot-card">
+            <strong>#{userPollEntry.rank} {userTeam.name}</strong>
+            <span>{userPollEntry.votes.toLocaleString()} votes - {userPollEntry.firstPlaceVotes} first-place</span>
+          </div>
+        ) : (
+          <p className="muted">{userTeam.name} is outside the Top 25.</p>
+        )}
+      </section>
+
+      {state.offseasonReport && offseasonTeamReport && <OffseasonRecap reportYear={state.offseasonReport.year} teamReport={offseasonTeamReport} topClasses={state.offseasonReport.topClasses} />}
     </>
   );
 }
@@ -602,6 +601,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [starsFilter, setStarsFilter] = useState<RecruitStarsFilter>("ALL");
   const [pipelineOnly, setPipelineOnly] = useState(false);
   const [sortBy, setSortBy] = useState<RecruitSort>("rank");
+  const [recruitPage, setRecruitPage] = useState(1);
   const needs = positionNeeds(userTeam);
   const seasonBudget = state.recruiting.seasonBudget ?? state.recruiting.weeklyPoints;
   const pointsSpent = state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining);
@@ -613,7 +613,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
     .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId);
   const boardFull = board.length >= boardLimit;
   const stateOptions = Array.from(new Set(state.recruits.map((recruit) => recruit.state))).sort();
-  const available = state.recruits
+  const matchingRecruits = state.recruits
     .filter((recruit) => recruit.stage !== "signed" && !state.recruiting.board.includes(recruit.id))
     .filter((recruit) => positionFilter === "ALL" || recruit.position === positionFilter)
     .filter((recruit) => stateFilter === "ALL" || recruit.state === stateFilter)
@@ -626,8 +626,11 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
       if (sortBy === "stars") return b.stars - a.stars || a.nationalRank - b.nationalRank;
       if (sortBy === "need") return needB - needA || a.nationalRank - b.nationalRank;
       return a.nationalRank - b.nationalRank;
-    })
-    .slice(0, 60);
+    });
+  const recruitPageCount = Math.max(1, Math.ceil(matchingRecruits.length / RECRUIT_PAGE_SIZE));
+  const currentRecruitPage = Math.min(recruitPage, recruitPageCount);
+  const visibleRecruits = matchingRecruits.slice((currentRecruitPage - 1) * RECRUIT_PAGE_SIZE, currentRecruitPage * RECRUIT_PAGE_SIZE);
+  const resetRecruitPage = () => setRecruitPage(1);
 
   return (
     <>
@@ -659,7 +662,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           ))}
         </div>
         <div className="recruit-grid" data-testid="recruiting-board">
-          {(board.length ? board : available.slice(0, 6)).map((recruit) => (
+          {(board.length ? board : matchingRecruits.slice(0, 6)).map((recruit) => (
             <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onBoard={board.some((item) => item.id === recruit.id)} pointsRemaining={state.recruiting.pointsRemaining} boardFull={boardFull} />
           ))}
         </div>
@@ -669,14 +672,14 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         <div className="panel-head">
           <div>
             <p className="eyebrow">Recruiting Database</p>
-            <h2>{available.length} matching prospects</h2>
+            <h2>{matchingRecruits.length} matching prospects</h2>
           </div>
           <Shield size={20} />
         </div>
         <div className="filter-grid" data-testid="recruit-filter-panel">
           <label>
             Position
-            <select value={positionFilter} onChange={(event) => setPositionFilter(event.target.value as RecruitPositionFilter)} data-testid="recruit-position-filter">
+            <select value={positionFilter} onChange={(event) => { setPositionFilter(event.target.value as RecruitPositionFilter); resetRecruitPage(); }} data-testid="recruit-position-filter">
               {(["ALL", ...POSITIONS] as RecruitPositionFilter[]).map((position) => (
                 <option key={position} value={position}>{position}</option>
               ))}
@@ -684,7 +687,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           </label>
           <label>
             State
-            <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} data-testid="recruit-state-filter">
+            <select value={stateFilter} onChange={(event) => { setStateFilter(event.target.value); resetRecruitPage(); }} data-testid="recruit-state-filter">
               <option value="ALL">All states</option>
               {stateOptions.map((stateName) => (
                 <option key={stateName} value={stateName}>{stateName}{stateName === userTeam.state ? " (pipeline)" : ""}</option>
@@ -693,7 +696,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           </label>
           <label>
             Stars
-            <select value={starsFilter} onChange={(event) => setStarsFilter(event.target.value as RecruitStarsFilter)} data-testid="recruit-stars-filter">
+            <select value={starsFilter} onChange={(event) => { setStarsFilter(event.target.value as RecruitStarsFilter); resetRecruitPage(); }} data-testid="recruit-stars-filter">
               <option value="ALL">All stars</option>
               {[5, 4, 3, 2, 1].map((stars) => (
                 <option key={stars} value={stars}>{stars} stars</option>
@@ -702,7 +705,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           </label>
           <label>
             Sort
-            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as RecruitSort)}>
+            <select value={sortBy} onChange={(event) => { setSortBy(event.target.value as RecruitSort); resetRecruitPage(); }}>
               <option value="rank">Rank number</option>
               <option value="interest">Interest</option>
               <option value="stars">Stars</option>
@@ -710,12 +713,12 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             </select>
           </label>
           <label className="check-label">
-            <input type="checkbox" checked={pipelineOnly} onChange={(event) => setPipelineOnly(event.target.checked)} />
+            <input type="checkbox" checked={pipelineOnly} onChange={(event) => { setPipelineOnly(event.target.checked); resetRecruitPage(); }} />
             Pipeline only
           </label>
         </div>
         <div className="table-list recruit-table" data-testid="recruiting-database">
-          {available.map((recruit) => (
+          {visibleRecruits.map((recruit) => (
             <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))} disabled={boardFull || Boolean(recruit.committedTeamId)}>
               <Stars count={recruit.stars} />
               <strong>{recruit.name}</strong>
@@ -729,6 +732,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             </button>
           ))}
         </div>
+        <PaginationControls page={currentRecruitPage} pageCount={recruitPageCount} total={matchingRecruits.length} pageSize={RECRUIT_PAGE_SIZE} label="recruits" onPageChange={setRecruitPage} />
       </section>
     </>
   );
@@ -910,6 +914,7 @@ function PlayerGameLine({ line }: { line: PlayerGameStats }) {
 function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
   const team = getUserTeam(state);
   const programKeys: (keyof ProgramRatings)[] = ["academics", "facilities", "training", "recruitingReach", "fanSupport", "prestige"];
+  const canShowCoachPool = state.phase === "postseason" || state.phase === "offseason";
   return (
     <>
       <section className="panel span-2">
@@ -941,22 +946,24 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
           ))}
         </div>
       </section>
-      <section className="panel span-2">
-        <div className="panel-head compact">
-          <h2>Coach Pool</h2>
-          <Users size={20} />
-        </div>
-        <div className="coach-pool-grid">
-          {state.coachPool.slice(0, 9).map((coach) => (
-            <button key={coach.id} className="coach-pool-card" onClick={() => onUpdate((current) => hireCoach(current, coach.id))}>
-              <CoachPortrait index={coach.portraitIndex ?? 0} />
-              <strong>{coach.name}</strong>
-              <span>{coach.role} - {coach.scheme}</span>
-              <em>Rec {coach.recruiting} - Dev {coach.development}</em>
-            </button>
-          ))}
-        </div>
-      </section>
+      {canShowCoachPool && (
+        <section className="panel span-2" data-testid="coach-pool-panel">
+          <div className="panel-head compact">
+            <h2>Coach Pool</h2>
+            <Users size={20} />
+          </div>
+          <div className="coach-pool-grid">
+            {state.coachPool.slice(0, 18).map((coach) => (
+              <button key={coach.id} className="coach-pool-card" onClick={() => onUpdate((current) => hireCoach(current, coach.id))}>
+                <CoachPortrait index={coach.portraitIndex ?? 0} />
+                <strong>{coach.name}</strong>
+                <span>{coach.role} - {coach.scheme}</span>
+                <em>Rec {coach.recruiting} - Dev {coach.development}</em>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

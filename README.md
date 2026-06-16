@@ -31,6 +31,7 @@ QA screenshots are written to:
 
 - `artifacts/screenshots/home-desktop.png`
 - `artifacts/screenshots/dashboard-desktop.png`
+- `artifacts/screenshots/rankings-desktop.png`
 - `artifacts/screenshots/roster-desktop.png`
 - `artifacts/screenshots/depth-chart-desktop.png`
 - `artifacts/screenshots/player-profile-modal-desktop.png`
@@ -39,6 +40,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/recruiting-desktop.png`
 - `artifacts/screenshots/recruiting-filters-desktop.png`
 - `artifacts/screenshots/program-staff-desktop.png`
+- `artifacts/screenshots/coach-pool-postseason-desktop.png`
 - `artifacts/screenshots/box-score-desktop.png`
 - `artifacts/screenshots/player-of-week-desktop.png`
 - `artifacts/screenshots/conference-player-of-week-desktop.png`
@@ -70,6 +72,8 @@ The home hero, the 14-portrait 8-bit player sprite sheet, and the 10-portrait co
 - Do not use real college names, real awards, real athletes, real coaches, real conferences, or real logos.
 - Initial generated players must not exceed 93 in any rating.
 - Generated players and recruits also use position-specific off-skill caps so non-role attributes stay plausible.
+- Team helmets are CSS-generated fictional 16-bit style variants with no logos or licensed marks.
+- National poll rankings are stored as dynasty snapshots with votes, first-place votes, and weekly movement.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
 - Recruits committed to other programs remain visible in the database with destination indicators but cannot be added, scouted, or pitched.

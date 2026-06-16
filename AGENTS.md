@@ -15,6 +15,8 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Each recruiting class should include thousands of recruits with about 2-4% five-stars and 10-20% four-stars.
 - Dynasty length is 20 years.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
+- National poll snapshots live on `DynastyState.rankings` and should preserve votes, first-place votes, and movement history.
+- Team helmets are CSS-rendered fictional variants; do not add real logos or licensed marks.
 
 ## Frequent Commands
 
@@ -36,6 +38,8 @@ Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium de
 
 - `src/App.tsx` owns app shell state, tab routing, and the main dashboard screens.
 - `src/components/AwardsView.tsx` owns awards, stat leaderboard, honor-team, and playoff bracket presentation.
+- `src/components/RankingsView.tsx` owns national poll presentation.
+- `src/components/PaginationControls.tsx` owns reusable table pagination controls.
 
 ## Repo-Local Skills
 
