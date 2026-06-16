@@ -137,6 +137,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByText(/offseason/)).toBeVisible({ timeout: 90_000 });
   await page.getByRole("button", { name: "Overview" }).click();
   await expect(page.getByTestId("offseason-report-panel")).toBeVisible();
+  await expect(page.getByTestId("dashboard-command-panel")).not.toBeVisible();
+  await expect(page.getByTestId("latest-national-awards-panel")).not.toBeVisible();
   await expect(page.getByTestId("offseason-steps")).toContainText("Recruiting 1/4");
   await page.screenshot({ path: path.join(screenshotDir, "offseason-dashboard-desktop.png"), fullPage: true });
   await page.getByTestId("offseason-report-panel").screenshot({ path: path.join(screenshotDir, "offseason-departures-desktop.png") });

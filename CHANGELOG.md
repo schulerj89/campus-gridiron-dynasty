@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.10.0 - 2026-06-16
+
+- Focused the Overview dashboard during offseason and preseason by hiding the regular Dynasty Command panel and latest national awards.
+- Moved the offseason report to the top of the dashboard whenever offseason report context is active.
+- Added smoke coverage to guard the offseason dashboard focus behavior and refreshed screenshots.
+
 ## 0.9.0 - 2026-06-16
 
 - Reworked signing day distribution so all 70 teams land sustainable classes before roster turnover.

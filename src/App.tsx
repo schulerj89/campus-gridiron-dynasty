@@ -317,54 +317,61 @@ function Overview({
   const recentAwards = state.weeklyAwards[0]?.national ?? [];
   const userPollEntry = state.rankings?.[0]?.entries.find((entry) => entry.teamId === userTeam.id);
   const offseasonTeamReport = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === userTeam.id);
+  const offseasonFocus = Boolean(offseasonTeamReport && state.phase !== "regular" && state.phase !== "postseason");
 
   return (
     <>
-      <section className="panel span-2 dashboard-panel">
-        <div className="panel-head">
-          <div className="dashboard-identity">
-            <TeamHelmet team={userTeam} size="lg" />
-            <div>
-              <p className="eyebrow">Dynasty Command</p>
-              <h2>
-                {userTeam.season.wins} wins, {userTeam.season.losses} losses
-              </h2>
-              <p className="muted">Power {teamPower(userTeam.roster)} {userPollEntry ? `- National Rank #${userPollEntry.rank}` : "- Not ranked"}</p>
-            </div>
-          </div>
-          <button className="primary" onClick={() => onUpdate(advanceWeek)} disabled={state.phase === "complete"}>
-            <ChevronsRight size={18} />
-            Advance Week
-          </button>
-        </div>
-        <div className="metric-grid mobile-priority">
-          <Metric label="Program Rating" value={programRating(userTeam)} />
-          <Metric label="Overall" value={units.overall} />
-          <Metric label="Recruiting Points" value={state.recruiting.pointsRemaining} />
-          <Metric label="Program Points" value={userTeam.programPoints} />
-        </div>
-        <div className="unit-grid desktop-units">
-          {Object.entries(units)
-            .filter(([label]) => label !== "overall")
-            .map(([label, value]) => (
-              <div key={label} className="unit-bar">
-                <span>{title(label)}</span>
-                <strong>{value}</strong>
-                <div>
-                  <i style={{ width: `${Math.min(100, Number(value))}%` }} />
-                </div>
-              </div>
-            ))}
-        </div>
-      </section>
+      {offseasonFocus && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
 
-      <section className="panel latest-awards-panel">
-        <div className="panel-head compact">
-          <h2>Latest National Awards</h2>
-          <Award size={20} />
-        </div>
-        <AwardGrid awards={recentAwards.slice(0, 2)} />
-      </section>
+      {!offseasonFocus && (
+        <section className="panel span-2 dashboard-panel" data-testid="dashboard-command-panel">
+          <div className="panel-head">
+            <div className="dashboard-identity">
+              <TeamHelmet team={userTeam} size="lg" />
+              <div>
+                <p className="eyebrow">Dynasty Command</p>
+                <h2>
+                  {userTeam.season.wins} wins, {userTeam.season.losses} losses
+                </h2>
+                <p className="muted">Power {teamPower(userTeam.roster)} {userPollEntry ? `- National Rank #${userPollEntry.rank}` : "- Not ranked"}</p>
+              </div>
+            </div>
+            <button className="primary" onClick={() => onUpdate(advanceWeek)} disabled={state.phase === "complete"}>
+              <ChevronsRight size={18} />
+              Advance Week
+            </button>
+          </div>
+          <div className="metric-grid mobile-priority">
+            <Metric label="Program Rating" value={programRating(userTeam)} />
+            <Metric label="Overall" value={units.overall} />
+            <Metric label="Recruiting Points" value={state.recruiting.pointsRemaining} />
+            <Metric label="Program Points" value={userTeam.programPoints} />
+          </div>
+          <div className="unit-grid desktop-units">
+            {Object.entries(units)
+              .filter(([label]) => label !== "overall")
+              .map(([label, value]) => (
+                <div key={label} className="unit-bar">
+                  <span>{title(label)}</span>
+                  <strong>{value}</strong>
+                  <div>
+                    <i style={{ width: `${Math.min(100, Number(value))}%` }} />
+                  </div>
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {!offseasonFocus && (
+        <section className="panel latest-awards-panel" data-testid="latest-national-awards-panel">
+          <div className="panel-head compact">
+            <h2>Latest National Awards</h2>
+            <Award size={20} />
+          </div>
+          <AwardGrid awards={recentAwards.slice(0, 2)} />
+        </section>
+      )}
 
       <section className="panel ranking-snapshot-panel">
         <div className="panel-head compact">
@@ -404,7 +411,7 @@ function Overview({
         </section>
       )}
 
-      {state.phase !== "regular" && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
+      {!offseasonFocus && state.phase !== "regular" && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
     </>
   );
 }
