@@ -31,15 +31,37 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "attributes-desktop.png") });
   await page.getByRole("button", { name: "Close player card" }).click();
 
+  await page.getByRole("button", { name: "Recruiting" }).click();
+  await expect(page.getByTestId("recruit-filter-panel")).toBeVisible();
+  await expect(page.locator(".stars svg").first()).toBeVisible();
+  await page.getByTestId("recruit-position-filter").selectOption("QB");
+  await expect(page.getByTestId("recruiting-database")).toContainText("QB");
+  await page.screenshot({ path: path.join(screenshotDir, "recruiting-filters-desktop.png"), fullPage: true });
+
   await page.getByRole("button", { name: "Program" }).click();
   await expect(page.getByText("Program Investments")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "program-staff-desktop.png"), fullPage: true });
+
+  await page.getByTestId("advance-week").click();
+  await page.getByRole("button", { name: "Schedule" }).click();
+  await expect(page.getByTestId("game-row").first()).toContainText(/W1/);
+  await page.getByTestId("game-row").first().click();
+  await expect(page.getByTestId("box-score-modal")).toBeVisible();
+  await expect(page.getByTestId("box-score-modal")).toContainText("pass");
+  await page.getByTestId("box-score-modal").screenshot({ path: path.join(screenshotDir, "box-score-desktop.png") });
+  await page.getByRole("button", { name: "Close box score" }).click();
+
+  await page.getByRole("button", { name: "Awards" }).click();
+  await expect(page.getByText("Season Award Watch Opens Week 8")).toBeVisible();
+  await expect(page.getByTestId("player-of-week-panel")).toBeVisible();
+  await page.getByTestId("player-of-week-panel").screenshot({ path: path.join(screenshotDir, "player-of-week-desktop.png") });
+  await page.getByTestId("leaderboard-panel").screenshot({ path: path.join(screenshotDir, "leaderboard-desktop.png") });
 
   await page.getByRole("button", { name: "Debug" }).click();
   await page.getByRole("button", { name: "Force User Playoff" }).click();
   await page.getByRole("button", { name: "Force User Award" }).click();
 
-  for (let week = 0; week < 12; week += 1) {
+  for (let week = 0; week < 11; week += 1) {
     await page.getByTestId("advance-week").click();
   }
 

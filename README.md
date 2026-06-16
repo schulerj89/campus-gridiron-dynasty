@@ -37,7 +37,11 @@ QA screenshots are written to:
 - `artifacts/screenshots/player-stats-modal-desktop.png`
 - `artifacts/screenshots/attributes-desktop.png`
 - `artifacts/screenshots/recruiting-desktop.png`
+- `artifacts/screenshots/recruiting-filters-desktop.png`
 - `artifacts/screenshots/program-staff-desktop.png`
+- `artifacts/screenshots/box-score-desktop.png`
+- `artifacts/screenshots/player-of-week-desktop.png`
+- `artifacts/screenshots/leaderboard-desktop.png`
 - `artifacts/screenshots/awards-desktop.png`
 - `artifacts/screenshots/all-american-desktop.png`
 - `artifacts/screenshots/all-american-second-desktop.png`

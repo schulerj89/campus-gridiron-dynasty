@@ -1,14 +1,14 @@
 import { Rng, clamp } from "./rng";
 import { teamPower, teamUnitRatings } from "./ratings";
-import type { Game, Player, Team } from "./types";
+import { emptyStats, type Game, type Player, type PlayerGameStats, type PlayerStats, type Team, type TeamBoxScore } from "./types";
 
 export function simulateGame(rng: Rng, game: Game, teams: Team[]): { game: Game; teams: Team[] } {
   const home = teams.find((team) => team.id === game.homeTeamId);
   const away = teams.find((team) => team.id === game.awayTeamId);
   if (!home || !away) return { game, teams };
 
-  const homePower = teamPower(home.roster) + home.program.fanSupport * 0.04 + 1.8;
-  const awayPower = teamPower(away.roster) + away.program.fanSupport * 0.02;
+  const homePower = teamPower(home.roster) + home.program.fanSupport * 0.04 + coachTactics(home) * 0.03 + 1.8;
+  const awayPower = teamPower(away.roster) + away.program.fanSupport * 0.02 + coachTactics(away) * 0.03;
   const homeUnits = teamUnitRatings(home.roster);
   const awayUnits = teamUnitRatings(away.roster);
   const homeExpected = 23 + (homePower - awayPower) * 0.55 + (homeUnits.passing + homeUnits.rushing - awayUnits.defense - awayUnits.coverage) * 0.08;
@@ -21,9 +21,11 @@ export function simulateGame(rng: Rng, game: Game, teams: Team[]): { game: Game;
   }
 
   const homeWon = homeScore > awayScore;
+  const updatedHome = updateTeamAfterGame(rng, home, away, homeScore, awayScore, homeWon, game.conferenceGame);
+  const updatedAway = updateTeamAfterGame(rng, away, home, awayScore, homeScore, !homeWon, game.conferenceGame);
   const updatedTeams = teams.map((team) => {
-    if (team.id === home.id) return updateTeamAfterGame(rng, home, away, homeScore, awayScore, homeWon, game.conferenceGame);
-    if (team.id === away.id) return updateTeamAfterGame(rng, away, home, awayScore, homeScore, !homeWon, game.conferenceGame);
+    if (team.id === home.id) return updatedHome;
+    if (team.id === away.id) return updatedAway;
     return team;
   });
 
@@ -36,6 +38,10 @@ export function simulateGame(rng: Rng, game: Game, teams: Team[]): { game: Game;
         awayScore,
         winnerTeamId: homeWon ? home.id : away.id,
         summary: `${home.name} ${homeScore}, ${away.name} ${awayScore}`,
+        boxScore: {
+          home: buildTeamBoxScore(home, updatedHome, homeScore),
+          away: buildTeamBoxScore(away, updatedAway, awayScore),
+        },
       },
     },
     teams: updatedTeams,
@@ -158,6 +164,10 @@ function topAt(roster: Player[], positions: string[], count: number): Player[] {
     .slice(0, count);
 }
 
+function coachTactics(team: Team): number {
+  return (team.coaches.head.tactics + team.coaches.offense.tactics + team.coaches.defense.tactics) / 3;
+}
+
 function mutatePlayer(players: Player[], playerId: string | undefined, mutate: (player: Player) => void): void {
   const player = players.find((candidate) => candidate.id === playerId);
   if (player) mutate(player);
@@ -172,4 +182,70 @@ function distribute(players: Player[], targets: Player[], amount: number, apply:
     const share = Math.round((amount * Math.max(1, target.overall)) / total);
     apply(player, share);
   }
+}
+
+function buildTeamBoxScore(before: Team, after: Team, score: number): TeamBoxScore {
+  const allPlayers = after.roster
+    .map((player): PlayerGameStats => {
+      const previous = before.roster.find((candidate) => candidate.id === player.id);
+      return {
+        playerId: player.id,
+        playerName: player.name,
+        position: player.position,
+        stats: diffStats(previous?.stats ?? emptyStats(), player.stats),
+      };
+    })
+    .filter((line) => statImpact(line.stats) > 0);
+
+  return {
+    teamId: after.id,
+    teamName: after.name,
+    score,
+    totals: sumStats(allPlayers.map((player) => player.stats)),
+    players: allPlayers.sort((a, b) => statImpact(b.stats) - statImpact(a.stats)).slice(0, 14),
+  };
+}
+
+function diffStats(before: PlayerStats, after: PlayerStats): PlayerStats {
+  return {
+    games: Math.max(0, after.games - before.games),
+    passYards: after.passYards - before.passYards,
+    passTd: after.passTd - before.passTd,
+    interceptionsThrown: after.interceptionsThrown - before.interceptionsThrown,
+    rushYards: after.rushYards - before.rushYards,
+    rushTd: after.rushTd - before.rushTd,
+    receivingYards: after.receivingYards - before.receivingYards,
+    receivingTd: after.receivingTd - before.receivingTd,
+    tackles: after.tackles - before.tackles,
+    sacks: after.sacks - before.sacks,
+    interceptions: after.interceptions - before.interceptions,
+    pancakes: after.pancakes - before.pancakes,
+    fieldGoals: after.fieldGoals - before.fieldGoals,
+    fieldGoalAttempts: after.fieldGoalAttempts - before.fieldGoalAttempts,
+  };
+}
+
+function sumStats(stats: PlayerStats[]): PlayerStats {
+  return stats.reduce((total, line) => {
+    for (const key of Object.keys(total) as (keyof PlayerStats)[]) {
+      total[key] += line[key];
+    }
+    return total;
+  }, emptyStats());
+}
+
+function statImpact(stats: PlayerStats): number {
+  return (
+    stats.passYards * 0.05 +
+    stats.passTd * 12 +
+    stats.rushYards * 0.08 +
+    stats.rushTd * 12 +
+    stats.receivingYards * 0.08 +
+    stats.receivingTd * 12 +
+    stats.tackles * 1.5 +
+    stats.sacks * 8 +
+    stats.interceptions * 10 +
+    stats.pancakes * 2 +
+    stats.fieldGoals * 5
+  );
 }

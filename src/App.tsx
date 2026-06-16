@@ -6,7 +6,10 @@ import {
   BookOpen,
   Building2,
   CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   ChevronsRight,
+  CircleHelp,
   ClipboardList,
   Crown,
   Dumbbell,
@@ -22,24 +25,31 @@ import {
   Search,
   Shield,
   Sparkles,
+  Star,
   Trophy,
   UserRound,
   Users,
   Wrench,
   X,
 } from "lucide-react";
-import { addRecruitToBoard, autoRecruit, gemBustFor, pitchRecruit, positionNeeds, scoutRecruit } from "./sim/recruiting";
+import { addRecruitToBoard, autoRecruit, gemBustFor, isPipelineRecruit, pitchRecruit, positionNeeds, scoutRecruit } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, forceUserAward, forceUserPlayoff, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint, topTeams } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart } from "./sim/depthChart";
 import { teamPower, teamUnitRatings } from "./sim/ratings";
-import { POSITIONS, type AttributeKey, type AwardWinner, type Coach, type DynastyState, type Game, type Player, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team } from "./sim/types";
+import { createSeasonAwards } from "./sim/awards";
+import { POSITIONS, type AttributeKey, type AwardWinner, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerGameStats, type PlayerStats, type Position, type ProgramRatings, type Recruit, type Team, type TeamBoxScore } from "./sim/types";
 import { APP_VERSION } from "./version";
 
 type Tab = "overview" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
+type RecruitPositionFilter = "ALL" | Position;
+type RecruitStarsFilter = "ALL" | "1" | "2" | "3" | "4" | "5";
+type RecruitSort = "rank" | "interest" | "stars" | "need";
+type LeaderboardScope = "national" | "conference" | "team";
+type LeaderboardStatKey = keyof PlayerStats;
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
@@ -76,6 +86,20 @@ const programIcons: Record<keyof ProgramRatings, typeof GraduationCap> = {
   prestige: Crown,
   NIL: Handshake,
 };
+
+const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
+  { key: "passYards", label: "Passing Yards" },
+  { key: "passTd", label: "Passing TD" },
+  { key: "rushYards", label: "Rushing Yards" },
+  { key: "rushTd", label: "Rushing TD" },
+  { key: "receivingYards", label: "Receiving Yards" },
+  { key: "receivingTd", label: "Receiving TD" },
+  { key: "tackles", label: "Tackles" },
+  { key: "sacks", label: "Sacks" },
+  { key: "interceptions", label: "Interceptions" },
+  { key: "pancakes", label: "Pancakes" },
+  { key: "fieldGoals", label: "Field Goals" },
+];
 
 export default function App() {
   const previewWorld = useMemo(() => createDynasty(20260616), []);
@@ -129,6 +153,7 @@ export default function App() {
     return (
       <HomeScreen
         teams={previewWorld.teams}
+        conferences={previewWorld.conferences}
         selectedTeamId={selectedTeamId}
         savedState={savedState}
         onSelectTeam={setSelectedTeamId}
@@ -158,9 +183,13 @@ export default function App() {
             <Save size={18} />
             Save
           </button>
+          <button className="secondary" data-testid="sim-month" onClick={() => update((current) => advanceMultipleWeeks(current, 4))} disabled={state.phase === "complete"}>
+            <ChevronsRight size={18} />
+            Sim 4 Weeks
+          </button>
           <button className="primary" data-testid="advance-week" onClick={() => update(advanceWeek)} disabled={state.phase === "complete"}>
             <ChevronsRight size={18} />
-            Advance
+            Advance Week
           </button>
         </div>
       </header>
@@ -192,6 +221,7 @@ export default function App() {
 
 function HomeScreen({
   teams,
+  conferences,
   selectedTeamId,
   savedState,
   onSelectTeam,
@@ -200,6 +230,7 @@ function HomeScreen({
   onReset,
 }: {
   teams: Team[];
+  conferences: Conference[];
   selectedTeamId: string;
   savedState?: DynastyState;
   onSelectTeam: (teamId: string) => void;
@@ -207,6 +238,15 @@ function HomeScreen({
   onContinue: () => void;
   onReset: () => void;
 }) {
+  const selectedIndex = Math.max(0, teams.findIndex((team) => team.id === selectedTeamId));
+  const selectedTeam = teams[selectedIndex] ?? teams[0]!;
+  const selectedUnits = teamUnitRatings(selectedTeam.roster);
+  const selectedConference = conferences.find((conference) => conference.id === selectedTeam.conferenceId);
+  const moveTeam = (offset: number) => {
+    const nextIndex = (selectedIndex + offset + teams.length) % teams.length;
+    onSelectTeam(teams[nextIndex]!.id);
+  };
+
   return (
     <div className="home">
       <section className="hero" style={{ backgroundImage: "linear-gradient(90deg, rgba(9,13,18,.94), rgba(9,13,18,.58), rgba(9,13,18,.18)), url('/assets/dynasty-hero.png')" }}>
@@ -222,17 +262,26 @@ function HomeScreen({
             <Feature icon={Search} text="Thousands of recruits with hidden traits, scouting, gems, and busts" />
             <Feature icon={Trophy} text="Weekly awards, season honors, All-Americans, bowls, and playoff history" />
           </div>
-          <div className="launch-panel">
-            <label>
-              Starting program
-              <select value={selectedTeamId} onChange={(event) => onSelectTeam(event.target.value)} data-testid="team-select">
-                {teams.slice(0, 70).map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name} - {team.abbreviation}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="launch-panel team-picker" data-testid="team-picker">
+            <div className="team-picker-head">
+              <button className="icon-button" onClick={() => moveTeam(-1)} data-testid="team-prev" aria-label="Previous team">
+                <ChevronLeft size={18} />
+              </button>
+              <div className="team-card-select">
+                <p className="eyebrow">Starting program</p>
+                <h2>{selectedTeam.name}</h2>
+                <p className="muted">{teamIdentity(selectedTeam)} - {selectedConference?.name ?? "Independent"} - {selectedTeam.city}, {selectedTeam.state}</p>
+              </div>
+              <button className="icon-button" onClick={() => moveTeam(1)} data-testid="team-next" aria-label="Next team">
+                <ChevronRight size={18} />
+              </button>
+            </div>
+            <div className="team-picker-metrics">
+              <Metric label="Overall" value={selectedUnits.overall} />
+              <Metric label="Power" value={teamPower(selectedTeam.roster)} />
+              <Metric label="Program" value={programRating(selectedTeam)} />
+              <Metric label="Prestige" value={selectedTeam.program.prestige} />
+            </div>
             <div className="button-row">
               <button className="primary" onClick={onStart} data-testid="new-dynasty">
                 <Play size={18} />
@@ -486,16 +535,29 @@ function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Play
 
 function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
   const userTeam = getUserTeam(state);
-  const needs = positionNeeds(userTeam).slice(0, 5);
+  const [positionFilter, setPositionFilter] = useState<RecruitPositionFilter>("ALL");
+  const [stateFilter, setStateFilter] = useState("ALL");
+  const [starsFilter, setStarsFilter] = useState<RecruitStarsFilter>("ALL");
+  const [pipelineOnly, setPipelineOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<RecruitSort>("rank");
+  const needs = positionNeeds(userTeam);
   const board = state.recruiting.board.map((id) => state.recruits.find((recruit) => recruit.id === id)).filter((recruit): recruit is Recruit => Boolean(recruit));
+  const stateOptions = Array.from(new Set(state.recruits.map((recruit) => recruit.state))).sort();
   const available = state.recruits
     .filter((recruit) => recruit.stage !== "signed" && !state.recruiting.board.includes(recruit.id))
+    .filter((recruit) => positionFilter === "ALL" || recruit.position === positionFilter)
+    .filter((recruit) => stateFilter === "ALL" || recruit.state === stateFilter)
+    .filter((recruit) => starsFilter === "ALL" || recruit.stars === Number(starsFilter))
+    .filter((recruit) => !pipelineOnly || isPipelineRecruit(userTeam, recruit))
     .sort((a, b) => {
       const needA = needs.find((need) => need.position === a.position)?.need ?? 0;
       const needB = needs.find((need) => need.position === b.position)?.need ?? 0;
-      return needB * 25 + b.stars * 12 + (b.interest[userTeam.id] ?? 0) - (needA * 25 + a.stars * 12 + (a.interest[userTeam.id] ?? 0));
+      if (sortBy === "interest") return (b.interest[userTeam.id] ?? 0) - (a.interest[userTeam.id] ?? 0) || a.nationalRank - b.nationalRank;
+      if (sortBy === "stars") return b.stars - a.stars || a.nationalRank - b.nationalRank;
+      if (sortBy === "need") return needB - needA || a.nationalRank - b.nationalRank;
+      return a.nationalRank - b.nationalRank;
     })
-    .slice(0, 12);
+    .slice(0, 60);
 
   return (
     <>
@@ -513,7 +575,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           </button>
         </div>
         <div className="need-row">
-          {needs.map((need) => (
+          {needs.slice(0, 5).map((need) => (
             <span key={need.position}>
               {need.position}: need {need.need}
             </span>
@@ -527,18 +589,62 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
       </section>
 
       <section className="panel span-2">
-        <div className="panel-head compact">
-          <h2>Recommended Prospects</h2>
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">Recruiting Database</p>
+            <h2>{available.length} matching prospects</h2>
+          </div>
           <Shield size={20} />
         </div>
-        <div className="table-list">
+        <div className="filter-grid" data-testid="recruit-filter-panel">
+          <label>
+            Position
+            <select value={positionFilter} onChange={(event) => setPositionFilter(event.target.value as RecruitPositionFilter)} data-testid="recruit-position-filter">
+              {(["ALL", ...POSITIONS] as RecruitPositionFilter[]).map((position) => (
+                <option key={position} value={position}>{position}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            State
+            <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
+              <option value="ALL">All states</option>
+              {stateOptions.map((stateName) => (
+                <option key={stateName} value={stateName}>{stateName}{stateName === userTeam.state ? " (pipeline)" : ""}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Stars
+            <select value={starsFilter} onChange={(event) => setStarsFilter(event.target.value as RecruitStarsFilter)}>
+              <option value="ALL">All stars</option>
+              {[5, 4, 3, 2, 1].map((stars) => (
+                <option key={stars} value={stars}>{stars} stars</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Sort
+            <select value={sortBy} onChange={(event) => setSortBy(event.target.value as RecruitSort)}>
+              <option value="rank">Rank number</option>
+              <option value="interest">Interest</option>
+              <option value="stars">Stars</option>
+              <option value="need">Team need</option>
+            </select>
+          </label>
+          <label className="check-label">
+            <input type="checkbox" checked={pipelineOnly} onChange={(event) => setPipelineOnly(event.target.checked)} />
+            Pipeline only
+          </label>
+        </div>
+        <div className="table-list recruit-table" data-testid="recruiting-database">
           {available.map((recruit) => (
             <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))}>
-              <span>{"*".repeat(recruit.stars)}</span>
+              <Stars count={recruit.stars} />
               <strong>{recruit.name}</strong>
               <span>{recruit.position}</span>
               <span>#{recruit.nationalRank}</span>
-              <span>{recruit.hometown}</span>
+              <span>{recruit.hometown}{isPipelineRecruit(userTeam, recruit) ? " - Pipeline" : ""}</span>
               <span>{recruit.interest[userTeam.id] ?? 0}%</span>
             </button>
           ))}
@@ -567,7 +673,8 @@ function RecruitCard({
         <div>
           <strong>{recruit.name}</strong>
           <p>
-            {recruit.position} - {"*".repeat(recruit.stars)} - #{recruit.nationalRank}
+            {recruit.position} - <Stars count={recruit.stars} /> - #{recruit.nationalRank}
+            {isPipelineRecruit(userTeam, recruit) ? " - Pipeline" : ""}
           </p>
         </div>
       </div>
@@ -599,6 +706,7 @@ function RecruitCard({
 
 function Schedule({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
+  const [selectedGame, setSelectedGame] = useState<Game | undefined>();
   const games = state.schedule.filter((game) => game.homeTeamId === userTeam.id || game.awayTeamId === userTeam.id || game.week === state.week).slice(0, 24);
   const standings = [...state.teams]
     .filter((team) => team.conferenceId === userTeam.conferenceId)
@@ -632,19 +740,85 @@ function Schedule({ state }: { state: DynastyState }) {
             const home = state.teams.find((team) => team.id === game.homeTeamId);
             const away = state.teams.find((team) => team.id === game.awayTeamId);
             return (
-              <div key={game.id} className="table-row">
+              <button key={game.id} className="table-row clickable" onClick={() => setSelectedGame(game)} data-testid="game-row">
                 <span>W{game.week}</span>
                 <strong>
                   {away?.abbreviation} at {home?.abbreviation}
                 </strong>
                 <span>{game.bowlName ?? (game.conferenceGame ? "Conference" : "Non-conf")}</span>
                 <span>{game.result?.summary ?? "Pending"}</span>
-              </div>
+              </button>
             );
           })}
         </div>
       </section>
+      {selectedGame && <GameModal game={selectedGame} teams={state.teams} onClose={() => setSelectedGame(undefined)} />}
     </>
+  );
+}
+
+function GameModal({ game, teams, onClose }: { game: Game; teams: Team[]; onClose: () => void }) {
+  const home = teams.find((team) => team.id === game.homeTeamId);
+  const away = teams.find((team) => team.id === game.awayTeamId);
+  const boxScore = game.result?.boxScore;
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="player-modal game-modal" role="dialog" aria-modal="true" aria-label="Game box score" onMouseDown={(event) => event.stopPropagation()} data-testid="box-score-modal">
+        <div className="modal-head">
+          <div>
+            <p className="eyebrow">Week {game.week} - {game.bowlName ?? (game.conferenceGame ? "Conference" : "Non-conference")}</p>
+            <h2>{away?.name} at {home?.name}</h2>
+            <p className="muted">{game.result?.summary ?? "Game has not been played yet."}</p>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Close box score">
+            <X size={18} />
+          </button>
+        </div>
+        {boxScore ? (
+          <div className="box-score-grid">
+            <TeamBoxScorePanel box={boxScore.away} />
+            <TeamBoxScorePanel box={boxScore.home} />
+          </div>
+        ) : (
+          <div className="metric-grid">
+            <Metric label={away?.abbreviation ?? "Away"} value={away ? teamPower(away.roster) : "-"} />
+            <Metric label={home?.abbreviation ?? "Home"} value={home ? teamPower(home.roster) : "-"} />
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function TeamBoxScorePanel({ box }: { box: TeamBoxScore }) {
+  return (
+    <article className="box-score-team">
+      <div className="box-score-head">
+        <h3>{box.teamName}</h3>
+        <strong>{box.score}</strong>
+      </div>
+      <div className="mini-metrics">
+        <span>{box.totals.passYards} pass</span>
+        <span>{box.totals.rushYards} rush</span>
+        <span>{box.totals.receivingYards} rec</span>
+        <span>{box.totals.tackles} tackles</span>
+      </div>
+      <div className="box-player-list">
+        {box.players.map((line) => (
+          <PlayerGameLine key={line.playerId} line={line} />
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function PlayerGameLine({ line }: { line: PlayerGameStats }) {
+  return (
+    <div className="box-player-row">
+      <strong>{line.playerName}</strong>
+      <span>{line.position}</span>
+      <em>{gameLineSummary(line.stats)}</em>
+    </div>
   );
 }
 
@@ -654,17 +828,27 @@ function Awards({ state }: { state: DynastyState }) {
   const conferenceAwards = userConference && state.seasonAwards ? state.seasonAwards.allConference[userConference.id] : undefined;
   const playoffGames = state.playoff?.games ?? [];
   const latestHistory = state.history[0];
-  const awardSource = state.seasonAwards?.nationalAwards ?? latestHistory?.awardWinners ?? [];
+  const latestWeeklyAwards = state.weeklyAwards[0]?.national ?? [];
+  const seasonAwardWatch = !state.seasonAwards && state.phase === "regular" && state.week >= 8 ? createSeasonAwards(state.teams, state.conferences, state.calendarYear).nationalAwards : undefined;
+  const awardSource = state.seasonAwards?.nationalAwards ?? seasonAwardWatch ?? (state.phase === "regular" ? [] : latestHistory?.awardWinners ?? []);
   const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
   return (
     <>
-      <section className="panel span-2" data-testid="awards-panel">
+      <section className="panel span-2" data-testid="player-of-week-panel">
         <div className="panel-head compact">
-          <h2>{state.seasonAwards ? "Season Awards" : "Latest Season Awards"}</h2>
+          <h2>Player of the Week</h2>
           <Award size={20} />
         </div>
-        <AwardGrid awards={awardSource} />
+        <AwardGrid awards={latestWeeklyAwards.slice(0, 1)} />
       </section>
+      <section className="panel span-2" data-testid="awards-panel">
+        <div className="panel-head compact">
+          <h2>{state.seasonAwards ? "Season Awards" : state.week >= 8 ? "Season Award Watch" : "Season Award Watch Opens Week 8"}</h2>
+          <Award size={20} />
+        </div>
+        {state.week >= 8 || state.seasonAwards || state.phase !== "regular" ? <AwardGrid awards={awardSource} /> : <p className="muted">Season award tracking unlocks after Week 8.</p>}
+      </section>
+      <StatLeaderboard state={state} />
       {state.seasonAwards && (
         <>
           <AwardTeamPanel title="All-American First Team" awards={state.seasonAwards.allAmericans.first} testId="all-american-first-panel" />
@@ -713,7 +897,71 @@ function AwardTeamPanel({ title: panelTitle, awards, testId }: { title: string; 
         <h2>{panelTitle}</h2>
         <Medal size={20} />
       </div>
-      <AwardGrid awards={awards} limit={16} />
+      <HonorGrid awards={awards} limit={16} />
+    </section>
+  );
+}
+
+function StatLeaderboard({ state }: { state: DynastyState }) {
+  const userTeam = getUserTeam(state);
+  const [scope, setScope] = useState<LeaderboardScope>("national");
+  const [statKey, setStatKey] = useState<LeaderboardStatKey>("passYards");
+  const userConferenceTeamIds = new Set(state.conferences.find((conference) => conference.id === userTeam.conferenceId)?.teamIds ?? []);
+  const rows = state.teams
+    .filter((team) => scope === "national" || (scope === "conference" ? userConferenceTeamIds.has(team.id) : team.id === userTeam.id))
+    .flatMap((team) =>
+      team.roster.map((player) => ({
+        team,
+        player,
+        value: player.stats[statKey],
+      })),
+    )
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value || b.player.overall - a.player.overall)
+    .slice(0, 12);
+
+  return (
+    <section className="panel span-2" data-testid="leaderboard-panel">
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Stat Leaders</p>
+          <h2>{leaderboardStats.find((stat) => stat.key === statKey)?.label}</h2>
+        </div>
+        <LineChart size={20} />
+      </div>
+      <div className="filter-grid compact-filters">
+        <label>
+          Scope
+          <select value={scope} onChange={(event) => setScope(event.target.value as LeaderboardScope)}>
+            <option value="national">National</option>
+            <option value="conference">Conference</option>
+            <option value="team">Team</option>
+          </select>
+        </label>
+        <label>
+          Statistic
+          <select value={statKey} onChange={(event) => setStatKey(event.target.value as LeaderboardStatKey)}>
+            {leaderboardStats.map((stat) => (
+              <option key={stat.key} value={stat.key}>{stat.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="table-list leaderboard-list">
+        {rows.length ? (
+          rows.map((row, index) => (
+            <div key={`${row.player.id}-${statKey}`} className="table-row leaderboard-row">
+              <span>{index + 1}</span>
+              <strong>{row.player.name}</strong>
+              <span>{row.player.position}</span>
+              <span>{row.team.name}</span>
+              <span>{row.value.toLocaleString()}</span>
+            </div>
+          ))
+        ) : (
+          <p className="muted">Stat leaders populate after games are played.</p>
+        )}
+      </div>
     </section>
   );
 }
@@ -842,23 +1090,32 @@ function CoachCard({ coach, onUpdate }: { coach: Coach; onUpdate: (recipe: (stat
         </div>
       </div>
       <div className="mini-metrics">
-        <span>Rec {coach.recruiting}</span>
-        <span>Dev {coach.development}</span>
-        <span>Tac {coach.tactics}</span>
+        <InfoStat label="Rec" value={coach.recruiting} titleText="Recruiting: increases weekly points, pitch strength, and coach market value." />
+        <InfoStat label="Dev" value={coach.development} titleText="Development: improves offseason player growth with training and facilities." />
+        <InfoStat label="Tac" value={coach.tactics} titleText="Tactics: gives a small game-simulation power boost and affects coach movement." />
         <span>Pts {coach.points}</span>
       </div>
       <div className="button-row compact-row">
-        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "recruiting"))} disabled={coach.points <= 0}>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "recruiting"))} disabled={coach.points <= 0} title="Improve recruiting">
           Rec
         </button>
-        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "development"))} disabled={coach.points <= 0}>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "development"))} disabled={coach.points <= 0} title="Improve player development">
           Dev
         </button>
-        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "tactics"))} disabled={coach.points <= 0}>
+        <button className="secondary" onClick={() => onUpdate((current) => spendCoachPoint(current, coach.role, "tactics"))} disabled={coach.points <= 0} title="Improve game tactics">
           Tac
         </button>
       </div>
     </article>
+  );
+}
+
+function InfoStat({ label, value, titleText }: { label: string; value: number; titleText: string }) {
+  return (
+    <span className="info-stat" title={titleText}>
+      {label} {value}
+      <CircleHelp size={13} />
+    </span>
   );
 }
 
@@ -912,6 +1169,33 @@ function AwardGrid({ awards, limit = 12 }: { awards: AwardWinner[]; limit?: numb
   );
 }
 
+function HonorGrid({ awards, limit = 16 }: { awards: AwardWinner[]; limit?: number }) {
+  const list = awards.slice(0, limit);
+  if (!list.length) return <p className="muted">Honor teams appear once season awards are available.</p>;
+  return (
+    <div className="award-grid honor-grid">
+      {list.map((award) => (
+        <article key={`${award.playerId}-${award.position}`} className="card">
+          <p className="eyebrow">{award.position}</p>
+          <h3>{award.playerName}</h3>
+          <p>{award.teamName}</p>
+          <span>{award.note}</span>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function Stars({ count }: { count: number }) {
+  return (
+    <span className="stars" aria-label={`${count} stars`}>
+      {Array.from({ length: count }, (_, index) => (
+        <Star key={index} size={14} fill="currentColor" />
+      ))}
+    </span>
+  );
+}
+
 function Portrait({ index }: { index: number }) {
   const column = index % 4;
   const row = Math.floor(index / 4);
@@ -940,6 +1224,24 @@ function Metric({ label, value }: { label: string; value: string | number }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function advanceMultipleWeeks(state: DynastyState, weeks: number): DynastyState {
+  let next = state;
+  for (let index = 0; index < weeks && next.phase !== "complete"; index += 1) {
+    next = advanceWeek(next);
+  }
+  return next;
+}
+
+function teamIdentity(team: Team): string {
+  const power = teamPower(team.roster);
+  if (power >= 78) return "National contender";
+  if (team.program.prestige >= 75) return "Tradition power";
+  if (team.program.training >= 78 || team.program.facilities >= 78) return "Development factory";
+  if (team.program.academics >= 78) return "Academic standard";
+  if (power < 65) return "Rebuild opportunity";
+  return "Balanced program";
 }
 
 function programRating(team: Team): number {
@@ -980,4 +1282,15 @@ function playerStatRows(player: Player): { label: string; stats: PlayerStats }[]
       stats: player.stats,
     },
   ];
+}
+
+function gameLineSummary(stats: PlayerStats): string {
+  const parts: string[] = [];
+  if (stats.passYards || stats.passTd || stats.interceptionsThrown) parts.push(`${stats.passYards} PYD, ${stats.passTd} TD, ${stats.interceptionsThrown} INT`);
+  if (stats.rushYards || stats.rushTd) parts.push(`${stats.rushYards} RYD, ${stats.rushTd} TD`);
+  if (stats.receivingYards || stats.receivingTd) parts.push(`${stats.receivingYards} REC, ${stats.receivingTd} TD`);
+  if (stats.tackles || stats.sacks || stats.interceptions) parts.push(`${stats.tackles} TKL, ${stats.sacks} SCK, ${stats.interceptions} INT`);
+  if (stats.pancakes) parts.push(`${stats.pancakes} PAN`);
+  if (stats.fieldGoalAttempts) parts.push(`${stats.fieldGoals}/${stats.fieldGoalAttempts} FG`);
+  return parts.join(" | ") || "Appeared";
 }

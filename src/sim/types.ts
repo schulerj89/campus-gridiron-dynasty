@@ -63,6 +63,26 @@ export interface PlayerSeasonStats {
   stats: PlayerStats;
 }
 
+export interface PlayerGameStats {
+  playerId: string;
+  playerName: string;
+  position: Position;
+  stats: PlayerStats;
+}
+
+export interface TeamBoxScore {
+  teamId: string;
+  teamName: string;
+  score: number;
+  totals: PlayerStats;
+  players: PlayerGameStats[];
+}
+
+export interface GameBoxScore {
+  home: TeamBoxScore;
+  away: TeamBoxScore;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -200,6 +220,7 @@ export interface GameResult {
   awayScore: number;
   winnerTeamId: string;
   summary: string;
+  boxScore?: GameBoxScore;
 }
 
 export interface Game {

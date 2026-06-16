@@ -144,6 +144,40 @@ p {
   padding: 16px;
 }
 
+.team-picker {
+  max-width: 720px;
+}
+
+.team-picker-head {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+}
+
+.team-card-select {
+  background: rgba(15, 23, 27, 0.72);
+  border: 1px solid rgba(236, 244, 239, 0.16);
+  border-radius: 8px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.team-card-select h2 {
+  font-size: 1.35rem;
+  margin-bottom: 6px;
+}
+
+.team-picker-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.team-picker-metrics .metric {
+  background: rgba(15, 23, 27, 0.78);
+}
+
 label {
   color: var(--muted);
   display: grid;
@@ -427,6 +461,41 @@ select {
   font-weight: 750;
   line-height: 1;
   padding: 7px 9px;
+}
+
+.stars {
+  align-items: center;
+  color: var(--gold);
+  display: inline-flex;
+  gap: 2px;
+  line-height: 1;
+  vertical-align: -2px;
+}
+
+.filter-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  margin-bottom: 14px;
+}
+
+.filter-grid.compact-filters {
+  grid-template-columns: repeat(2, minmax(160px, 240px));
+}
+
+.check-label {
+  align-content: end;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.check-label input {
+  accent-color: var(--gold);
+  height: 18px;
+  width: 18px;
 }
 
 .player-grid,
@@ -743,6 +812,14 @@ select {
   color: var(--muted);
 }
 
+.recruit-table .table-row {
+  grid-template-columns: 92px minmax(160px, 1.1fr) 54px 78px minmax(180px, 1fr) 70px;
+}
+
+.leaderboard-row {
+  grid-template-columns: 44px minmax(160px, 1fr) 64px minmax(180px, 1fr) 90px;
+}
+
 .investment {
   align-items: flex-start;
   background: #0f171b;
@@ -766,6 +843,16 @@ select {
 .coach-card {
   display: grid;
   gap: 12px;
+}
+
+.info-stat {
+  align-items: center;
+  cursor: help;
+  gap: 5px;
+}
+
+.info-stat svg {
+  color: var(--blue);
 }
 
 .coach-pool-grid {
@@ -872,6 +959,63 @@ select {
 .bracket-game span {
   color: var(--muted);
   font-weight: 800;
+}
+
+.game-modal {
+  max-width: 1120px;
+}
+
+.box-score-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.box-score-team {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.box-score-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.box-score-head h3 {
+  margin-bottom: 0;
+}
+
+.box-score-head strong {
+  color: var(--gold);
+  font-size: 2rem;
+}
+
+.box-player-list {
+  display: grid;
+  gap: 8px;
+}
+
+.box-player-row {
+  align-items: center;
+  background: #152128;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(120px, 1fr) 42px minmax(180px, 1.4fr);
+  padding: 8px 10px;
+}
+
+.box-player-row span,
+.box-player-row em {
+  color: var(--muted);
+  font-style: normal;
 }
 
 .log {

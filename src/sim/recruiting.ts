@@ -6,6 +6,7 @@ import { TARGET_ROSTER } from "./ratings";
 const SCOUT_COST = 50;
 const PITCH_COST = 100;
 const BOARD_LIMIT = 35;
+const PIPELINE_BONUS = 8;
 
 export function addRecruitToBoard(state: DynastyState, recruitId: string): DynastyState {
   const recruit = state.recruits.find((candidate) => candidate.id === recruitId);
@@ -52,7 +53,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
   const recruits = state.recruits.map((recruit) => {
     if (recruit.id !== recruitId || recruit.stage === "signed") return recruit;
     const needBoost = positionNeedScore(team, recruit.position) * 0.7;
-    const pitch = Math.round(8 + team.program.prestige * 0.04 + team.program.facilities * 0.035 + team.coaches.head.recruiting * 0.04 + needBoost + rng.nextInt(0, 8));
+    const pitch = Math.round(8 + pipelineBonus(team, recruit) + team.program.prestige * 0.04 + team.program.facilities * 0.035 + team.coaches.head.recruiting * 0.04 + needBoost + rng.nextInt(0, 8));
     const updated = {
       ...recruit,
       interest: {
@@ -227,6 +228,10 @@ export function gemBustFor(recruit: Recruit): "gem" | "solid" | "bust" {
   return "solid";
 }
 
+export function isPipelineRecruit(team: Team, recruit: Recruit): boolean {
+  return recruit.state === team.state;
+}
+
 function ensureSmartBoard(recruits: Recruit[], existingBoard: string[], team: Team, minimum: number): string[] {
   const board = [...existingBoard];
   const needs = positionNeeds(team);
@@ -258,11 +263,15 @@ function autoScore(recruit: Recruit, team: Team, points: number): number {
   const need = positionNeedScore(team, recruit.position);
   const interest = recruit.interest[team.id] ?? 0;
   const scoutNeed = recruit.scoutProgress < 100 && points < PITCH_COST ? 18 : 0;
-  return need * 10 + recruit.stars * 16 + interest * 0.8 + recruit.overall * 0.35 + scoutNeed;
+  return need * 10 + recruit.stars * 16 + interest * 0.8 + recruit.overall * 0.35 + pipelineBonus(team, recruit) + scoutNeed;
 }
 
 function positionNeedScore(team: Team, position: Position): number {
   return positionNeeds(team).find((entry) => entry.position === position)?.need ?? 0;
+}
+
+function pipelineBonus(team: Team, recruit: Recruit): number {
+  return isPipelineRecruit(team, recruit) ? PIPELINE_BONUS : 0;
 }
 
 function simulateOtherSchools(rng: Rng, recruit: Recruit, teams: Team[]): Recruit {

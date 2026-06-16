@@ -2,6 +2,15 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.3.0 - 2026-06-16
+
+- Added played-game box score drilldowns with team totals and player stat lines.
+- Added Player of the Week, stat leaderboards with national/conference/team filters, and delayed season-award visibility until Week 8.
+- Removed award-name labels from All-American and All-Conference team displays.
+- Expanded recruiting with position, state, pipeline, star, and rank/interest/need filters plus pipeline bonuses and star icons.
+- Reworked team selection into a carousel-style team card and clarified the weekly advance controls.
+- Added staff stat help text for Rec, Dev, and Tac abbreviations.
+
 ## 0.2.1 - 2026-06-16
 
 - Added the `code-review-integrity` repo skill for sub-agent code review, integrity checks, testing expectations, and release hygiene.

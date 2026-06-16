@@ -1,7 +1,6 @@
 import { AWARD_NAMES, POSITION_LABELS } from "./names";
 import { teamPower } from "./ratings";
 import type { AwardWinner, Conference, Player, Position, SeasonAwards, Team, WeeklyAwards } from "./types";
-import { awardNameForPosition } from "./generate";
 
 export function rankTeams(teams: Team[]): Team[] {
   const ranked = [...teams].sort((a, b) => rankingScore(b) - rankingScore(a));
@@ -26,6 +25,7 @@ export function selectPlayoffSeeds(teams: Team[], userTeamId: string, forceUser 
 export function createWeeklyAwards(teams: Team[], conferences: Conference[], year: number, week: number): WeeklyAwards {
   const candidates = playersWithTeams(teams);
   const national = [
+    winner("Player of the Week", topBy(candidates, playerValue, undefined)),
     winner("National Spark", topBy(candidates, (entry) => entry.player.stats.passYards + entry.player.stats.passTd * 90 - entry.player.stats.interceptionsThrown * 55, ["QB"])),
     winner("Ground Surge", topBy(candidates, (entry) => entry.player.stats.rushYards + entry.player.stats.rushTd * 75, ["HB"])),
     winner("Sky Route", topBy(candidates, (entry) => entry.player.stats.receivingYards + entry.player.stats.receivingTd * 80, ["WR", "TE"])),
@@ -145,8 +145,8 @@ function allTeam(entries: { team: Team; player: Player }[], tier: 1 | 2): AwardW
     const entry = ranked[tier - 1] ?? ranked[0];
     if (!entry) continue;
     used.add(entry.player.id);
-    const award = winner(`${tier === 1 ? "First" : "Second"} ${POSITION_LABELS[entry.player.position]}`, entry);
-    if (award) winners.push({ ...award, awardName: awardNameForPosition(entry.player.position) });
+    const award = winner(POSITION_LABELS[entry.player.position], entry);
+    if (award) winners.push(award);
   }
   return winners;
 }

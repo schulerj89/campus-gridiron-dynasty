@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { addRecruitToBoard, autoRecruit, pitchRecruit, scoutRecruit, signRecruitingClass } from "../recruiting";
+import { addRecruitToBoard, autoRecruit, isPipelineRecruit, pitchRecruit, scoutRecruit, signRecruitingClass } from "../recruiting";
 
 describe("recruiting", () => {
   it("fills a smart board from team needs when auto recruit runs", () => {
@@ -31,6 +31,15 @@ describe("recruiting", () => {
     expect(pitched.recruiting.pointsRemaining).toBe(state.recruiting.pointsRemaining);
     expect(scouted.recruiting.lastActions).toEqual(state.recruiting.lastActions);
     expect(pitched.recruiting.lastActions).toEqual(state.recruiting.lastActions);
+  });
+
+  it("identifies user-state recruits as pipeline prospects", () => {
+    const state = createDynasty(5793);
+    const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    const pipelineRecruit = state.recruits.find((candidate) => candidate.state === userTeam.state)!;
+    const outOfStateRecruit = state.recruits.find((candidate) => candidate.state !== userTeam.state)!;
+    expect(isPipelineRecruit(userTeam, pipelineRecruit)).toBe(true);
+    expect(isPipelineRecruit(userTeam, outOfStateRecruit)).toBe(false);
   });
 
   it("does not add signed recruits or overflow the recruiting board", () => {

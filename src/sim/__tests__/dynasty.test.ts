@@ -7,8 +7,12 @@ describe("dynasty flow", () => {
   it("simulates weekly games and creates weekly awards", () => {
     const state = createDynasty(7891);
     const advanced = advanceWeek(state);
+    const playedGame = advanced.schedule.find((game) => game.result?.boxScore);
     expect(advanced.week).toBe(2);
     expect(advanced.weeklyAwards.length).toBe(1);
+    expect(advanced.weeklyAwards[0]?.national[0]?.awardName).toBe("Player of the Week");
+    expect(playedGame?.result?.boxScore?.home.players.length).toBeGreaterThan(0);
+    expect(playedGame?.result?.boxScore?.away.totals.passYards).toBeGreaterThanOrEqual(0);
     expect(advanced.teams.some((team) => team.season.wins + team.season.losses > 0)).toBe(true);
   });
 

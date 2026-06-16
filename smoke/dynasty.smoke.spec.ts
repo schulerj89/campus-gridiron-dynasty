@@ -16,6 +16,8 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
 
   await expect(page.getByRole("heading", { name: "Campus Gridiron Dynasty" })).toBeVisible();
   await expect(page.getByText(APP_VERSION).first()).toBeVisible();
+  await expect(page.getByTestId("team-picker")).toBeVisible();
+  await page.getByTestId("team-next").click();
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "home-desktop.png"), fullPage: true });
   }
@@ -24,6 +26,8 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await expect(page.getByText("Dynasty Command")).toBeVisible({ timeout: 40_000 });
   await expect(page.getByText(/Year 1 of 20/)).toBeVisible();
   await expect(page.getByText(APP_VERSION).first()).toBeVisible();
+  await expect(page.getByTestId("advance-week")).toContainText("Advance Week");
+  await expect(page.getByTestId("sim-month")).toContainText("Sim 4 Weeks");
 
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "dashboard-desktop.png"), fullPage: true });
