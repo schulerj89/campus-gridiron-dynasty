@@ -310,6 +310,7 @@ export function createSignedPlayerFromRecruit(recruit: Recruit): Player {
     careerStats: [],
     awards: [],
     streak: undefined,
+    incomingFreshman: true,
   };
 }
 

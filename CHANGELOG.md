@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.8.1 - 2026-06-16
+
+- Fixed signing-day recruits advancing to sophomores during preseason development.
+- Added an incoming freshman roster marker that skips offseason development and clears at kickoff.
+- Added regression coverage for incoming signees across signing day, preseason, kickoff, and save normalization.
+
 ## 0.8.0 - 2026-06-16
 
 - Split postseason advancement into visible offseason departure, signing day, preseason development, and kickoff steps.

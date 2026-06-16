@@ -88,6 +88,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Recruits committed to other programs remain visible in the database with destination indicators but cannot be added, scouted, or pitched.
 - Offseason advancement should expose departures, signing day, preseason player development, and kickoff as distinct steps.
 - Player offseason development must never regress attributes or overall.
+- Signing-day recruits are incoming freshmen: they do not advance class year or gain offseason development until after kickoff clears the incoming marker.
 - Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.
 - The game should stay playable on WebKit and on mobile-width screens.
 

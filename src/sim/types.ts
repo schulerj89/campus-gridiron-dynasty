@@ -106,6 +106,7 @@ export interface Player {
   careerStats: PlayerSeasonStats[];
   awards: string[];
   streak?: PlayerStreak;
+  incomingFreshman?: boolean;
 }
 
 export interface Coach {

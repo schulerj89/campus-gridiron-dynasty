@@ -65,6 +65,7 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     roster: team.roster.map((player) => ({
       ...player,
       streak: player.streak && player.streak.weeks > 0 ? player.streak : undefined,
+      incomingFreshman: raw.phase !== "regular" && Boolean(player.incomingFreshman) ? true : undefined,
     })),
   }));
   const recruits = raw.recruits.map((recruit) => ({

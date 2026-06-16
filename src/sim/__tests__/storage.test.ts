@@ -8,6 +8,7 @@ describe("storage migration", () => {
     delete oldSave.rankings;
     delete oldSave.teams[0].helmetIndex;
     delete oldSave.teams[0].depthChart;
+    oldSave.teams[0].roster[0].incomingFreshman = true;
     delete oldSave.recruiting.investedByRecruit;
     delete oldSave.recruits[0].offers;
 
@@ -18,6 +19,7 @@ describe("storage migration", () => {
     expect(normalized.recruits[0]?.offers).toEqual([]);
     expect(normalized.recruiting.investedByRecruit).toEqual({});
     expect(normalized.teams[0]?.depthChart).toEqual({});
+    expect(normalized.teams[0]?.roster[0]?.incomingFreshman).toBeUndefined();
     expect(normalized.teams[0]?.helmetIndex).toBeGreaterThanOrEqual(0);
     expect(normalized.teams[0]?.helmetIndex).toBeLessThan(14);
   });

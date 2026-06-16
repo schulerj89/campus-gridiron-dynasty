@@ -369,6 +369,13 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
 function startRegularSeason(state: DynastyState): DynastyState {
   return {
     ...state,
+    teams: state.teams.map((team) => ({
+      ...team,
+      roster: team.roster.map((player) => ({
+        ...player,
+        incomingFreshman: undefined,
+      })),
+    })),
     phase: "regular",
     week: 1,
     offseasonReport: undefined,
@@ -469,6 +476,11 @@ function developAndGraduate(rng: Rng, team: Team, year: number, departures: Play
 }
 
 function developPlayer(rng: Rng, team: Team, player: Player, year: number): { player: Player; progression?: PlayerProgression } {
+  if (player.incomingFreshman) {
+    return {
+      player: resetPlayerStats(player),
+    };
+  }
   const traitBoost = player.development === "elite" ? 4 : player.development === "starter" ? 3 : player.development === "rotation" ? 2 : player.development === "depth" ? 1 : 0;
   const potentialGap = Math.max(0, player.potential - player.overall);
   const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 185;

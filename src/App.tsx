@@ -601,7 +601,7 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
               <Portrait index={player.profileIndex} />
               <strong>{player.name}</strong>
               <span>{player.position}</span>
-              <span>{player.year}</span>
+              <span>{player.incomingFreshman ? `${player.year} In` : player.year}</span>
               <span>OVR {player.overall}</span>
               <StreakBadge player={player} />
               <span>Pot {player.potential}</span>
@@ -656,7 +656,7 @@ function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Play
           <div className="modal-title">
             <Portrait index={player.profileIndex} />
             <div>
-              <p className="eyebrow">{player.position} - {player.year}</p>
+              <p className="eyebrow">{player.position} - {player.year}{player.incomingFreshman ? " - Incoming" : ""}</p>
               <h2>{player.name}</h2>
               <p className="muted">
                 OVR {player.overall} - Potential {player.potential} - {player.hometown}

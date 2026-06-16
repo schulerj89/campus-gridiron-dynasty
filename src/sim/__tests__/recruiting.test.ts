@@ -178,7 +178,10 @@ describe("recruiting", () => {
     };
     const signed = signRecruitingClass(state);
     const userSignees = signed.recruits.filter((candidate) => candidate.committedTeamId === state.userTeamId);
+    const signedPlayer = signed.teams.find((team) => team.id === state.userTeamId)?.roster.find((player) => player.id === `player-${recruit.id}-${state.userTeamId}`);
     expect(userSignees.length).toBeGreaterThan(0);
     expect(userSignees.every((candidate) => candidate.traitRevealed)).toBe(true);
+    expect(signedPlayer?.incomingFreshman).toBe(true);
+    expect(signedPlayer?.year).toBe("FR");
   });
 });

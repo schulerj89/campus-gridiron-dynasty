@@ -69,12 +69,18 @@ describe("dynasty flow", () => {
     expect(state.offseasonReport?.developmentComplete).toBe(true);
     const preseasonReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
     expect(preseasonReport?.progressions.every((progression) => progression.afterOverall >= progression.beforeOverall)).toBe(true);
+    const incomingFreshmen = state.teams.flatMap((team) => team.roster.filter((player) => player.incomingFreshman));
+    expect(incomingFreshmen.length).toBeGreaterThan(0);
+    expect(incomingFreshmen.every((player) => player.year === "FR" && player.careerStats.length === 0)).toBe(true);
+    const incomingIds = new Set(incomingFreshmen.map((player) => player.id));
+    expect(state.offseasonReport?.teams.flatMap((teamReport) => teamReport.progressions).some((progression) => incomingIds.has(progression.playerId))).toBe(false);
     expect(state.history[0]?.userRecruitingRank).toBeGreaterThan(0);
     expect(state.teams.find((team) => team.id === state.userTeamId)?.history[0]?.recruitingClassRank).toBe(state.history[0]?.userRecruitingRank);
 
     state = advanceWeek(state);
     expect(state.phase).toBe("regular");
     expect(state.offseasonReport).toBeUndefined();
+    expect(state.teams.flatMap((team) => team.roster).some((player) => player.incomingFreshman)).toBe(false);
   }, 20_000);
 
   it("does not log a coach point spend when no point is available", () => {
