@@ -196,6 +196,8 @@ export interface Recruit {
   potential: number;
   stage: RecruitStage;
   topSchools: string[];
+  offers: string[];
+  lastPitchWeek?: number;
   interest: Record<string, number>;
   priorities: {
     playingTime: number;

@@ -196,6 +196,7 @@ export function createRecruitClass(rng: Rng, teams: Team[], count = 2600): Recru
     const potential = rng.nextInt(band.potentialMin, band.potentialMax);
     const interest = createRecruitInterest(rng, teams, state, stars);
     const topSchools = sortSchoolsByInterest(interest).slice(0, stars === 5 ? 14 : 10);
+    const offers = initialScholarshipOffers(rng, topSchools, stars);
     const recruit: Recruit = {
       id: `recruit-${index + 1}`,
       name: createPersonName(rng),
@@ -214,6 +215,7 @@ export function createRecruitClass(rng: Rng, teams: Team[], count = 2600): Recru
       potential,
       stage: "open",
       topSchools,
+      offers,
       interest,
       priorities: {
         playingTime: rng.nextInt(1, 10),
@@ -259,14 +261,15 @@ export function calculateWeeklyRecruitingPoints(team: Team): number {
 
 export function calculateSeasonRecruitingBudget(team: Team): number {
   const programStrength =
-    team.program.prestige * 12 +
-    team.program.recruitingReach * 11 +
-    team.program.facilities * 5 +
-    team.program.academics * 3 +
-    team.program.fanSupport * 3;
-  const staffStrength = team.coaches.head.recruiting * 10 + team.coaches.offense.recruiting * 4 + team.coaches.defense.recruiting * 4;
-  const recordBonus = team.season.wins * 90 - team.season.losses * 35 + (team.season.rank && team.season.rank <= 10 ? 450 : team.season.rank && team.season.rank <= 25 ? 220 : 0);
-  return clamp(Math.round(2600 + programStrength + staffStrength + recordBonus), 4800, 12500);
+    team.program.prestige * 5 +
+    team.program.recruitingReach * 4 +
+    team.program.facilities * 2 +
+    team.program.academics * 1.5 +
+    team.program.fanSupport * 1.5 +
+    (team.program.NIL ?? 50) * 2;
+  const staffStrength = team.coaches.head.recruiting * 4 + team.coaches.offense.recruiting * 1.5 + team.coaches.defense.recruiting * 1.5;
+  const recordBonus = team.season.wins * 24 - team.season.losses * 12 + (team.season.rank && team.season.rank <= 10 ? 160 : team.season.rank && team.season.rank <= 25 ? 80 : 0);
+  return clamp(Math.round(650 + programStrength + staffStrength + recordBonus), 1450, 2850);
 }
 
 export function createPersonName(rng: Rng): string {
@@ -406,6 +409,11 @@ function sortSchoolsByInterest(interest: Record<string, number>): string[] {
   return Object.entries(interest)
     .sort((a, b) => b[1] - a[1])
     .map(([teamId]) => teamId);
+}
+
+function initialScholarshipOffers(rng: Rng, topSchools: string[], stars: number): string[] {
+  const offerCount = stars >= 5 ? rng.nextInt(1, 3) : stars === 4 ? rng.nextInt(0, 2) : rng.chance(0.18) ? 1 : 0;
+  return topSchools.slice(0, offerCount);
 }
 
 function hireCoach(coaches: Coach[], role: Coach["role"], teamId: string): Coach {

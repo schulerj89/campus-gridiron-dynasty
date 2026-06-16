@@ -31,7 +31,7 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { addRecruitToBoard, autoRecruit, gemBustFor, isPipelineRecruit, pitchRecruit, positionNeeds, scoutRecruit } from "./sim/recruiting";
+import { addRecruitToBoard, autoRecruit, gemBustFor, isPipelineRecruit, OFFER_COST, offerScholarship, pitchRecruit, PITCH_COST, positionNeeds, SCOUT_COST, scoutRecruit } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, forceUserAward, forceUserPlayoff, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
@@ -604,6 +604,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [pipelineOnly, setPipelineOnly] = useState(false);
   const [sortBy, setSortBy] = useState<RecruitSort>("rank");
   const [recruitPage, setRecruitPage] = useState(1);
+  const [selectedRecruitId, setSelectedRecruitId] = useState<string>();
   const needs = positionNeeds(userTeam);
   const seasonBudget = state.recruiting.seasonBudget ?? state.recruiting.weeklyPoints;
   const pointsSpent = state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining);
@@ -633,6 +634,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const recruitPageCount = Math.max(1, Math.ceil(matchingRecruits.length / RECRUIT_PAGE_SIZE));
   const currentRecruitPage = Math.min(recruitPage, recruitPageCount);
   const visibleRecruits = matchingRecruits.slice((currentRecruitPage - 1) * RECRUIT_PAGE_SIZE, currentRecruitPage * RECRUIT_PAGE_SIZE);
+  const selectedRecruit = selectedRecruitId ? state.recruits.find((recruit) => recruit.id === selectedRecruitId) : undefined;
   const resetRecruitPage = () => setRecruitPage(1);
 
   return (
@@ -666,7 +668,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         </div>
         <div className="recruit-grid" data-testid="recruiting-board">
           {(board.length ? board : matchingRecruits.slice(0, 6)).map((recruit) => (
-            <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onBoard={board.some((item) => item.id === recruit.id)} pointsRemaining={state.recruiting.pointsRemaining} boardFull={boardFull} />
+            <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onOpen={setSelectedRecruitId} onBoard={board.some((item) => item.id === recruit.id)} pointsRemaining={state.recruiting.pointsRemaining} boardFull={boardFull} week={state.week} />
           ))}
         </div>
       </section>
@@ -730,7 +732,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         </div>
         <div className="table-list recruit-table" data-testid="recruiting-database">
           {visibleRecruits.map((recruit) => (
-            <button key={recruit.id} className="table-row clickable" onClick={() => onUpdate((current) => addRecruitToBoard(current, recruit.id))} disabled={boardFull || Boolean(recruit.committedTeamId)}>
+            <button key={recruit.id} className="table-row clickable" onClick={() => setSelectedRecruitId(recruit.id)} data-testid="recruit-row">
               <Stars count={recruit.stars} />
               <strong>{recruit.name}</strong>
               <span>{recruit.position}</span>
@@ -745,6 +747,19 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         </div>
         <PaginationControls page={currentRecruitPage} pageCount={recruitPageCount} total={matchingRecruits.length} pageSize={RECRUIT_PAGE_SIZE} label="recruits" onPageChange={setRecruitPage} />
       </section>
+      {selectedRecruit && (
+        <RecruitModal
+          recruit={selectedRecruit}
+          teams={state.teams}
+          userTeam={userTeam}
+          week={state.week}
+          pointsRemaining={state.recruiting.pointsRemaining}
+          onBoard={board.some((item) => item.id === selectedRecruit.id)}
+          boardFull={boardFull}
+          onClose={() => setSelectedRecruitId(undefined)}
+          onUpdate={onUpdate}
+        />
+      )}
     </>
   );
 }
@@ -753,19 +768,25 @@ function RecruitCard({
   recruit,
   userTeam,
   onUpdate,
+  onOpen,
   onBoard,
   pointsRemaining,
   boardFull,
+  week,
 }: {
   recruit: Recruit;
   userTeam: Team;
   onUpdate: (recipe: (state: DynastyState) => DynastyState) => void;
+  onOpen: (recruitId: string) => void;
   onBoard: boolean;
   pointsRemaining: number;
   boardFull: boolean;
+  week: number;
 }) {
   const known = recruit.knownAttributes.slice(0, 5);
   const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
+  const offered = recruit.offers?.includes(userTeam.id);
+  const pitchedThisWeek = recruit.lastPitchWeek === week;
   return (
     <article className="card recruit-card">
       <div className="card-title">
@@ -780,7 +801,7 @@ function RecruitCard({
       </div>
       <div className="mini-metrics">
         <span>Interest {recruit.interest[userTeam.id] ?? 0}</span>
-        <span>{committedElsewhere ? "Committed elsewhere" : recruit.stage}</span>
+        <span>{offered ? "Scholarship sent" : committedElsewhere ? "Committed elsewhere" : recruit.stage}</span>
         <span>Scout {recruit.scoutProgress}%</span>
       </div>
       <div className="known-attrs">
@@ -788,19 +809,152 @@ function RecruitCard({
       </div>
       <p className={clsx("trait-chip", recruit.gemBust)}>{recruit.traitRevealed ? recruit.hiddenTrait : recruit.gemBust ? gemBustFor(recruit) : "trait hidden"}</p>
       <div className="button-row compact-row">
+        <button className="secondary" onClick={() => onOpen(recruit.id)}>
+          Details
+        </button>
         {!onBoard && (
           <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || committedElsewhere}>
             Add
           </button>
         )}
-        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < 50 || committedElsewhere}>
+        <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={offered || boardFull || pointsRemaining < OFFER_COST || committedElsewhere}>
+          Offer
+        </button>
+        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || committedElsewhere}>
           Scout
         </button>
-        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={pointsRemaining < 100 || committedElsewhere}>
+        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || committedElsewhere}>
           Pitch
         </button>
       </div>
     </article>
+  );
+}
+
+function RecruitModal({
+  recruit,
+  teams,
+  userTeam,
+  week,
+  pointsRemaining,
+  onBoard,
+  boardFull,
+  onClose,
+  onUpdate,
+}: {
+  recruit: Recruit;
+  teams: Team[];
+  userTeam: Team;
+  week: number;
+  pointsRemaining: number;
+  onBoard: boolean;
+  boardFull: boolean;
+  onClose: () => void;
+  onUpdate: (recipe: (state: DynastyState) => DynastyState) => void;
+}) {
+  const teamById = new Map(teams.map((team) => [team.id, team]));
+  const offered = recruit.offers?.includes(userTeam.id);
+  const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
+  const pitchedThisWeek = recruit.lastPitchWeek === week;
+  const topSchools = Object.entries(recruit.interest)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+  const userRank = topSchools.findIndex(([teamId]) => teamId === userTeam.id) + 1;
+  const priorities = Object.entries(recruit.priorities)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  const pitchStatus = committedElsewhere
+    ? "Committed elsewhere"
+    : !offered
+      ? "Scholarship required"
+      : pitchedThisWeek
+        ? `Available Week ${week + 1}`
+        : pointsRemaining < PITCH_COST
+          ? "Not enough points"
+          : "Ready";
+
+  return (
+    <div className="modal-backdrop">
+      <section className="player-modal recruit-modal" data-testid="recruit-modal">
+        <div className="modal-head">
+          <div className="card-title">
+            <Portrait index={recruit.profileIndex} />
+            <div>
+              <p className="eyebrow">Prospect Detail</p>
+              <h2>{recruit.name}</h2>
+              <p>
+                {recruit.position} - <Stars count={recruit.stars} /> - #{recruit.nationalRank} - {recruit.hometown}
+              </p>
+            </div>
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close recruit detail">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="recruit-modal-grid">
+          <section className="modal-panel">
+            <div className="panel-head compact">
+              <h3>School Interest</h3>
+              <TrendingUp size={18} />
+            </div>
+            <p className="muted">Top schools update each week until the prospect pledges or signs.</p>
+            <div className="school-interest-list" data-testid="recruit-school-list">
+              {topSchools.map(([teamId, interest], index) => {
+                const team = teamById.get(teamId);
+                const hasOffer = recruit.offers?.includes(teamId);
+                const isUser = teamId === userTeam.id;
+                return (
+                  <div key={teamId} className={clsx("school-interest-row", isUser && "user-school")}>
+                    <span>#{index + 1}</span>
+                    <strong>{team?.name ?? teamId}</strong>
+                    <em>{hasOffer ? "Offer" : "-"}</em>
+                    <div className="interest-meter">
+                      <i style={{ width: `${Math.min(100, Math.round((interest / 150) * 100))}%` }} />
+                    </div>
+                    <span>{interest}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+          <section className="modal-panel">
+            <div className="panel-head compact">
+              <h3>Recruiting Plan</h3>
+              <Handshake size={18} />
+            </div>
+            <div className="mini-metrics modal-metrics">
+              <span>{offered ? "Scholarship sent" : "No scholarship"}</span>
+              <span>{userRank ? `Your rank #${userRank}` : "Outside Top 10"}</span>
+              <span>Pitch: {pitchStatus}</span>
+            </div>
+            <div className="known-attrs">
+              {priorities.map(([key, value]) => (
+                <span key={key}>{title(key)} {value}/10</span>
+              ))}
+            </div>
+            <div className="known-attrs">
+              {recruit.knownAttributes.length ? recruit.knownAttributes.slice(0, 6).map((key) => <span key={key}>{shortAttr(key)} {recruit.attributes[key]}</span>) : <span>No ratings unlocked</span>}
+            </div>
+            <div className="button-row">
+              {!onBoard && (
+                <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || committedElsewhere}>
+                  Add Board
+                </button>
+              )}
+              <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={offered || boardFull || pointsRemaining < OFFER_COST || committedElsewhere}>
+                Offer Scholarship
+              </button>
+              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || committedElsewhere}>
+                Scout
+              </button>
+              <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || committedElsewhere}>
+                Pitch
+              </button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
   );
 }
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
 import { advanceWeek } from "../dynasty";
-import { addRecruitToBoard, autoRecruit, isPipelineRecruit, pitchRecruit, scoutRecruit, signRecruitingClass } from "../recruiting";
+import { addRecruitToBoard, autoRecruit, OFFER_COST, offerScholarship, PITCH_COST, isPipelineRecruit, pitchRecruit, SCOUT_COST, scoutRecruit, signRecruitingClass } from "../recruiting";
 
 describe("recruiting", () => {
   it("fills a smart board from team needs when auto recruit runs", () => {
@@ -24,6 +24,45 @@ describe("recruiting", () => {
     expect(scouted.gemBust).toMatch(/gem|solid|bust/);
   });
 
+  it("offers a scholarship once, adds the recruit to the board, and spends points", () => {
+    let state = createDynasty(5679);
+    const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;
+    const beforePoints = state.recruiting.pointsRemaining;
+
+    state = offerScholarship(state, recruit.id);
+    const offered = state.recruits.find((candidate) => candidate.id === recruit.id)!;
+    expect(offered.offers).toContain(state.userTeamId);
+    expect(state.recruiting.board).toContain(recruit.id);
+    expect(state.recruiting.pointsRemaining).toBe(beforePoints - OFFER_COST);
+
+    const duplicate = offerScholarship(state, recruit.id);
+    expect(duplicate.recruiting.pointsRemaining).toBe(state.recruiting.pointsRemaining);
+  });
+
+  it("requires an offer before pitching and blocks repeat pitches until the next week", () => {
+    let state = createDynasty(5681);
+    const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;
+    const noOfferPitch = pitchRecruit(state, recruit.id);
+    expect(noOfferPitch.recruiting.pointsRemaining).toBe(state.recruiting.pointsRemaining);
+
+    state = offerScholarship(state, recruit.id);
+    const beforePitch = state.recruiting.pointsRemaining;
+    state = pitchRecruit(state, recruit.id);
+    expect(state.recruiting.pointsRemaining).toBe(beforePitch - PITCH_COST);
+    expect(state.recruits.find((candidate) => candidate.id === recruit.id)?.lastPitchWeek).toBe(state.week);
+
+    const repeatPitch = pitchRecruit(state, recruit.id);
+    expect(repeatPitch.recruiting.pointsRemaining).toBe(state.recruiting.pointsRemaining);
+
+    const advanced = advanceWeek({ ...state, recruiting: { ...state.recruiting, autoEnabled: false } });
+    const resetCommit = {
+      ...advanced,
+      recruits: advanced.recruits.map((candidate) => (candidate.id === recruit.id ? { ...candidate, committedTeamId: undefined, stage: "open" as const } : candidate)),
+    };
+    const nextPitch = pitchRecruit(resetCommit, recruit.id);
+    expect(nextPitch.recruiting.pointsRemaining).toBe(resetCommit.recruiting.pointsRemaining - PITCH_COST);
+  });
+
   it("uses a season-long recruiting budget instead of refilling every week", () => {
     let state = createDynasty(5680);
     const recruit = state.recruits[0]!;
@@ -32,7 +71,7 @@ describe("recruiting", () => {
     const afterSpend = state.recruiting.pointsRemaining;
     state = advanceWeek(state);
     expect(state.recruiting.pointsRemaining).toBeLessThanOrEqual(afterSpend);
-    expect(state.recruiting.pointsSpent).toBeGreaterThanOrEqual(50);
+    expect(state.recruiting.pointsSpent).toBeGreaterThanOrEqual(SCOUT_COST);
     expect(state.recruiting.seasonBudget).toBeGreaterThan(state.recruiting.weeklyPoints);
   });
 
@@ -96,6 +135,7 @@ describe("recruiting", () => {
     let state = createDynasty(6789);
     const recruit = state.recruits.find((candidate) => candidate.interest[state.userTeamId] > 60)!;
     state = addRecruitToBoard(state, recruit.id);
+    state = offerScholarship(state, recruit.id);
     for (let index = 0; index < 10; index += 1) {
       state = pitchRecruit(state, recruit.id);
     }

@@ -13,6 +13,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Position-specific attribute caps in `src/sim/ratings.ts` limit unrelated skills for each position.
 - Recruit hidden trait bands live in `src/sim/ratings.ts`; elite recruit entry cap is 83.
 - Each recruiting class should include thousands of recruits with about 2-4% five-stars and 10-20% four-stars.
+- Recruiting scholarships are tracked per recruit, add prospects to the board, and gate one-pitch-per-week recruiting actions.
 - Dynasty length is 20 years.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.

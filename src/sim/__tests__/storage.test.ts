@@ -7,11 +7,13 @@ describe("storage migration", () => {
     const oldSave = createDynasty(4242) as any;
     delete oldSave.rankings;
     delete oldSave.teams[0].helmetIndex;
+    delete oldSave.recruits[0].offers;
 
     const normalized = normalizeDynastyState(oldSave);
 
     expect(normalized.rankings[0]?.entries).toHaveLength(25);
     expect(normalized.rankings[0]?.allEntries).toHaveLength(normalized.teams.length);
+    expect(normalized.recruits[0]?.offers).toEqual([]);
     expect(normalized.teams[0]?.helmetIndex).toBeGreaterThanOrEqual(0);
     expect(normalized.teams[0]?.helmetIndex).toBeLessThan(14);
   });

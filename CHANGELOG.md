@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.7.0 - 2026-06-16
+
+- Reworked recruiting actions around scholarship offers, one-pitch-per-recruit weekly cooldowns, and tighter season budgets.
+- Added a prospect detail modal with top-school interest movement, scholarship badges, priorities, scouting, and action state.
+- Updated CPU recruiting so other schools make offers and offers influence commitments.
+- Added migration and tests for recruit offers and pitch cooldown state.
+
 ## 0.6.1 - 2026-06-16
 
 - Replaced CSS-only helmet drawings with image-generated 16-bit helmet PNG assets for team identity.

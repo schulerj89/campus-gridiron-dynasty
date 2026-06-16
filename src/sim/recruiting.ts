@@ -3,8 +3,9 @@ import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, creat
 import { ATTRIBUTE_KEYS, type AttributeKey, type DynastyState, type Position, type Recruit, type Team } from "./types";
 import { TARGET_ROSTER } from "./ratings";
 
-const SCOUT_COST = 50;
-const PITCH_COST = 100;
+export const OFFER_COST = 50;
+export const SCOUT_COST = 40;
+export const PITCH_COST = 75;
 const BOARD_LIMIT = 35;
 const PIPELINE_BONUS = 8;
 
@@ -18,6 +19,45 @@ export function addRecruitToBoard(state: DynastyState, recruitId: string): Dynas
       ...state.recruiting,
       board: [...state.recruiting.board, recruitId],
       lastActions: [`Added ${recruit.name} to recruiting board.`, ...state.recruiting.lastActions].slice(0, 8),
+    },
+  };
+}
+
+export function offerScholarship(state: DynastyState, recruitId: string): DynastyState {
+  const target = state.recruits.find((recruit) => recruit.id === recruitId);
+  const team = getUserTeam(state);
+  const limit = recruitingBoardLimit(state);
+  if (!target || target.stage === "signed" || target.committedTeamId || target.offers?.includes(team.id)) return state;
+  if (state.recruiting.board.length >= limit && !state.recruiting.board.includes(recruitId)) return state;
+  if (state.recruiting.pointsRemaining < OFFER_COST) return state;
+  const rng = new Rng(state.rngState);
+  const recruits = state.recruits.map((recruit) => {
+    if (recruit.id !== recruitId) return recruit;
+    const boost = 12 + pipelineBonus(team, recruit) + Math.round(team.program.prestige / 20) + rng.nextInt(0, 6);
+    return narrowTopSchools(
+      rng,
+      {
+        ...recruit,
+        offers: Array.from(new Set([...(recruit.offers ?? []), team.id])),
+        interest: {
+          ...recruit.interest,
+          [team.id]: clamp((recruit.interest[team.id] ?? 1) + boost, 1, 150),
+        },
+      },
+      state.week,
+    );
+  });
+  const recruit = recruits.find((candidate) => candidate.id === recruitId);
+  return {
+    ...state,
+    rngState: rng.currentState(),
+    recruits,
+    recruiting: {
+      ...state.recruiting,
+      pointsRemaining: state.recruiting.pointsRemaining - OFFER_COST,
+      pointsSpent: (state.recruiting.pointsSpent ?? 0) + OFFER_COST,
+      board: boardWithRecruit(state.recruiting.board, recruitId, limit),
+      lastActions: [`Offered ${recruit?.name ?? "recruit"} a scholarship for ${OFFER_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };
 }
@@ -40,7 +80,7 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - SCOUT_COST,
       pointsSpent: (state.recruiting.pointsSpent ?? 0) + SCOUT_COST,
-      board: boardWithRecruit(state.recruiting.board, recruitId),
+      board: boardWithRecruit(state.recruiting.board, recruitId, recruitingBoardLimit(state)),
       lastActions: [`Scouted ${recruit?.name ?? "recruit"} for ${SCOUT_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };
@@ -49,8 +89,9 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
 export function pitchRecruit(state: DynastyState, recruitId: string): DynastyState {
   const target = state.recruits.find((recruit) => recruit.id === recruitId);
   if (!target || target.stage === "signed" || target.committedTeamId) return state;
-  if (state.recruiting.pointsRemaining < PITCH_COST) return state;
   const team = getUserTeam(state);
+  if (!target.offers?.includes(team.id) || target.lastPitchWeek === state.week) return state;
+  if (state.recruiting.pointsRemaining < PITCH_COST) return state;
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
     if (recruit.id !== recruitId || recruit.stage === "signed") return recruit;
@@ -58,6 +99,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
     const pitch = Math.round(8 + pipelineBonus(team, recruit) + team.program.prestige * 0.04 + team.program.facilities * 0.035 + team.coaches.head.recruiting * 0.04 + needBoost + rng.nextInt(0, 8));
     const updated = {
       ...recruit,
+      lastPitchWeek: state.week,
       interest: {
         ...recruit.interest,
         [team.id]: clamp((recruit.interest[team.id] ?? 1) + pitch, 1, 150),
@@ -74,7 +116,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
       ...state.recruiting,
       pointsRemaining: state.recruiting.pointsRemaining - PITCH_COST,
       pointsSpent: (state.recruiting.pointsSpent ?? 0) + PITCH_COST,
-      board: boardWithRecruit(state.recruiting.board, recruitId),
+      board: boardWithRecruit(state.recruiting.board, recruitId, recruitingBoardLimit(state)),
       lastActions: [`Pitched ${recruit?.name ?? "recruit"} for ${PITCH_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };
@@ -88,18 +130,47 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
   let board = ensureSmartBoard(state.recruits, activeBoard(state.recruiting.board, state.recruits), team, 24, recruitingBoardLimit(state));
   let recruits = state.recruits;
   const actions: string[] = [];
+  const skipped = new Set<string>();
 
-  while (points >= SCOUT_COST && board.length > 0) {
-    const target = pickAutoTarget(recruits, board, team, points);
+  while (points >= Math.min(OFFER_COST, SCOUT_COST, PITCH_COST) && board.length > 0 && skipped.size < board.length) {
+    const target = pickAutoTarget(recruits, board, team, points, skipped);
     if (!target) break;
-    if (points >= PITCH_COST && (target.interest[team.id] ?? 0) < topInterest(target) + 18) {
+    const offered = target.offers?.includes(team.id);
+    const pitchedThisWeek = target.lastPitchWeek === state.week;
+    if (!offered && points >= OFFER_COST) {
       recruits = recruits.map((recruit) => {
         if (recruit.id !== target.id) return recruit;
-        const pressure = target.stars >= 5 ? 9 : 12;
+        const pressure = 11 + pipelineBonus(team, recruit) + Math.round(team.program.prestige / 24);
         return narrowTopSchools(
           rng,
           {
             ...recruit,
+            offers: Array.from(new Set([...(recruit.offers ?? []), team.id])),
+            interest: {
+              ...recruit.interest,
+              [team.id]: clamp((recruit.interest[team.id] ?? 1) + pressure + positionNeedScore(team, recruit.position), 1, 150),
+            },
+          },
+          state.week,
+        );
+      });
+      points -= OFFER_COST;
+      spent += OFFER_COST;
+      actions.push(`Auto-offered ${target.name}.`);
+    } else if (target.scoutProgress < 65 && points >= SCOUT_COST) {
+      recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 22) : recruit));
+      points -= SCOUT_COST;
+      spent += SCOUT_COST;
+      actions.push(`Auto-scouted ${target.name}.`);
+    } else if (!pitchedThisWeek && points >= PITCH_COST && (target.interest[team.id] ?? 0) < topInterest(target) + 18) {
+      recruits = recruits.map((recruit) => {
+        if (recruit.id !== target.id) return recruit;
+        const pressure = target.stars >= 5 ? 8 : 11;
+        return narrowTopSchools(
+          rng,
+          {
+            ...recruit,
+            lastPitchWeek: state.week,
             interest: {
               ...recruit.interest,
               [team.id]: clamp((recruit.interest[team.id] ?? 1) + pressure + positionNeedScore(team, recruit.position), 1, 150),
@@ -111,11 +182,13 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
       points -= PITCH_COST;
       spent += PITCH_COST;
       actions.push(`Auto-pitched ${target.name}.`);
-    } else {
-      recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 22) : recruit));
+    } else if (target.scoutProgress < 100 && points >= SCOUT_COST) {
+      recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 18) : recruit));
       points -= SCOUT_COST;
       spent += SCOUT_COST;
       actions.push(`Auto-scouted ${target.name}.`);
+    } else {
+      skipped.add(target.id);
     }
     board = ensureSmartBoard(recruits, activeBoard(board, recruits), team, 24, recruitingBoardLimit(state));
   }
@@ -265,10 +338,10 @@ function ensureSmartBoard(recruits: Recruit[], existingBoard: string[], team: Te
   return board.slice(0, boardLimit);
 }
 
-function pickAutoTarget(recruits: Recruit[], board: string[], team: Team, points: number): Recruit | undefined {
+function pickAutoTarget(recruits: Recruit[], board: string[], team: Team, points: number, skipped = new Set<string>()): Recruit | undefined {
   return board
     .map((id) => recruits.find((recruit) => recruit.id === id))
-    .filter((recruit): recruit is Recruit => recruit !== undefined && recruit.stage !== "signed")
+    .filter((recruit): recruit is Recruit => recruit !== undefined && recruit.stage !== "signed" && !skipped.has(recruit.id))
     .sort((a, b) => autoScore(b, team, points) - autoScore(a, team, points))[0];
 }
 
@@ -289,14 +362,18 @@ function pipelineBonus(team: Team, recruit: Recruit): number {
 
 function simulateOtherSchools(rng: Rng, recruit: Recruit, teams: Team[]): Recruit {
   const interest = { ...recruit.interest };
+  const offers = new Set(recruit.offers ?? []);
   const activeSchools = recruit.topSchools.length ? recruit.topSchools : Object.keys(interest);
   for (const teamId of activeSchools) {
     const team = teams.find((candidate) => candidate.id === teamId);
     if (!team) continue;
-    const pressure = 1 + recruit.stars + Math.round(team.program.prestige / 35) + rng.nextInt(0, 5);
+    const hasOffer = offers.has(teamId);
+    const offerOdds = clamp(0.08 + recruit.stars * 0.035 + team.program.prestige / 900 + (interest[teamId] ?? 0) / 1200, 0.06, 0.42);
+    if (!hasOffer && rng.chance(offerOdds)) offers.add(teamId);
+    const pressure = 1 + recruit.stars + Math.round(team.program.prestige / 35) + (offers.has(teamId) ? 3 : 0) + rng.nextInt(0, 5);
     interest[teamId] = clamp((interest[teamId] ?? 1) + pressure, 1, 150);
   }
-  return { ...recruit, interest };
+  return { ...recruit, interest, offers: Array.from(offers) };
 }
 
 function narrowTopSchools(rng: Rng, recruit: Recruit, week: number): Recruit {
@@ -333,8 +410,10 @@ function narrowTopSchools(rng: Rng, recruit: Recruit, week: number): Recruit {
 function maybeCommit(rng: Rng, recruit: Recruit, week: number): Recruit {
   if (recruit.stage === "signed" || recruit.committedTeamId) return recruit;
   const sorted = Object.entries(recruit.interest).sort((a, b) => b[1] - a[1]);
-  const leader = sorted[0];
-  const second = sorted[1];
+  const offeredSchools = sorted.filter(([teamId]) => recruit.offers?.includes(teamId));
+  const candidates = offeredSchools.length ? offeredSchools : sorted;
+  const leader = candidates[0];
+  const second = candidates[1];
   if (!leader) return recruit;
   const lead = leader[1] - (second?.[1] ?? 0);
   const patience = recruit.stars === 5 && recruit.nationalRank <= 10 ? 11 : recruit.stars >= 4 ? 8 : 5;
@@ -351,7 +430,8 @@ function maybeCommit(rng: Rng, recruit: Recruit, week: number): Recruit {
 function chooseSigningTeam(rng: Rng, recruit: Recruit): string {
   if (recruit.committedTeamId && !rng.chance(recruit.stars >= 4 ? 0.1 : 0.04)) return recruit.committedTeamId;
   const sorted = Object.entries(recruit.interest).sort((a, b) => b[1] - a[1]);
-  const top = sorted.slice(0, 3);
+  const offeredSchools = sorted.filter(([teamId]) => recruit.offers?.includes(teamId));
+  const top = (offeredSchools.length ? offeredSchools : sorted).slice(0, 3);
   const total = top.reduce((sum, [, score]) => sum + score, 0);
   let roll = rng.next() * total;
   for (const [teamId, score] of top) {
@@ -393,8 +473,8 @@ function getUserTeam(state: DynastyState): Team {
   return team;
 }
 
-function boardWithRecruit(board: string[], recruitId: string): string[] {
-  if (board.includes(recruitId) || board.length >= BOARD_LIMIT) return board;
+function boardWithRecruit(board: string[], recruitId: string, limit = BOARD_LIMIT): string[] {
+  if (board.includes(recruitId) || board.length >= limit) return board;
   return [...board, recruitId];
 }
 

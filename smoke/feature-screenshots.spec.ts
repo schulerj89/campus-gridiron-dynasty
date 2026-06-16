@@ -44,6 +44,17 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("recruits-pagination")).toContainText("recruits:");
   await page.getByRole("button", { name: "Next recruits page" }).click();
   await expect(page.getByTestId("recruits-pagination")).toContainText("Page 2");
+  await page.getByTestId("recruit-row").first().click();
+  const recruitModal = page.getByTestId("recruit-modal");
+  await expect(recruitModal).toContainText("School Interest");
+  await expect(recruitModal).toContainText("Offer Scholarship");
+  const offerButton = recruitModal.getByRole("button", { name: "Offer Scholarship" });
+  if (await offerButton.isEnabled()) await offerButton.click();
+  const pitchButton = recruitModal.getByRole("button", { name: "Pitch" });
+  if (await pitchButton.isEnabled()) await pitchButton.click();
+  await expect(recruitModal).toContainText("Pitch:");
+  await recruitModal.screenshot({ path: path.join(screenshotDir, "recruiting-scholarship-modal-desktop.png") });
+  await page.getByRole("button", { name: "Close recruit detail" }).click();
   await page.screenshot({ path: path.join(screenshotDir, "recruiting-filters-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Program" }).click();

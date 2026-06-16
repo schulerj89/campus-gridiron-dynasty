@@ -62,10 +62,16 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     ...team,
     helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
   }));
+  const recruits = raw.recruits.map((recruit) => ({
+    ...recruit,
+    offers: Array.isArray((recruit as typeof recruit & { offers?: string[] }).offers) ? recruit.offers : [],
+    lastPitchWeek: Number.isFinite((recruit as typeof recruit & { lastPitchWeek?: number }).lastPitchWeek) ? recruit.lastPitchWeek : undefined,
+  }));
   const rankings = normalizeRankings(raw.rankings, teams, raw);
   return {
     ...raw,
     teams,
+    recruits,
     rankings,
   };
 }
