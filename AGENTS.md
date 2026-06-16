@@ -32,6 +32,11 @@ Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium de
 - Keep screenshots in `artifacts/screenshots`, including roster/depth chart, player modal, awards, all-conference, playoff bracket, program, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
+## UI Organization
+
+- `src/App.tsx` owns app shell state, tab routing, and the main dashboard screens.
+- `src/components/AwardsView.tsx` owns awards, stat leaderboard, honor-team, and playoff bracket presentation.
+
 ## Repo-Local Skills
 
 This repo includes local skill briefs under `skills/`:

@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 0.5.1 - 2026-06-16
+
+- Extracted the awards, stat leaderboard, honor-team, and playoff bracket UI into `src/components/AwardsView.tsx`.
+- Kept the shared award card grid reusable for the dashboard while reducing the size of `src/App.tsx`.
+
 ## 0.5.0 - 2026-06-16
 
 - Split weekly honors into national and conference offensive/defensive Player of the Week awards based on the latest played games.
