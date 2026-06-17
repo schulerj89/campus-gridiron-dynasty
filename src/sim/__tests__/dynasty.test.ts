@@ -172,6 +172,31 @@ describe("dynasty flow", () => {
     expect(state.teams.flatMap((team) => team.roster).some((player) => player.incomingFreshman)).toBe(false);
   }, 20_000);
 
+  it("preserves non-departing returning players through signing day and preseason development", () => {
+    let state = createDynasty(8900);
+    let guard = 0;
+    while (state.phase !== "offseason" && guard < 20) {
+      state = advanceWeek(state);
+      guard += 1;
+    }
+    expect(state.phase).toBe("offseason");
+    const targetTeamId = "team-16";
+    const teamBeforeSigning = state.teams.find((team) => team.id === targetTeamId)!;
+    const reportBeforeSigning = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === targetTeamId)!;
+    const departingIds = new Set(reportBeforeSigning.departures.map((departure) => departure.playerId));
+    const returningIds = teamBeforeSigning.roster.filter((player) => !departingIds.has(player.id)).map((player) => player.id);
+
+    guard = 0;
+    while (state.phase !== "preseason" && guard < 8) {
+      state = advanceWeek(state);
+      guard += 1;
+    }
+    expect(state.phase).toBe("preseason");
+
+    const preseasonRosterIds = new Set(state.teams.find((team) => team.id === targetTeamId)!.roster.map((player) => player.id));
+    expect(returningIds.every((playerId) => preseasonRosterIds.has(playerId))).toBe(true);
+  }, 30_000);
+
   it("adds labeled walk-ons when the user roster drops below the floor", () => {
     let state = forceUserPlayoff(forceUserWalkOnNeed(createDynasty(8934)));
     expect(state.teams.find((team) => team.id === state.userTeamId)?.roster.length).toBeLessThan(ROSTER_FLOOR);

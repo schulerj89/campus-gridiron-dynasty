@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.5 - 2026-06-17
+
+- Fixed signing day so it no longer trims returning players before the offseason departure list is applied.
+- Preserved non-departing roster continuity through signing day and preseason development.
+- Added regression coverage for a multi-team offseason case where unreported returning players could disappear.
+
 ## 1.4.4 - 2026-06-17
 
 - Hardened multi-season roster identity so signed recruits include their signing class year in player IDs.

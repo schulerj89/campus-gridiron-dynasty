@@ -363,7 +363,7 @@ export function signRecruitingClass(state: DynastyState): DynastyState {
 
   const teams = state.teams.map((team) => {
     const signees = finalSignedByTeam.get(team.id) ?? [];
-    const roster = trimRoster([...team.roster, ...signees.map((recruit) => createSignedPlayerFromRecruit(recruit, state.year))]);
+    const roster = [...team.roster, ...signees.map((recruit) => createSignedPlayerFromRecruit(recruit, state.year))];
     return {
       ...team,
       roster,
@@ -651,16 +651,6 @@ function importantAttributes(position: Position): AttributeKey[] {
   if (position === "LB") return ["tackle", "defAwareness", "interception"];
   if (position === "CB" || position === "S") return ["interception", "defAwareness", "speed"];
   return ["kickPower", "kickAccuracy", "awareness"];
-}
-
-function trimRoster(players: ReturnType<typeof createSignedPlayerFromRecruit>[]): ReturnType<typeof createSignedPlayerFromRecruit>[] {
-  return players
-    .sort((a, b) => {
-      const seniorA = a.year === "SR" ? -20 : 0;
-      const seniorB = b.year === "SR" ? -20 : 0;
-      return b.overall + seniorB - (a.overall + seniorA);
-    })
-    .slice(0, 92);
 }
 
 function getUserTeam(state: DynastyState): Team {
