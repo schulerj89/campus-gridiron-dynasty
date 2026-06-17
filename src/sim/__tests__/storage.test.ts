@@ -66,4 +66,58 @@ describe("storage migration", () => {
     expect(normalized.rankings[0]?.movedIn).toEqual([]);
     expect(normalized.rankings[0]?.movedOut).toEqual([]);
   });
+
+  it("sanitizes stale team and recruit relationship ids from older saves", () => {
+    const oldSave = createDynasty(5353) as any;
+    const validTeamId = oldSave.teams[0].id;
+    const otherTeamId = oldSave.teams[1].id;
+    const missingTeamId = "team-missing";
+    const activeRecruitId = oldSave.recruits[0].id;
+    const signedRecruitId = oldSave.recruits[1].id;
+    const committedRecruitId = oldSave.recruits[2].id;
+
+    oldSave.userTeamId = missingTeamId;
+    oldSave.recruits[0] = {
+      ...oldSave.recruits[0],
+      stage: "softPledge",
+      committedTeamId: missingTeamId,
+      offers: [validTeamId, missingTeamId, validTeamId],
+      topSchools: [missingTeamId, validTeamId],
+      interest: {
+        [missingTeamId]: 150,
+        [validTeamId]: 95,
+        [otherTeamId]: Number.NaN,
+      },
+    };
+    oldSave.recruits[1] = {
+      ...oldSave.recruits[1],
+      stage: "signed",
+      committedTeamId: validTeamId,
+    };
+    oldSave.recruits[2] = {
+      ...oldSave.recruits[2],
+      stage: "softPledge",
+      committedTeamId: otherTeamId,
+    };
+    oldSave.recruiting.board = [activeRecruitId, signedRecruitId, committedRecruitId, "missing-recruit", activeRecruitId];
+    oldSave.recruiting.investedByRecruit = {
+      [activeRecruitId]: 120,
+      [signedRecruitId]: 80,
+      [committedRecruitId]: 40,
+      "missing-recruit": 90,
+      "nan-recruit": Number.NaN,
+    };
+
+    const normalized = normalizeDynastyState(oldSave);
+    const activeRecruit = normalized.recruits.find((recruit) => recruit.id === activeRecruitId);
+
+    expect(normalized.userTeamId).toBe(validTeamId);
+    expect(activeRecruit?.committedTeamId).toBeUndefined();
+    expect(activeRecruit?.stage).toBe("open");
+    expect(activeRecruit?.offers).toEqual([validTeamId]);
+    expect(activeRecruit?.topSchools).toEqual([validTeamId]);
+    expect(activeRecruit?.interest).toEqual({ [validTeamId]: 95 });
+    expect(normalized.recruiting.board).toEqual([activeRecruitId]);
+    expect(normalized.recruiting.investedByRecruit).toEqual({ [activeRecruitId]: 120 });
+  });
 });

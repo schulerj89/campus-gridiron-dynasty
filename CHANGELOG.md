@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.3.6 - 2026-06-17
+
+- Hardened legacy save loading against stale user-team, recruit offer, recruit interest, commitment, board, and investment IDs.
+- Added regression coverage for corrupted recruiting relationship data that points at missing teams or inactive recruits.
+- Refreshed smoke screenshots with the visible patch version.
+
 ## 1.3.5 - 2026-06-17
 
 - Fixed recruiting budget reconciliation after Program Blueprint changes so spent plus remaining points equals the current season budget.

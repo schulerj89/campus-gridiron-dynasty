@@ -30,6 +30,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Program record book summaries should be calculated from completed user-team history, not stored as separate mutable dynasty state.
 - Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.
+- Legacy save loading should sanitize stale user-team, recruit offer, recruit interest, commitment, board, and investment IDs before simulation code uses them.
 - Smoke tests should use `scripts/run-smoke.mjs` and fixed seed query params instead of reusing an arbitrary preview server.
 - Hiring from the coach pool should return the displaced user coach to the pool with no `hiredBy` assignment.
 - Program Blueprint changes must reconcile recruiting `pointsRemaining + pointsSpent` to the current season budget.

@@ -67,12 +67,14 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     weeklyAwards?: DynastyState["weeklyAwards"];
     history?: DynastyState["history"];
   };
+  const rawTeamIds = new Set(raw.teams.map((team) => team.id));
+  const userTeamId = rawTeamIds.has(raw.userTeamId) ? raw.userTeamId : raw.teams[0]?.id ?? raw.userTeamId;
   const teams = raw.teams.map((team, index) => ({
     ...team,
     helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
     depthChart: team.depthChart ?? {},
     history: team.history ?? [],
-    blueprint: ensureProgramBlueprint(team, raw.calendarYear, team.id !== raw.userTeamId),
+    blueprint: ensureProgramBlueprint(team, raw.calendarYear, team.id !== userTeamId),
     roster: team.roster.map((player) => ({
       ...player,
       streak: player.streak && player.streak.weeks > 0 ? player.streak : undefined,
@@ -80,16 +82,14 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
       walkOn: Boolean(player.walkOn) ? true : undefined,
     })),
   }));
-  const recruits = raw.recruits.map((recruit) => ({
-    ...recruit,
-    offers: Array.isArray((recruit as typeof recruit & { offers?: string[] }).offers) ? recruit.offers : [],
-    lastPitchWeek: Number.isFinite((recruit as typeof recruit & { lastPitchWeek?: number }).lastPitchWeek) ? recruit.lastPitchWeek : undefined,
-  }));
-  const rankings = normalizeRankings(raw.rankings, teams, raw);
-  const recruiting = normalizeRecruiting(raw.recruiting, teams.find((team) => team.id === raw.userTeamId) ?? teams[0]);
+  const teamIds = new Set(teams.map((team) => team.id));
+  const recruits = normalizeRecruits(raw.recruits, teamIds);
+  const rankings = normalizeRankings(raw.rankings, teams, { ...raw, userTeamId });
+  const recruiting = normalizeRecruiting(raw.recruiting, teams.find((team) => team.id === userTeamId) ?? teams[0], recruits);
   const debugFlags = raw.debugFlags ?? {};
   return {
     ...raw,
+    userTeamId,
     teams,
     recruits,
     rankings,
@@ -106,23 +106,89 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
   };
 }
 
-function normalizeRecruiting(recruiting: Partial<DynastyState["recruiting"]> | undefined, team: DynastyState["teams"][number] | undefined): DynastyState["recruiting"] {
+function normalizeRecruits(recruits: DynastyState["recruits"], teamIds: Set<string>): DynastyState["recruits"] {
+  const fallbackTeamId = teamIds.values().next().value;
+  return recruits.map((recruit) => {
+    const interest = normalizeInterest(recruit.interest, teamIds, fallbackTeamId);
+    const sortedInterestTeamIds = Object.entries(interest)
+      .sort((a, b) => b[1] - a[1])
+      .map(([teamId]) => teamId);
+    const topSchools = uniqueValidIds((recruit as typeof recruit & { topSchools?: string[] }).topSchools, teamIds);
+    const committedTeamId = recruit.committedTeamId && teamIds.has(recruit.committedTeamId) ? recruit.committedTeamId : undefined;
+    const hadInvalidCommit = Boolean(recruit.committedTeamId && !committedTeamId);
+    return {
+      ...recruit,
+      offers: uniqueValidIds((recruit as typeof recruit & { offers?: string[] }).offers, teamIds),
+      topSchools: topSchools.length ? topSchools : sortedInterestTeamIds.slice(0, recruit.stars === 5 ? 14 : 10),
+      interest,
+      stage: hadInvalidCommit && recruit.stage === "softPledge" ? "open" : recruit.stage,
+      committedTeamId,
+      lastPitchWeek: Number.isFinite((recruit as typeof recruit & { lastPitchWeek?: number }).lastPitchWeek) ? recruit.lastPitchWeek : undefined,
+    };
+  });
+}
+
+function normalizeRecruiting(
+  recruiting: Partial<DynastyState["recruiting"]> | undefined,
+  team: DynastyState["teams"][number] | undefined,
+  recruits: DynastyState["recruits"],
+): DynastyState["recruiting"] {
   const seasonBudget = finiteNumber(recruiting?.seasonBudget) ?? (team ? calculateSeasonRecruitingBudget(team) : 0);
   const weeklyPoints = finiteNumber(recruiting?.weeklyPoints) ?? (team ? calculateWeeklyRecruitingPoints(team) : 0);
   const pointsRemaining = clampNumber(finiteNumber(recruiting?.pointsRemaining) ?? seasonBudget, 0, seasonBudget);
   const pointsSpent = clampNumber(finiteNumber(recruiting?.pointsSpent) ?? Math.max(0, seasonBudget - pointsRemaining), 0, seasonBudget);
+  const boardLimit = Math.max(1, Math.floor(finiteNumber(recruiting?.boardLimit) ?? 35));
+  const activeRecruitIds = new Set(recruits.filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId).map((recruit) => recruit.id));
+  const board = uniqueValidIds(recruiting?.board, activeRecruitIds).slice(0, boardLimit);
+  const boardIds = new Set(board);
   return {
     weeklyPoints,
     seasonBudget,
     pointsRemaining,
     pointsSpent,
-    investedByRecruit: recruiting?.investedByRecruit ?? {},
-    boardLimit: finiteNumber(recruiting?.boardLimit) ?? 35,
-    board: Array.isArray(recruiting?.board) ? recruiting.board : [],
+    investedByRecruit: normalizeInvestments(recruiting?.investedByRecruit, boardIds),
+    boardLimit,
+    board,
     autoEnabled: typeof recruiting?.autoEnabled === "boolean" ? recruiting.autoEnabled : true,
     profile: recruiting?.profile ?? "balanced",
     lastActions: Array.isArray(recruiting?.lastActions) ? recruiting.lastActions : [],
   };
+}
+
+function normalizeInterest(value: unknown, teamIds: Set<string>, fallbackTeamId: string | undefined): Record<string, number> {
+  const interest: Record<string, number> = {};
+  if (value && typeof value === "object") {
+    for (const [teamId, score] of Object.entries(value as Record<string, unknown>)) {
+      const normalizedScore = finiteNumber(score);
+      if (!teamIds.has(teamId) || normalizedScore === undefined) continue;
+      interest[teamId] = clampNumber(Math.round(normalizedScore), 1, 150);
+    }
+  }
+  if (!Object.keys(interest).length && fallbackTeamId) {
+    interest[fallbackTeamId] = 1;
+  }
+  return interest;
+}
+
+function normalizeInvestments(value: unknown, recruitIds: Set<string>): Record<string, number> {
+  const investments: Record<string, number> = {};
+  if (!value || typeof value !== "object") return investments;
+  for (const [recruitId, amount] of Object.entries(value as Record<string, unknown>)) {
+    const normalizedAmount = finiteNumber(amount);
+    if (!recruitIds.has(recruitId) || normalizedAmount === undefined || normalizedAmount <= 0) continue;
+    investments[recruitId] = normalizedAmount;
+  }
+  return investments;
+}
+
+function uniqueValidIds(value: unknown, validIds: Set<string>): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids: string[] = [];
+  for (const id of value) {
+    if (typeof id !== "string" || !validIds.has(id) || ids.includes(id)) continue;
+    ids.push(id);
+  }
+  return ids;
 }
 
 function normalizeOffseasonReport(report: DynastyState["offseasonReport"]): DynastyState["offseasonReport"] {
