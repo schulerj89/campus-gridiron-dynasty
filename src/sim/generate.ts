@@ -299,9 +299,13 @@ export function resetPlayerStats(player: Player): Player {
   return { ...player, stats: emptyStats(), awards: [], streak: undefined };
 }
 
-export function createSignedPlayerFromRecruit(recruit: Recruit): Player {
+export function signedPlayerIdForRecruit(recruit: Pick<Recruit, "id" | "committedTeamId">, classYear: number): string {
+  return `player-y${classYear}-${recruit.id}-${recruit.committedTeamId ?? "walkon"}`;
+}
+
+export function createSignedPlayerFromRecruit(recruit: Recruit, classYear = 1): Player {
   return {
-    id: `player-${recruit.id}-${recruit.committedTeamId ?? "walkon"}`,
+    id: signedPlayerIdForRecruit(recruit, classYear),
     name: recruit.name,
     position: recruit.position,
     year: "FR",

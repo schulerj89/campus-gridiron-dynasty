@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDynasty } from "../generate";
+import { createDynasty, signedPlayerIdForRecruit } from "../generate";
 import { advanceWeek } from "../dynasty";
 import {
   addRecruitToBoard,
@@ -325,7 +325,8 @@ describe("recruiting", () => {
     };
     const signed = signRecruitingClass(state);
     const userSignees = signed.recruits.filter((candidate) => candidate.committedTeamId === state.userTeamId);
-    const signedPlayer = signed.teams.find((team) => team.id === state.userTeamId)?.roster.find((player) => player.id === `player-${recruit.id}-${state.userTeamId}`);
+    const signedRecruit = signed.recruits.find((candidate) => candidate.id === recruit.id)!;
+    const signedPlayer = signed.teams.find((team) => team.id === state.userTeamId)?.roster.find((player) => player.id === signedPlayerIdForRecruit(signedRecruit, state.year));
     expect(userSignees.length).toBeGreaterThan(0);
     expect(userSignees.every((candidate) => candidate.traitRevealed)).toBe(true);
     expect(signedPlayer?.incomingFreshman).toBe(true);

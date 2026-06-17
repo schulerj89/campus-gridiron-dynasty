@@ -363,7 +363,7 @@ export function signRecruitingClass(state: DynastyState): DynastyState {
 
   const teams = state.teams.map((team) => {
     const signees = finalSignedByTeam.get(team.id) ?? [];
-    const roster = trimRoster([...team.roster, ...signees.map(createSignedPlayerFromRecruit)]);
+    const roster = trimRoster([...team.roster, ...signees.map((recruit) => createSignedPlayerFromRecruit(recruit, state.year))]);
     return {
       ...team,
       roster,

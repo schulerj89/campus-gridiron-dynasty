@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.4 - 2026-06-17
+
+- Hardened multi-season roster identity so signed recruits include their signing class year in player IDs.
+- Kept offseason signing reports aligned with the roster player IDs created on signing day.
+- Added regression coverage for duplicate roster IDs after several recruiting classes.
+
 ## 1.4.3 - 2026-06-17
 
 - Fixed matchup previews so only Top 25 poll entries display as ranked teams.

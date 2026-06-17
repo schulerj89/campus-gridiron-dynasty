@@ -284,6 +284,13 @@ describe("dynasty flow", () => {
     expect(advanced.teams.every((team) => team.roster.length >= ROSTER_FLOOR)).toBe(true);
   }, 20_000);
 
+  it("keeps signed recruit player ids unique across multiple recruiting classes", () => {
+    const state = createDynasty(9123);
+    const advanced = simulateSeasons(state, 5);
+    const playerIds = advanced.teams.flatMap((team) => team.roster.map((player) => player.id));
+    expect(new Set(playerIds).size).toBe(playerIds.length);
+  }, 30_000);
+
   it("builds a sorted depth chart for every position", () => {
     const state = createDynasty(10101);
     const team = state.teams[0]!;

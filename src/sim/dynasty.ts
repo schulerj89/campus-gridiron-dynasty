@@ -1,5 +1,5 @@
 import { createSeasonAwards, createWeeklyAwards, rankTeams, recruitingClassRankings, selectPlayoffSeeds } from "./awards";
-import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, createRecruitClass, createWalkOnPlayer, freshTeamSeason, resetPlayerStats } from "./generate";
+import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, createRecruitClass, createWalkOnPlayer, freshTeamSeason, resetPlayerStats, signedPlayerIdForRecruit } from "./generate";
 import { simulateGame } from "./game";
 import { applyPositionCaps, calculateOverall, TARGET_ROSTER } from "./ratings";
 import { clamp, Rng } from "./rng";
@@ -829,7 +829,7 @@ function createOffseasonReport(teams: Team[], year: number): OffseasonReport {
 }
 
 function enrichOffseasonReport(report: OffseasonReport, topClasses: OffseasonReport["topClasses"], recruitingRankByTeam: Map<string, number>, userTeamId: string, recruits: Recruit[] = []): OffseasonReport {
-  const signeesByTeam = signeesForTeams(recruits);
+  const signeesByTeam = signeesForTeams(recruits, report.year);
   return {
     ...report,
     topClasses,
@@ -868,14 +868,14 @@ function classRankingContext(state: DynastyState): { fullClassRankings: Offseaso
   };
 }
 
-function signeesForTeams(recruits: Recruit[]): Map<string, RecruitSigning[]> {
+function signeesForTeams(recruits: Recruit[], classYear: number): Map<string, RecruitSigning[]> {
   const byTeam = new Map<string, RecruitSigning[]>();
   for (const recruit of recruits) {
     if (!recruit.committedTeamId || recruit.stage !== "signed") continue;
     const signed = byTeam.get(recruit.committedTeamId) ?? [];
     signed.push({
       recruitId: recruit.id,
-      playerId: `player-${recruit.id}-${recruit.committedTeamId}`,
+      playerId: signedPlayerIdForRecruit(recruit, classYear),
       playerName: recruit.name,
       position: recruit.position,
       stars: recruit.stars,
