@@ -11,7 +11,7 @@ test.beforeAll(() => {
 test("captures additional feature screenshots", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-desktop", "Feature screenshot artifacts are captured once on desktop Chromium.");
 
-  await page.goto("/");
+  await page.goto("/?seed=13001");
   await clearBrowserSave(page);
   await page.reload();
   await page.getByTestId("new-dynasty").click();

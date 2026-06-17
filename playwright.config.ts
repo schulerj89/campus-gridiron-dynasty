@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const smokePort = Number(process.env.CGD_SMOKE_PORT ?? 4273);
+const smokeBaseUrl = `http://127.0.0.1:${smokePort}`;
+
 export default defineConfig({
   testDir: "./smoke",
   timeout: 140_000,
@@ -9,14 +12,14 @@ export default defineConfig({
   fullyParallel: false,
   reporter: [["list"], ["html", { outputFolder: "artifacts/playwright-report", open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL: smokeBaseUrl,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: "npm run build && npm run preview -- --host 127.0.0.1 --port 4173",
-    url: "http://127.0.0.1:4173",
-    reuseExistingServer: true,
+    command: `npm run build && npm run preview -- --host 127.0.0.1 --port ${smokePort} --strictPort`,
+    url: smokeBaseUrl,
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: [

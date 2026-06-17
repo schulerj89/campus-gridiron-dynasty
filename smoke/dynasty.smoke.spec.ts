@@ -10,7 +10,7 @@ test.beforeAll(() => {
 });
 
 test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => {
-  await page.goto("/");
+  await page.goto("/?seed=13002");
   await clearBrowserSave(page);
   await page.reload();
 

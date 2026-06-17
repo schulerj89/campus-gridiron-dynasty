@@ -22,6 +22,7 @@ npm run smoke
 ```
 
 Smoke coverage runs Chromium desktop, WebKit desktop, and WebKit with an iPhone 15 Pro Max profile. The smoke test also uses the debug controls to force a user playoff berth, force a user award winner, force walk-on roster need, auto-recruit, and simulate three seasons.
+`npm run test` runs simulation-heavy test files sequentially for stable timing. `npm run smoke` chooses an available local preview port and the smoke specs use fixed seed query params so screenshots are repeatable.
 
 ## Versioning
 
@@ -106,6 +107,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Program record book totals should be derived from completed user-team history and never maintained as duplicate state.
 - Completed season history should store only current-season award names; player career award lists must not be re-counted in later seasons.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before the app renders or advances.
+- Smoke tests should use the repo-local runner and explicit seed query params; do not reuse an arbitrary server on the preview port.
 - The game should stay playable on WebKit and on mobile-width screens.
 
 ## Research Notes

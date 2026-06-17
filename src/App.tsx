@@ -133,7 +133,7 @@ export default function App() {
   }, [state]);
 
   const startDynasty = () => {
-    const dynasty = createDynasty(Date.now(), selectedTeamId);
+    const dynasty = createDynasty(dynastySeed(), selectedTeamId);
     setState(dynasty);
     setActiveTab("overview");
   };
@@ -226,6 +226,12 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+function dynastySeed(): number {
+  const seed = new URLSearchParams(window.location.search).get("seed");
+  const parsed = Number(seed);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : Date.now();
 }
 
 function HomeScreen({

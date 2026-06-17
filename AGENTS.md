@@ -30,6 +30,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Program record book summaries should be calculated from completed user-team history, not stored as separate mutable dynasty state.
 - Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.
+- Smoke tests should use `scripts/run-smoke.mjs` and fixed seed query params instead of reusing an arbitrary preview server.
 - Annual Program Blueprint state lives on each team and must affect recruiting budget, scouting speed, recruiting pressure, player development, retention, program review, and coach carousel stability.
 - Director Goals should appear before Week 1 and the previous resolved blueprint review should remain visible during the next preseason.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
@@ -43,6 +44,8 @@ npm run smoke
 ```
 
 Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium desktop, WebKit desktop, and WebKit iPhone 15 Pro Max.
+The smoke script chooses an available preview port and smoke specs use fixed seed query params for repeatable screenshots.
+`npm run test` intentionally disables file parallelism because dynasty generation is CPU-heavy and can exceed default per-test timeouts when several suites generate worlds at once.
 
 ## QA Expectations
 

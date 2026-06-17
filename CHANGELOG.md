@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.3.2 - 2026-06-17
+
+- Made smoke tests use an isolated preview server port selected by `scripts/run-smoke.mjs` instead of reusing unrelated servers.
+- Added explicit smoke-test dynasty seeds through the launch URL so tracked screenshots are reproducible.
+- Stabilized the unit-test harness by running sim-heavy test files sequentially with a larger per-test timeout.
+- Refreshed smoke screenshots with the visible patch version.
+
 ## 1.3.1 - 2026-06-17
 
 - Hardened legacy save normalization for missing debug fields, recruiting defaults, team history, dynasty history, weekly awards, and poll movement arrays.
