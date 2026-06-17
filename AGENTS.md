@@ -16,6 +16,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Recruiting scholarships are tracked per recruit, add prospects to the board, and gate one-pitch-per-week recruiting actions.
 - Recruiting action points are tracked per recruit and return when a board prospect commits.
 - Auto-recruit should fill the board, use scouting/gem-bust information when available, and reallocate refunded points after commitments.
+- Recruiting UI should keep position needs visible with roster target, active board, offer, and pledge coverage.
 - Signing day should distribute enough recruits for every team to sustain roster turnover before walk-ons are needed.
 - Offseason advancement exposes departures, four late recruiting weeks, signing day, preseason player development, and kickoff as separate steps.
 - Teams must be restored to the 85-player roster floor after offseason turnover; emergency walk-ons should be labeled and initially capped around 60 overall.
@@ -42,7 +43,7 @@ Run `npm run smoke` before claiming WebKit/mobile support. It covers Chromium de
 ## QA Expectations
 
 - Use the Debug tab for forced playoff, forced award, forced walk-on need, auto recruit, and multi-season checks.
-- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, player modal, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, walk-ons, preseason progression, program review, and mobile dashboard coverage.
+- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, player modal, recruiting needs, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, walk-ons, preseason progression, program review, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
 ## UI Organization

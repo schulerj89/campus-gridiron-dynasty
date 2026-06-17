@@ -583,6 +583,65 @@ select {
   width: 18px;
 }
 
+.recruiting-need-command {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 14px 0 16px;
+}
+
+.need-command-card {
+  align-items: start;
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 5px;
+  min-height: 118px;
+  padding: 12px;
+  text-align: left;
+}
+
+.need-command-card.active {
+  border-color: rgba(94, 177, 191, 0.82);
+}
+
+.need-command-card.urgent em {
+  color: var(--gold);
+}
+
+.need-command-card strong {
+  font-size: 1.04rem;
+}
+
+.need-command-card span,
+.need-command-card small {
+  color: var(--muted);
+}
+
+.need-command-card em {
+  font-style: normal;
+  font-weight: 900;
+}
+
+.need-command-card i {
+  background: #172229;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: block;
+  height: 8px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.need-command-card b {
+  background: var(--blue);
+  display: block;
+  height: 100%;
+}
+
 .player-grid,
 .recruit-grid,
 .award-grid,

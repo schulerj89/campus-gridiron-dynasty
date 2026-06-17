@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.1.0 - 2026-06-17
+
+- Added Recruiting Need Command cards for every position with roster target, active board, offer, and pledge coverage.
+- Made position need cards filter the recruiting database directly so roster gaps and prospect search stay connected.
+- Added expert decision documentation and smoke screenshot coverage for the recruiting needs panel.
+
 ## 1.0.0 - 2026-06-16
 
 - Added the Program Blueprint major-release feature with annual Program Points, category allocations, lock timing, and director goals.

@@ -38,8 +38,11 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
 
   await page.getByRole("button", { name: "Recruiting", exact: true }).click();
   await expect(page.getByTestId("recruit-filter-panel")).toBeVisible();
+  await expect(page.getByTestId("recruiting-needs-panel")).toContainText("Board");
+  await page.getByTestId("recruiting-needs-panel").screenshot({ path: path.join(screenshotDir, "recruiting-needs-desktop.png") });
+  await page.getByTestId("need-command-QB").click();
+  await expect(page.getByTestId("recruit-position-filter")).toHaveValue("QB");
   await expect(page.locator(".stars svg").first()).toBeVisible();
-  await page.getByTestId("recruit-position-filter").selectOption("QB");
   await expect(page.getByTestId("recruiting-database")).toContainText("QB");
   await expect(page.getByTestId("recruits-pagination")).toContainText("recruits:");
   await page.getByRole("button", { name: "Next recruits page" }).click();

@@ -843,6 +843,20 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
     .filter((recruit): recruit is Recruit => recruit !== undefined)
     .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId);
   const boardFull = board.length >= boardLimit;
+  const needsByPosition = new Map(needs.map((need) => [need.position, need]));
+  const needCommandRows = POSITIONS.map((position) => {
+    const need = needsByPosition.get(position) ?? { position, need: 0, target: 0, current: 0 };
+    const boardCount = board.filter((recruit) => recruit.position === position).length;
+    const offerCount = state.recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && recruit.offers?.includes(userTeam.id)).length;
+    const committedCount = state.recruits.filter((recruit) => recruit.position === position && recruit.committedTeamId === userTeam.id).length;
+    return {
+      ...need,
+      boardCount,
+      offerCount,
+      committedCount,
+      coverage: boardCount + committedCount,
+    };
+  });
   const stateOptions = Array.from(new Set(state.recruits.map((recruit) => recruit.state))).sort();
   const matchingRecruits = state.recruits
     .filter((recruit) => recruit.stage !== "signed" && !state.recruiting.board.includes(recruit.id))
@@ -887,11 +901,25 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           <Metric label="Board Cap" value={`${board.length}/${boardLimit}`} />
           <Metric label="Points Return" value="Commitments" />
         </div>
-        <div className="need-row">
-          {needs.slice(0, 5).map((need) => (
-            <span key={need.position}>
-              {need.position}: need {need.need}
-            </span>
+        <div className="recruiting-need-command" data-testid="recruiting-needs-panel">
+          {needCommandRows.map((row) => (
+            <button
+              key={row.position}
+              className={clsx("need-command-card", positionFilter === row.position && "active", row.need > 0 && "urgent")}
+              onClick={() => {
+                setPositionFilter(row.position);
+                resetRecruitPage();
+              }}
+              data-testid={`need-command-${row.position}`}
+            >
+              <strong>{row.position}</strong>
+              <span>{row.current}/{row.target} roster</span>
+              <em>{row.need > 0 ? `Need ${row.need}` : "Covered"}</em>
+              <small>Board {row.boardCount} - Offers {row.offerCount} - Pledges {row.committedCount}</small>
+              <i>
+                <b style={{ width: `${Math.min(100, Math.round((row.coverage / Math.max(1, row.need || row.target)) * 100))}%` }} />
+              </i>
+            </button>
           ))}
         </div>
         <div className="recruit-grid" data-testid="recruiting-board">

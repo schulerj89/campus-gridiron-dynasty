@@ -39,6 +39,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/player-stats-modal-desktop.png`
 - `artifacts/screenshots/attributes-desktop.png`
 - `artifacts/screenshots/recruiting-desktop.png`
+- `artifacts/screenshots/recruiting-needs-desktop.png`
 - `artifacts/screenshots/recruiting-filters-desktop.png`
 - `artifacts/screenshots/recruiting-scholarship-modal-desktop.png`
 - `artifacts/screenshots/program-blueprint-desktop.png`
