@@ -113,6 +113,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Smoke tests should use the repo-local runner and explicit seed query params; do not reuse an arbitrary server on the preview port.
 - Hiring from the coach pool should return the displaced user coach to the pool with no `hiredBy` assignment.
 - Program Blueprint changes must reconcile recruiting `pointsRemaining + pointsSpent` to the current season budget.
+- Program Blueprint rebuilds must preserve already-spent recruiting points as sunk costs when the budget changes.
 - The game should stay playable on WebKit and on mobile-width screens.
 
 ## Research Notes

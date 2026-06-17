@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.1 - 2026-06-17
+
+- Fixed Program Blueprint budget refreshes so spent recruiting points stay sunk when a rebuild lowers the season budget.
+- Added regression coverage for a boosted recruiting blueprint being rebuilt to a lower recruiting-budget allocation.
+- Refreshed smoke screenshots with the visible patch version.
+
 ## 1.4.0 - 2026-06-17
 
 - Added recruiting board removal and scholarship rescind actions for prospects the user no longer wants to pursue.

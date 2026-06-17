@@ -3,7 +3,7 @@ import { createDynasty } from "../generate";
 import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 import { TARGET_ROSTER } from "../ratings";
-import { blueprintRemaining, blueprintSpent } from "../blueprint";
+import { blueprintRemaining, blueprintSpent, emptyBlueprintAllocations } from "../blueprint";
 import { scoutRecruit } from "../recruiting";
 
 const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
@@ -91,6 +91,37 @@ describe("dynasty flow", () => {
 
     const autoBuilt = autoAllocateProgramBlueprint(state);
     expect(autoBuilt.recruiting.pointsRemaining + autoBuilt.recruiting.pointsSpent).toBe(autoBuilt.recruiting.seasonBudget);
+  });
+
+  it("keeps spent recruiting points sunk when blueprint changes lower the budget", () => {
+    let state = createDynasty(8923);
+    state = {
+      ...state,
+      teams: state.teams.map((team) =>
+        team.id === state.userTeamId
+          ? {
+              ...team,
+              blueprint: {
+                ...team.blueprint!,
+                totalPoints: 6,
+                allocations: emptyBlueprintAllocations(),
+              },
+            }
+          : team,
+      ),
+    };
+    for (let index = 0; index < 6; index += 1) {
+      state = allocateBlueprintPoint(state, "recruitingReach");
+    }
+    const boostedBudget = state.recruiting.seasonBudget;
+    state = scoutRecruit(state, state.recruits[0]!.id);
+    const spentBeforeRebuild = state.recruiting.pointsSpent;
+
+    const rebuilt = autoAllocateProgramBlueprint(state);
+
+    expect(rebuilt.recruiting.seasonBudget).toBeLessThan(boostedBudget);
+    expect(rebuilt.recruiting.pointsSpent).toBe(spentBeforeRebuild);
+    expect(rebuilt.recruiting.pointsRemaining).toBe(rebuilt.recruiting.seasonBudget - spentBeforeRebuild);
   });
 
   it("creates offseason departures and records recruiting class rank", () => {

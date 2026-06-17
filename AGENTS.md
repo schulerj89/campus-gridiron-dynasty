@@ -35,6 +35,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Smoke tests should use `scripts/run-smoke.mjs` and fixed seed query params instead of reusing an arbitrary preview server.
 - Hiring from the coach pool should return the displaced user coach to the pool with no `hiredBy` assignment.
 - Program Blueprint changes must reconcile recruiting `pointsRemaining + pointsSpent` to the current season budget.
+- Program Blueprint rebuilds must preserve already-spent recruiting points as sunk costs when the budget changes.
 - Annual Program Blueprint state lives on each team and must affect recruiting budget, scouting speed, recruiting pressure, player development, retention, program review, and coach carousel stability.
 - Director Goals should appear before Week 1 and the previous resolved blueprint review should remain visible during the next preseason.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
