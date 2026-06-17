@@ -16,6 +16,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.reload();
   await page.getByTestId("new-dynasty").click();
   await expect(page.getByText("Dynasty Command")).toBeVisible({ timeout: 40_000 });
+  await expect(page.getByTestId("dashboard-next-game-panel")).toContainText("Matchup Preview");
+  await page.getByTestId("dashboard-next-game-panel").screenshot({ path: path.join(screenshotDir, "dashboard-next-game-desktop.png") });
 
   await page.getByRole("button", { name: "Roster" }).click();
   await expect(page.getByText("Roster Room")).toBeVisible();
@@ -70,6 +72,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
 
   await page.getByTestId("advance-week").click();
   await page.getByRole("button", { name: "Schedule" }).click();
+  await expect(page.getByTestId("schedule-matchup-preview")).toContainText("Matchup Preview");
+  await page.getByTestId("schedule-matchup-preview").screenshot({ path: path.join(screenshotDir, "schedule-matchup-preview-desktop.png") });
   await expect(page.getByTestId("game-row").first()).toContainText(/W1/);
   await page.getByTestId("game-row").first().click();
   await expect(page.getByTestId("box-score-modal")).toBeVisible();

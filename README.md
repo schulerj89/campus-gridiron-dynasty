@@ -31,6 +31,7 @@ QA screenshots are written to:
 
 - `artifacts/screenshots/home-desktop.png`
 - `artifacts/screenshots/dashboard-desktop.png`
+- `artifacts/screenshots/dashboard-next-game-desktop.png`
 - `artifacts/screenshots/rankings-desktop.png`
 - `artifacts/screenshots/rankings-movement-desktop.png`
 - `artifacts/screenshots/roster-desktop.png`
@@ -47,6 +48,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/program-staff-desktop.png`
 - `artifacts/screenshots/coach-pool-postseason-desktop.png`
 - `artifacts/screenshots/box-score-desktop.png`
+- `artifacts/screenshots/schedule-matchup-preview-desktop.png`
 - `artifacts/screenshots/player-of-week-desktop.png`
 - `artifacts/screenshots/conference-player-of-week-desktop.png`
 - `artifacts/screenshots/leaderboard-desktop.png`
@@ -99,6 +101,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Player offseason development must never regress attributes or overall.
 - Signing-day recruits are incoming freshmen: they do not advance class year or gain offseason development until after kickoff clears the incoming marker.
 - Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.
+- Weekly matchup previews should be derived from pending user games and existing team/unit ratings; do not hand-author matchup outcomes.
 - The game should stay playable on WebKit and on mobile-width screens.
 
 ## Research Notes

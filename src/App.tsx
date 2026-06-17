@@ -42,6 +42,7 @@ import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canE
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
 import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
+import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
 import { POSITIONS, type AttributeKey, type BlueprintCategory, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
 import { PaginationControls } from "./components/PaginationControls";
@@ -330,6 +331,7 @@ function Overview({
   const userPollEntry = state.rankings?.[0]?.entries.find((entry) => entry.teamId === userTeam.id);
   const offseasonTeamReport = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === userTeam.id);
   const offseasonFocus = Boolean(offseasonTeamReport && state.phase !== "regular" && state.phase !== "postseason");
+  const matchupPreview = buildMatchupPreview(state);
 
   return (
     <>
@@ -374,6 +376,8 @@ function Overview({
           </div>
         </section>
       )}
+
+      {!offseasonFocus && <MatchupPreviewPanel preview={matchupPreview} testId="dashboard-next-game-panel" />}
 
       {!offseasonFocus && (
         <section className="panel latest-awards-panel" data-testid="latest-national-awards-panel">
@@ -1217,12 +1221,14 @@ function RecruitModal({
 function Schedule({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
   const [selectedGame, setSelectedGame] = useState<Game | undefined>();
+  const matchupPreview = buildMatchupPreview(state);
   const games = state.schedule.filter((game) => game.homeTeamId === userTeam.id || game.awayTeamId === userTeam.id || game.week === state.week).slice(0, 24);
   const standings = [...state.teams]
     .filter((team) => team.conferenceId === userTeam.conferenceId)
     .sort((a, b) => b.season.confWins - a.season.confWins || a.season.confLosses - b.season.confLosses || b.season.wins - a.season.wins);
   return (
     <>
+      <MatchupPreviewPanel preview={matchupPreview} testId="schedule-matchup-preview" />
       <section className="panel">
         <div className="panel-head compact">
           <h2>Conference Race</h2>
@@ -1264,6 +1270,69 @@ function Schedule({ state }: { state: DynastyState }) {
       </section>
       {selectedGame && <GameModal game={selectedGame} teams={state.teams} onClose={() => setSelectedGame(undefined)} />}
     </>
+  );
+}
+
+function MatchupPreviewPanel({ preview, testId }: { preview?: MatchupPreviewData; testId: string }) {
+  if (!preview) {
+    return (
+      <section className="panel span-2 matchup-panel" data-testid={testId}>
+        <div className="panel-head compact">
+          <div>
+            <p className="eyebrow">Weekly Matchup Preview</p>
+            <h2>No pending user game</h2>
+            <p className="muted">The next matchup will appear when a user-team game is on the calendar.</p>
+          </div>
+          <CalendarDays size={20} />
+        </div>
+      </section>
+    );
+  }
+  const opponentLabel = preview.venue === "Home" ? `vs ${preview.opponent.name}` : preview.venue === "Away" ? `at ${preview.opponent.name}` : preview.opponent.name;
+  return (
+    <section className="panel span-2 matchup-panel" data-testid={testId}>
+      <div className="panel-head">
+        <div>
+          <p className="eyebrow">Week {preview.game.week} Matchup Preview</p>
+          <h2>{opponentLabel}</h2>
+          <p className="muted">{preview.venue} - {preview.venueLabel}</p>
+        </div>
+        <CalendarDays size={20} />
+      </div>
+      <div className="matchup-head-to-head">
+        <div className="matchup-team-card">
+          <TeamHelmet team={preview.userTeam} size="md" />
+          <div>
+            <strong>{preview.userTeam.name}</strong>
+            <span>{preview.userTeam.season.wins}-{preview.userTeam.season.losses}{preview.userRank ? ` - #${preview.userRank}` : ""}</span>
+          </div>
+          <em>{preview.userPower}</em>
+        </div>
+        <div className="matchup-versus">vs</div>
+        <div className="matchup-team-card">
+          <TeamHelmet team={preview.opponent} size="md" />
+          <div>
+            <strong>{preview.opponent.name}</strong>
+            <span>{preview.opponent.season.wins}-{preview.opponent.season.losses}{preview.opponentRank ? ` - #${preview.opponentRank}` : ""}</span>
+          </div>
+          <em>{preview.opponentPower}</em>
+        </div>
+      </div>
+      <div className="matchup-stakes">
+        {preview.stakes.map((stake) => (
+          <span key={stake}>{stake}</span>
+        ))}
+      </div>
+      <div className="matchup-edge-grid">
+        {preview.unitEdges.map((unit) => (
+          <div key={unit.label} className={clsx("matchup-edge", unit.edge >= 0 ? "advantage" : "deficit")}>
+            <span>{unit.label}</span>
+            <strong>{unit.userValue} / {unit.opponentValue}</strong>
+            <em>{unit.edge >= 0 ? "+" : ""}{unit.edge}</em>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

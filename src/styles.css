@@ -441,6 +441,109 @@ select {
   height: 100%;
 }
 
+.matchup-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.matchup-head-to-head {
+  align-items: stretch;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr);
+}
+
+.matchup-team-card {
+  align-items: center;
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 12px;
+}
+
+.matchup-team-card strong,
+.matchup-team-card span {
+  display: block;
+}
+
+.matchup-team-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin-top: 3px;
+}
+
+.matchup-team-card em {
+  color: var(--gold);
+  font-style: normal;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.matchup-versus {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 900;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.matchup-stakes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.matchup-stakes span {
+  background: rgba(94, 177, 191, 0.14);
+  border: 1px solid rgba(94, 177, 191, 0.4);
+  border-radius: 999px;
+  color: #d3eef3;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+
+.matchup-edge-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.matchup-edge {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.matchup-edge span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.matchup-edge strong,
+.matchup-edge em {
+  display: block;
+}
+
+.matchup-edge em {
+  color: var(--green);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.matchup-edge.deficit em {
+  color: var(--red);
+}
+
 .poll-snapshot-card {
   background: #0f171b;
   border: 1px solid var(--line);
@@ -1635,13 +1738,20 @@ select {
   .metric-grid,
   .unit-grid,
   .goal-grid,
+  .matchup-head-to-head,
+  .matchup-edge-grid,
   .offseason-grid,
   .offseason-steps {
     grid-template-columns: 1fr;
   }
 
+  .matchup-versus {
+    min-height: 24px;
+  }
+
   .dashboard-panel .desktop-units,
-  .latest-awards-panel {
+  .latest-awards-panel,
+  .matchup-edge-grid {
     display: none;
   }
 

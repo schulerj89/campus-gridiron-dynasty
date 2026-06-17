@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.2.0 - 2026-06-17
+
+- Added Weekly Matchup Preview panels to the dashboard and Schedule page for the next pending user game.
+- Surfaced opponent, venue, records, poll ranks, stakes, team power, and unit edges using existing schedule and roster ratings.
+- Added matchup helper tests, expert decision documentation, and smoke screenshot coverage.
+
 ## 1.1.0 - 2026-06-17
 
 - Added Recruiting Need Command cards for every position with roster target, active board, offer, and pledge coverage.
