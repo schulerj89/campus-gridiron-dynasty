@@ -29,6 +29,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
+- Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
 - Program record book summaries should be calculated from completed user-team history, not stored as separate mutable dynasty state.
 - Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.

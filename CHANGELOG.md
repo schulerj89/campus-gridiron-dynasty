@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.3 - 2026-06-17
+
+- Fixed matchup previews so only Top 25 poll entries display as ranked teams.
+- Added regression coverage for teams with full 1-70 poll positions appearing unranked in matchup stakes when outside the Top 25.
+- Refreshed matchup, dashboard, and smoke screenshots with the visible patch version.
+
 ## 1.4.2 - 2026-06-17
 
 - Fixed weekly recruiting updates so committed recruits keep their `softPledge` stage instead of being narrowed back to top-school list stages.

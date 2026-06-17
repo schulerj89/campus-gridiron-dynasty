@@ -32,6 +32,34 @@ describe("matchup preview", () => {
     expect(preview).toBeUndefined();
   });
 
+  it("only treats Top 25 poll entries as ranked matchup teams", () => {
+    const state = createDynasty(12124);
+    const nextGame = state.schedule.find((game) => game.homeTeamId === state.userTeamId || game.awayTeamId === state.userTeamId)!;
+    const opponentId = nextGame.homeTeamId === state.userTeamId ? nextGame.awayTeamId : nextGame.homeTeamId;
+    const poll = state.rankings[0]!;
+    const prepared = {
+      ...state,
+      rankings: [
+        {
+          ...poll,
+          entries: poll.entries.filter((entry) => entry.teamId !== state.userTeamId && entry.teamId !== opponentId),
+          allEntries: poll.allEntries.map((entry) => {
+            if (entry.teamId === state.userTeamId) return { ...entry, rank: 45 };
+            if (entry.teamId === opponentId) return { ...entry, rank: 46 };
+            return entry;
+          }),
+        },
+      ],
+    };
+
+    const preview = buildMatchupPreview(prepared);
+
+    expect(preview?.userRank).toBeUndefined();
+    expect(preview?.opponentRank).toBeUndefined();
+    expect(preview?.stakes).not.toContain("Ranked opponent #46");
+    expect(preview?.stakes).toContain("Poll statement chance");
+  });
+
   it("survives multi-season sim states", () => {
     const state = simulateSeasons(createDynasty(12123), 2);
     const preview = buildMatchupPreview(state);

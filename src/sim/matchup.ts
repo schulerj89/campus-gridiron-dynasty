@@ -70,7 +70,7 @@ export function buildMatchupPreview(state: DynastyState): MatchupPreview | undef
 }
 
 function currentRank(state: DynastyState, teamId: string): number | undefined {
-  return state.rankings?.[0]?.allEntries.find((entry) => entry.teamId === teamId)?.rank;
+  return state.rankings?.[0]?.entries.find((entry) => entry.teamId === teamId)?.rank;
 }
 
 function edge(label: string, userValue: number, opponentValue: number): MatchupUnitEdge {
