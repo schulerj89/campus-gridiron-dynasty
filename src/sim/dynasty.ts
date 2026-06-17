@@ -7,9 +7,22 @@ import { createPollSnapshot } from "./polls";
 import { createNextPlayoffRound, createPlayoffGames, createSchedule } from "./schedule";
 import { advanceRecruitingWeek, autoRecruit, OFFER_COST, signRecruitingClass } from "./recruiting";
 import {
+  MAX_BLUEPRINT_CATEGORY_POINTS,
+  autoBlueprintAllocations,
+  blueprintAllocation,
+  blueprintCoachRetention,
+  blueprintDevelopmentBonus,
+  blueprintRetentionBonus,
+  createProgramBlueprint,
+  ensureProgramBlueprint,
+  resolveProgramBlueprint,
+  blueprintRemaining,
+} from "./blueprint";
+import {
   ATTRIBUTE_KEYS,
   type AttributeKey,
   type Attributes,
+  type BlueprintCategory,
   type Coach,
   type CollegeYear,
   type DynastyState,
@@ -145,6 +158,65 @@ export function investProgramPoint(state: DynastyState, key: keyof ProgramRating
     teams,
     debugLog: [`Invested a program point into ${String(key)}.`, ...state.debugLog].slice(0, 20),
   };
+}
+
+export function canEditProgramBlueprint(state: DynastyState): boolean {
+  if (state.phase === "preseason") return true;
+  if (state.phase !== "regular" || state.week !== 1) return false;
+  return !state.schedule.some((game) => game.week === 1 && game.played);
+}
+
+export function allocateBlueprintPoint(state: DynastyState, key: BlueprintCategory): DynastyState {
+  if (!canEditProgramBlueprint(state)) return state;
+  let changed = false;
+  const teams = state.teams.map((team) => {
+    if (team.id !== state.userTeamId) return team;
+    const blueprint = ensureProgramBlueprint(team, state.calendarYear);
+    if (blueprintRemaining(blueprint) <= 0 || blueprint.allocations[key] >= MAX_BLUEPRINT_CATEGORY_POINTS) return team;
+    changed = true;
+    const allocations = {
+      ...blueprint.allocations,
+      [key]: blueprint.allocations[key] + 1,
+    };
+    return {
+      ...team,
+      blueprint: {
+        ...blueprint,
+        allocations,
+        resolved: false,
+      },
+    };
+  });
+  if (!changed) return state;
+  return refreshRecruitingBudget({
+    ...state,
+    teams,
+    debugLog: [`Assigned one Program Blueprint point to ${String(key)}.`, ...state.debugLog].slice(0, 20),
+  });
+}
+
+export function autoAllocateProgramBlueprint(state: DynastyState): DynastyState {
+  if (!canEditProgramBlueprint(state)) return state;
+  let changed = false;
+  const teams = state.teams.map((team) => {
+    if (team.id !== state.userTeamId) return team;
+    const blueprint = ensureProgramBlueprint(team, state.calendarYear);
+    changed = true;
+    return {
+      ...team,
+      blueprint: {
+        ...blueprint,
+        allocations: autoBlueprintAllocations(team, blueprint.totalPoints),
+        resolved: false,
+      },
+    };
+  });
+  if (!changed) return state;
+  return refreshRecruitingBudget({
+    ...state,
+    teams,
+    debugLog: [`Auto-built the annual Program Blueprint.`, ...state.debugLog].slice(0, 20),
+  });
 }
 
 export function spendCoachPoint(state: DynastyState, coachRole: Coach["role"], skill: "recruiting" | "development" | "tactics" | "culture"): DynastyState {
@@ -365,9 +437,7 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
     topClasses: fullClassRankings.slice(0, 10),
     userRecruitingRank: recruitingRankByTeam.get(signedState.userTeamId),
   };
-  const developmentResults = signedState.teams.map((team) =>
-    recordAndDevelopTeam(rng, team, signedState.calendarYear, champion?.id === team.id, departuresByTeam.get(team.id) ?? [], recruitingRankByTeam.get(team.id)),
-  );
+  const developmentResults = signedState.teams.map((team) => recordAndDevelopTeam(rng, team, signedState.calendarYear, champion?.id === team.id, departuresByTeam.get(team.id) ?? [], recruitingRankByTeam.get(team.id)));
   const rosterFloorResults = developmentResults.map((result) => {
     const filled = ensureRosterFloor(rng, result.team, signedState.calendarYear);
     return {
@@ -392,7 +462,12 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
     };
   }
   const nextYear = signedState.year + 1;
-  const preseasonPollUpdate = createPollSnapshot(resetForNextSeason(carousel.teams), signedState.calendarYear + 1, 0, "preseason", (signedState.rankings ?? [])[0]);
+  const nextCalendarYear = signedState.calendarYear + 1;
+  const preseasonTeams = resetForNextSeason(carousel.teams).map((team) => ({
+    ...team,
+    blueprint: createProgramBlueprint(team, nextCalendarYear, team.id !== signedState.userTeamId),
+  }));
+  const preseasonPollUpdate = createPollSnapshot(preseasonTeams, nextCalendarYear, 0, "preseason", (signedState.rankings ?? [])[0]);
   const teams = preseasonPollUpdate.teams;
   const userTeam = teams.find((team) => team.id === signedState.userTeamId) ?? teams[0]!;
   const seasonBudget = calculateSeasonRecruitingBudget(userTeam);
@@ -401,7 +476,7 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
     ...signedState,
     rngState: rng.currentState(),
     year: nextYear,
-    calendarYear: signedState.calendarYear + 1,
+    calendarYear: nextCalendarYear,
     phase: "preseason",
     week: 0,
     teams,
@@ -456,6 +531,22 @@ function advanceRecruitingAndKeepClock(state: DynastyState): DynastyState {
   return advanced.recruiting.autoEnabled && advanced.recruiting.pointsRemaining >= OFFER_COST
     ? autoRecruit(advanced, "Auto-recruit reallocated freed points after commitments.")
     : advanced;
+}
+
+function refreshRecruitingBudget(state: DynastyState): DynastyState {
+  const userTeam = getUserTeam(state);
+  const previousBudget = state.recruiting.seasonBudget ?? calculateSeasonRecruitingBudget(userTeam);
+  const seasonBudget = calculateSeasonRecruitingBudget(userTeam);
+  const budgetDelta = Math.max(0, seasonBudget - previousBudget);
+  return {
+    ...state,
+    recruiting: {
+      ...state.recruiting,
+      weeklyPoints: calculateWeeklyRecruitingPoints(userTeam),
+      seasonBudget,
+      pointsRemaining: clamp(state.recruiting.pointsRemaining + budgetDelta, 0, seasonBudget),
+    },
+  };
 }
 
 function addOffseasonRecruitingBonus(state: DynastyState, teams: Team[]): DynastyState["recruiting"] {
@@ -553,11 +644,14 @@ function recordAndDevelopTeam(
   const conferenceFinish = Math.min(conferencePeers, team.season.confLosses + 1);
   const postseason = champion ? "Crown Bowl Champion" : team.season.rank && team.season.rank <= 8 ? "Summit Four" : team.season.wins >= 7 ? "Bowl Eligible" : "Missed Bowls";
   const pointsEarned = 2 + Math.floor(team.season.wins / 3) + (champion ? 5 : 0) + (team.season.rank && team.season.rank <= 10 ? 2 : 0);
+  const resolvedBlueprint = resolveProgramBlueprint(team, year, recruitingClassRank);
   const developed = developAndGraduate(rng, team, year, departures);
   const review = reviewProgramPerformance(team, champion);
   return {
     team: {
       ...team,
+      blueprint: resolvedBlueprint,
+      lastBlueprint: resolvedBlueprint,
       programPoints: team.programPoints + pointsEarned,
       coachPoints: team.coachPoints + Math.floor(pointsEarned / 2),
       program: review.program,
@@ -601,7 +695,7 @@ function developPlayer(rng: Rng, team: Team, player: Player, year: number): { pl
   }
   const traitBoost = player.development === "elite" ? 4 : player.development === "starter" ? 3 : player.development === "rotation" ? 2 : player.development === "depth" ? 1 : 0;
   const potentialGap = Math.max(0, player.potential - player.overall);
-  const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 185;
+  const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 185 + blueprintDevelopmentBonus(team);
   const growthBudget = clamp(Math.round(rng.nextInt(0, 2) + traitBoost * 0.7 + coachBoost + potentialGap / 18), 0, Math.min(8, Math.max(0, potentialGap + 2)));
   const focus = PROGRESSION_FOCUS[player.position];
   const orderedKeys = [...rng.shuffle(focus), ...rng.shuffle(ATTRIBUTE_KEYS.filter((key) => !focus.includes(key)))].slice(0, 7);
@@ -679,6 +773,11 @@ function reviewProgramPerformance(team: Team, champion: boolean): { program: Pro
   applyChange("training", developmentStaff >= 76 && team.season.wins >= 6 ? 1 : team.season.losses >= 9 ? -1 : 0, "Staff development reputation changed");
   applyChange("recruitingReach", team.season.rank && team.season.rank <= 10 ? 2 : team.season.rank && team.season.rank <= 25 ? 1 : team.season.losses >= 8 ? -1 : 0, "Poll visibility affected recruiting reach");
   applyChange("academics", coachCulture >= 80 && team.season.wins >= 6 ? 1 : team.season.losses >= 10 ? -1 : 0, "Culture and stability affected academic support");
+  applyChange("facilities", blueprintAllocation(team, "facilities") >= 4 ? 1 : 0, "Program Blueprint facilities funding carried into donor planning");
+  applyChange("training", blueprintAllocation(team, "trainingStaff") >= 4 ? 1 : 0, "Program Blueprint training staff funding improved development support");
+  applyChange("recruitingReach", blueprintAllocation(team, "recruitingReach") >= 4 ? 1 : 0, "Program Blueprint recruiting reach expanded the footprint");
+  applyChange("academics", blueprintAllocation(team, "academicSupport") >= 4 ? 1 : 0, "Program Blueprint academic support strengthened standards");
+  applyChange("fanSupport", blueprintAllocation(team, "playerTrust") >= 4 ? 1 : 0, "Program Blueprint player trust stabilized public confidence");
   return { program, changes };
 }
 
@@ -778,7 +877,7 @@ function playerDeparture(player: Player, team: Team): PlayerDeparture | undefine
   const awardBoost = player.awards.length * 2.4;
   const rankBoost = team.season.rank && team.season.rank <= 8 ? 2.5 : team.season.rank && team.season.rank <= 25 ? 1.2 : 0;
   const proScore = player.overall + production + awardBoost + rankBoost;
-  const proThreshold = player.year === "SR" ? 87 : player.year === "JR" ? 91 : 96;
+  const proThreshold = (player.year === "SR" ? 87 : player.year === "JR" ? 91 : 96) + blueprintRetentionBonus(team);
   if ((player.year === "SR" || player.year === "JR" || player.year === "SO") && proScore >= proThreshold) {
     return {
       playerId: player.id,
@@ -816,14 +915,15 @@ function runCoachCarousel(rng: Rng, teams: Team[], pool: Coach[]): { teams: Team
   let moves = 0;
   const openPool = [...pool];
   const updatedTeams = teams.map((team) => {
-    const underPressure = team.season.wins < Math.max(4, Math.round((team.expectations - 55) / 8)) && rng.chance(0.38);
+    const retention = blueprintCoachRetention(team);
+    const underPressure = team.season.wins < Math.max(4, Math.round((team.expectations - 55) / 8)) && rng.chance(clamp(0.38 - retention * 0.035, 0.1, 0.38));
     if (!underPressure) {
       return {
         ...team,
         coaches: {
-          head: { ...team.coaches.head, jobSecurity: clamp(team.coaches.head.jobSecurity + (team.season.wins >= 8 ? 5 : -2), 1, 99) },
-          offense: maybeCoordinatorMove(rng, team.coaches.offense, openPool, team.id),
-          defense: maybeCoordinatorMove(rng, team.coaches.defense, openPool, team.id),
+          head: { ...team.coaches.head, jobSecurity: clamp(team.coaches.head.jobSecurity + (team.season.wins >= 8 ? 5 : -2) + retention, 1, 99) },
+          offense: maybeCoordinatorMove(rng, team.coaches.offense, openPool, team.id, retention),
+          defense: maybeCoordinatorMove(rng, team.coaches.defense, openPool, team.id, retention),
         },
       };
     }
@@ -843,8 +943,8 @@ function runCoachCarousel(rng: Rng, teams: Team[], pool: Coach[]): { teams: Team
   return { teams: updatedTeams, pool: openPool.slice(0, 72), moves };
 }
 
-function maybeCoordinatorMove(rng: Rng, coach: Coach, pool: Coach[], teamId: string): Coach {
-  const promoted = coach.tactics + coach.recruiting + coach.development > 245 && rng.chance(0.12);
+function maybeCoordinatorMove(rng: Rng, coach: Coach, pool: Coach[], teamId: string, retention: number): Coach {
+  const promoted = coach.tactics + coach.recruiting + coach.development > 245 && rng.chance(clamp(0.12 - retention * 0.012, 0.03, 0.12));
   if (!promoted) return { ...coach, jobSecurity: clamp(coach.jobSecurity + rng.nextInt(-3, 4), 1, 99) };
   const replacement = bestCoach(pool, coach.role);
   if (!replacement) return coach;

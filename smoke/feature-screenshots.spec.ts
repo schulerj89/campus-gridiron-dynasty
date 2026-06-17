@@ -36,7 +36,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("rankings-panel")).toContainText("1st");
   await page.screenshot({ path: path.join(screenshotDir, "rankings-desktop.png"), fullPage: true });
 
-  await page.getByRole("button", { name: "Recruiting" }).click();
+  await page.getByRole("button", { name: "Recruiting", exact: true }).click();
   await expect(page.getByTestId("recruit-filter-panel")).toBeVisible();
   await expect(page.locator(".stars svg").first()).toBeVisible();
   await page.getByTestId("recruit-position-filter").selectOption("QB");
@@ -58,6 +58,9 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.screenshot({ path: path.join(screenshotDir, "recruiting-filters-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Program" }).click();
+  await expect(page.getByTestId("program-blueprint-panel")).toBeVisible();
+  await expect(page.getByTestId("director-goals-panel")).toContainText("Director");
+  await page.getByTestId("program-blueprint-panel").screenshot({ path: path.join(screenshotDir, "program-blueprint-desktop.png") });
   await expect(page.getByText("Program Investments")).toBeVisible();
   await expect(page.getByTestId("coach-pool-panel")).not.toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "program-staff-desktop.png"), fullPage: true });
@@ -96,7 +99,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("rankings-moved-out-panel")).toContainText("From #");
   await page.screenshot({ path: path.join(screenshotDir, "rankings-movement-desktop.png"), fullPage: true });
 
-  await page.getByRole("button", { name: "Recruiting" }).click();
+  await page.getByRole("button", { name: "Recruiting", exact: true }).click();
   await page.getByTestId("recruit-stars-filter").selectOption("2");
   await expect(page.getByTestId("recruiting-database")).toContainText("Committed to", { timeout: 30_000 });
   await page.getByTestId("recruit-commitment-filter").selectOption("open");
@@ -170,7 +173,12 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("program-review-panel").screenshot({ path: path.join(screenshotDir, "offseason-program-review-desktop.png") });
   await page.getByTestId("walk-ons-panel").screenshot({ path: path.join(screenshotDir, "offseason-walk-ons-desktop.png") });
 
-  await page.getByRole("button", { name: "Recruiting" }).click();
+  await page.getByRole("button", { name: "Program" }).click();
+  await expect(page.getByTestId("program-blueprint-panel")).toContainText("Director Goals");
+  await expect(page.getByTestId("director-review-panel")).toBeVisible();
+  await page.getByTestId("program-blueprint-panel").screenshot({ path: path.join(screenshotDir, "program-blueprint-review-desktop.png") });
+
+  await page.getByRole("button", { name: "Recruiting", exact: true }).click();
   await expect(page.getByTestId("recruiting-budget-panel")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-recruiting-desktop.png"), fullPage: true });
 

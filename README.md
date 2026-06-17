@@ -2,7 +2,7 @@
 
 A fictional college football dynasty simulation web app built with React, TypeScript, Vite, Vitest, and Playwright.
 
-The app creates a 20-year dynasty with 70 made-up programs, 7 conferences, 85-player rosters, thousands of recruits per cycle, hidden recruit traits, coach movement, program investments, weekly awards, season awards, all-national/all-conference teams, fictional bowls, and an 8-team playoff.
+The app creates a 20-year dynasty with 70 made-up programs, 7 conferences, 85-player rosters, thousands of recruits per cycle, hidden recruit traits, annual Program Blueprint budgets, director goals, coach movement, program investments, weekly awards, season awards, all-national/all-conference teams, fictional bowls, and an 8-team playoff.
 
 ## Run
 
@@ -41,6 +41,8 @@ QA screenshots are written to:
 - `artifacts/screenshots/recruiting-desktop.png`
 - `artifacts/screenshots/recruiting-filters-desktop.png`
 - `artifacts/screenshots/recruiting-scholarship-modal-desktop.png`
+- `artifacts/screenshots/program-blueprint-desktop.png`
+- `artifacts/screenshots/program-blueprint-review-desktop.png`
 - `artifacts/screenshots/program-staff-desktop.png`
 - `artifacts/screenshots/coach-pool-postseason-desktop.png`
 - `artifacts/screenshots/box-score-desktop.png`
@@ -84,6 +86,8 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Team helmets use generated fictional 16-bit PNG assets with no logos, letters, mascots, or licensed marks.
 - National poll rankings are stored as dynasty snapshots with Top 25 entries, full 1-70 all-team ranks, votes, first-place votes, and weekly movement.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
+- Annual Program Blueprint allocations must persist, lock after kickoff, and affect recruiting, scouting, development, retention, program review, and coach movement.
+- Director Goals should be visible before Week 1 and the previous season's resolved review should remain inspectable during the next preseason.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
 - Recruiting scholarships are one-time offers that add prospects to the board, and pitches require an offer with a one-week cooldown per recruit.
 - Recruiting action points are tracked by recruit and return when a board prospect commits.

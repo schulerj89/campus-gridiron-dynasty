@@ -39,6 +39,9 @@ export type GemBust = "gem" | "solid" | "bust";
 export type Phase = "preseason" | "regular" | "postseason" | "offseason" | "complete";
 export type AutomationProfile = "balanced" | "recruitFirst" | "developYouth" | "retainStars";
 export type PlayerStreakStatus = "hot" | "cold";
+export type BlueprintCategory = "scoutingNetwork" | "recruitingReach" | "trainingStaff" | "facilities" | "academicSupport" | "playerTrust" | "coachRetention";
+export type DirectorGoalKind = "wins" | "recruitingClass" | "scoringDefense";
+export type DirectorGoalStatus = "active" | "met" | "missed";
 
 export interface PlayerStats {
   games: number;
@@ -136,6 +139,26 @@ export interface ProgramRatings {
   NIL?: number;
 }
 
+export interface DirectorGoal {
+  id: string;
+  kind: DirectorGoalKind;
+  title: string;
+  targetValue: number;
+  targetLabel: string;
+  progressValue: number;
+  progressLabel: string;
+  status: DirectorGoalStatus;
+  note: string;
+}
+
+export interface ProgramBlueprint {
+  year: number;
+  totalPoints: number;
+  allocations: Record<BlueprintCategory, number>;
+  goals: DirectorGoal[];
+  resolved: boolean;
+}
+
 export interface TeamSeason {
   wins: number;
   losses: number;
@@ -167,6 +190,8 @@ export interface Team {
   program: ProgramRatings;
   coachPoints: number;
   programPoints: number;
+  blueprint?: ProgramBlueprint;
+  lastBlueprint?: ProgramBlueprint;
   expectations: number;
   season: TeamSeason;
   history: TeamHistoryEntry[];

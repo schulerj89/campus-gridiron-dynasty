@@ -2,6 +2,7 @@ import { clamp, Rng } from "./rng";
 import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, createSignedPlayerFromRecruit } from "./generate";
 import { ATTRIBUTE_KEYS, type AttributeKey, type DynastyState, type Position, type Recruit, type Team } from "./types";
 import { TARGET_ROSTER } from "./ratings";
+import { blueprintPitchBonus, blueprintScoutProgressBonus } from "./blueprint";
 
 export const OFFER_COST = 50;
 export const SCOUT_COST = 40;
@@ -35,7 +36,7 @@ export function offerScholarship(state: DynastyState, recruitId: string): Dynast
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
     if (recruit.id !== recruitId) return recruit;
-    const boost = 12 + pipelineBonus(team, recruit) + Math.round(team.program.prestige / 20) + rng.nextInt(0, 6);
+    const boost = 12 + pipelineBonus(team, recruit) + blueprintPitchBonus(team) + Math.round(team.program.prestige / 20) + rng.nextInt(0, 6);
     return narrowTopSchools(
       rng,
       {
@@ -72,7 +73,7 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
     if (recruit.id !== recruitId || recruit.stage === "signed") return recruit;
-    return revealRecruitAttributes(rng, recruit, rng.nextInt(24, 38));
+    return revealRecruitAttributes(rng, recruit, rng.nextInt(24, 38) + blueprintScoutProgressBonus(getUserTeam(state)));
   });
   const recruit = recruits.find((candidate) => candidate.id === recruitId);
   return {
@@ -100,7 +101,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
   const recruits = state.recruits.map((recruit) => {
     if (recruit.id !== recruitId || recruit.stage === "signed") return recruit;
     const needBoost = positionNeedScore(team, recruit.position) * 0.7;
-    const pitch = Math.round(8 + pipelineBonus(team, recruit) + team.program.prestige * 0.04 + team.program.facilities * 0.035 + team.coaches.head.recruiting * 0.04 + needBoost + rng.nextInt(0, 8));
+    const pitch = Math.round(8 + pipelineBonus(team, recruit) + blueprintPitchBonus(team) + team.program.prestige * 0.04 + team.program.facilities * 0.035 + team.coaches.head.recruiting * 0.04 + needBoost + rng.nextInt(0, 8));
     const updated = {
       ...recruit,
       lastPitchWeek: state.week,
@@ -146,7 +147,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
     if (!offered && points >= OFFER_COST) {
       recruits = recruits.map((recruit) => {
         if (recruit.id !== target.id) return recruit;
-        const pressure = 11 + pipelineBonus(team, recruit) + Math.round(team.program.prestige / 24);
+        const pressure = 11 + pipelineBonus(team, recruit) + blueprintPitchBonus(team) + Math.round(team.program.prestige / 24);
         return narrowTopSchools(
           rng,
           {
@@ -165,7 +166,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
       investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, OFFER_COST);
       actions.push(`Auto-offered ${target.name}.`);
     } else if (target.scoutProgress < 65 && points >= SCOUT_COST) {
-      recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 22) : recruit));
+      recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 22 + blueprintScoutProgressBonus(team)) : recruit));
       points -= SCOUT_COST;
       spent += SCOUT_COST;
       investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, SCOUT_COST);
@@ -181,7 +182,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
             lastPitchWeek: state.week,
             interest: {
               ...recruit.interest,
-              [team.id]: clamp((recruit.interest[team.id] ?? 1) + pressure + positionNeedScore(team, recruit.position), 1, 150),
+                    [team.id]: clamp((recruit.interest[team.id] ?? 1) + pressure + blueprintPitchBonus(team) + positionNeedScore(team, recruit.position), 1, 150),
             },
           },
           state.week,
@@ -192,7 +193,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
       investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, PITCH_COST);
       actions.push(`Auto-pitched ${target.name}.`);
     } else if (target.scoutProgress < 100 && points >= SCOUT_COST) {
-      recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 18) : recruit));
+      recruits = recruits.map((recruit) => (recruit.id === target.id ? revealRecruitAttributes(rng, recruit, 18 + blueprintScoutProgressBonus(team)) : recruit));
       points -= SCOUT_COST;
       spent += SCOUT_COST;
       investedByRecruit = addRecruitInvestment(investedByRecruit, target.id, SCOUT_COST);

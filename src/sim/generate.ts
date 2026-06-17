@@ -18,6 +18,7 @@ import {
 import { applyPositionCaps, blankAttributes, calculateOverall, normalizeAttributesForPosition, RECRUIT_TRAIT_BANDS, TARGET_ROSTER, teamPower } from "./ratings";
 import { createPollSnapshot } from "./polls";
 import { createSchedule } from "./schedule";
+import { blueprintRecruitingBudgetBonus, createProgramBlueprint } from "./blueprint";
 
 const COLORS = [
   ["#8a1f2d", "#f2c14e"],
@@ -51,9 +52,13 @@ export function createDynasty(seed = Date.now(), userTeamId?: string): DynastySt
   const conferences = createConferences();
   const coachPool = createCoachPool(rng, 360);
   const createdTeams = createTeams(rng, conferences, coachPool);
-  const { teams, poll } = createPollSnapshot(createdTeams, 2026, 0, "regular");
-  const userTeam = teams.find((team) => team.id === userTeamId) ?? teams[0]!;
-  const selectedTeamId = userTeam.id;
+  const pollUpdate = createPollSnapshot(createdTeams, 2026, 0, "regular");
+  const selectedTeamId = pollUpdate.teams.find((team) => team.id === userTeamId)?.id ?? pollUpdate.teams[0]!.id;
+  const teams = pollUpdate.teams.map((team) => ({
+    ...team,
+    blueprint: createProgramBlueprint(team, 2026, team.id !== selectedTeamId),
+  }));
+  const userTeam = teams.find((team) => team.id === selectedTeamId)!;
   const recruits = createRecruitClass(rng, teams, 2600);
   const seasonBudget = calculateSeasonRecruitingBudget(userTeam);
   const weeklyPoints = calculateWeeklyRecruitingPoints(userTeam);
@@ -90,7 +95,7 @@ export function createDynasty(seed = Date.now(), userTeamId?: string): DynastySt
     schedule,
     weeklyAwards: [],
     coachPool: coachPool.filter((coach) => !coach.hiredBy).slice(0, 72),
-    rankings: [poll],
+    rankings: [pollUpdate.poll],
     history: [],
     debugFlags: {
       forceUserPlayoff: false,
@@ -271,7 +276,7 @@ export function calculateSeasonRecruitingBudget(team: Team): number {
     (team.program.NIL ?? 50) * 2;
   const staffStrength = team.coaches.head.recruiting * 4 + team.coaches.offense.recruiting * 1.5 + team.coaches.defense.recruiting * 1.5;
   const recordBonus = team.season.wins * 24 - team.season.losses * 12 + (team.season.rank && team.season.rank <= 10 ? 160 : team.season.rank && team.season.rank <= 25 ? 80 : 0);
-  return clamp(Math.round(650 + programStrength + staffStrength + recordBonus), 1450, 2850);
+  return clamp(Math.round(650 + programStrength + staffStrength + recordBonus + blueprintRecruitingBudgetBonus(team)), 1450, 3250);
 }
 
 export function createPersonName(rng: Rng): string {

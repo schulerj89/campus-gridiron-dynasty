@@ -22,6 +22,7 @@ import {
   LineChart,
   MapPinned,
   Play,
+  Plus,
   RotateCcw,
   Save,
   Search,
@@ -37,16 +38,17 @@ import {
 } from "lucide-react";
 import { addRecruitToBoard, autoRecruit, gemBustFor, isPipelineRecruit, OFFER_COST, offerScholarship, pitchRecruit, PITCH_COST, positionNeeds, SCOUT_COST, scoutRecruit } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
-import { advanceWeek, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
+import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
 import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
-import { POSITIONS, type AttributeKey, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
+import { POSITIONS, type AttributeKey, type BlueprintCategory, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
 import { PaginationControls } from "./components/PaginationControls";
 import { Rankings } from "./components/RankingsView";
 import { TeamHelmet } from "./components/TeamHelmet";
 import { APP_VERSION } from "./version";
+import { BLUEPRINT_CATEGORY_META, MAX_BLUEPRINT_CATEGORY_POINTS, blueprintRemaining, blueprintSpent, ensureProgramBlueprint, evaluateProgramBlueprint } from "./sim/blueprint";
 
 type Tab = "overview" | "rankings" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
@@ -93,6 +95,16 @@ const programIcons: Record<keyof ProgramRatings, typeof GraduationCap> = {
   fanSupport: Heart,
   prestige: Crown,
   NIL: Handshake,
+};
+
+const blueprintIcons: Record<BlueprintCategory, typeof GraduationCap> = {
+  scoutingNetwork: Search,
+  recruitingReach: MapPinned,
+  trainingStaff: Dumbbell,
+  facilities: Building2,
+  academicSupport: BookOpen,
+  playerTrust: Heart,
+  coachRetention: UserRound,
 };
 
 export default function App() {
@@ -256,7 +268,7 @@ function HomeScreen({
             <Feature icon={Shield} text="70 fictional programs across 7 conferences" />
             <Feature icon={Users} text="85-player rosters with 13 detailed ratings" />
             <Feature icon={Search} text="Thousands of recruits with hidden traits, scouting, gems, and busts" />
-            <Feature icon={Trophy} text="Weekly awards, season honors, All-Americans, bowls, and playoff history" />
+            <Feature icon={Trophy} text="Program Blueprint budgets, weekly awards, bowls, and playoff history" />
           </div>
           <div className="launch-panel team-picker" data-testid="team-picker">
             <div className="team-picker-head">
@@ -1296,8 +1308,96 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
   const team = getUserTeam(state);
   const programKeys: (keyof ProgramRatings)[] = ["academics", "facilities", "training", "recruitingReach", "fanSupport", "prestige"];
   const canShowCoachPool = state.phase === "postseason" || state.phase === "offseason";
+  const canEditBlueprint = canEditProgramBlueprint(state);
+  const storedBlueprint = ensureProgramBlueprint(team, state.calendarYear);
+  const blueprintRecruitingRank = state.offseasonReport?.year === storedBlueprint.year ? state.offseasonReport?.userRecruitingRank : undefined;
+  const blueprint = evaluateProgramBlueprint(team, storedBlueprint, blueprintRecruitingRank, storedBlueprint.resolved);
+  const remaining = blueprintRemaining(blueprint);
+  const spent = blueprintSpent(blueprint);
   return (
     <>
+      <section className="panel span-2" data-testid="program-blueprint-panel">
+        <div className="panel-head">
+          <div>
+            <p className="eyebrow">Annual Program Blueprint</p>
+            <h2>Director Goals and Program Points</h2>
+            <p className="muted">{canEditBlueprint ? "Allocate the annual budget before kickoff." : blueprint.resolved ? "This blueprint resolved during the offseason review." : "Blueprint allocations are locked after kickoff."}</p>
+          </div>
+          <button className="secondary" onClick={() => onUpdate(autoAllocateProgramBlueprint)} disabled={!canEditBlueprint || remaining <= 0}>
+            <Wrench size={16} />
+            Auto Build
+          </button>
+        </div>
+        <div className="metric-grid blueprint-summary">
+          <Metric label="Total Points" value={blueprint.totalPoints} />
+          <Metric label="Spent" value={spent} />
+          <Metric label="Remaining" value={remaining} />
+          <Metric label="Status" value={blueprint.resolved ? "Resolved" : canEditBlueprint ? "Open" : "Locked"} />
+        </div>
+        <div className="blueprint-grid">
+          {BLUEPRINT_CATEGORY_META.map((category) => {
+            const Icon = blueprintIcons[category.key];
+            const value = blueprint.allocations[category.key];
+            return (
+              <article key={category.key} className="blueprint-card">
+                <div className="blueprint-card-head">
+                  <Icon size={19} />
+                  <div>
+                    <h3>{category.label}</h3>
+                    <p>{category.effect}</p>
+                  </div>
+                  <button className="icon-button blueprint-add" onClick={() => onUpdate((current) => allocateBlueprintPoint(current, category.key))} disabled={!canEditBlueprint || remaining <= 0 || value >= MAX_BLUEPRINT_CATEGORY_POINTS} aria-label={`Add ${category.label}`} title={`Add ${category.label}`}>
+                    <Plus size={16} />
+                  </button>
+                </div>
+                <div className="blueprint-pips" aria-label={`${category.label} allocation ${value}`}>
+                  {Array.from({ length: MAX_BLUEPRINT_CATEGORY_POINTS }, (_, index) => (
+                    <span key={index} className={clsx(index < value && "filled")} />
+                  ))}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+        <section className="director-goals" data-testid="director-goals-panel">
+          <div className="panel-head compact">
+            <h3>Director Goals</h3>
+            <ClipboardList size={18} />
+          </div>
+          <div className="goal-grid">
+            {blueprint.goals.map((goal) => (
+              <article key={goal.id} className={clsx("goal-card", goal.status)}>
+                <div>
+                  <strong>{goal.title}</strong>
+                  <span>{goal.targetLabel}</span>
+                </div>
+                <em>{goal.progressLabel}</em>
+                <p>{goal.note}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+        {team.lastBlueprint?.resolved && team.lastBlueprint.year !== blueprint.year && (
+          <section className="director-goals" data-testid="director-review-panel">
+            <div className="panel-head compact">
+              <h3>{team.lastBlueprint.year} Director Review</h3>
+              <Award size={18} />
+            </div>
+            <div className="goal-grid">
+              {team.lastBlueprint.goals.map((goal) => (
+                <article key={goal.id} className={clsx("goal-card", goal.status)}>
+                  <div>
+                    <strong>{goal.title}</strong>
+                    <span>{goal.targetLabel}</span>
+                  </div>
+                  <em>{goal.progressLabel}</em>
+                  <p>{goal.note}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+      </section>
       <section className="panel span-2">
         <div className="panel-head compact">
           <h2>Program Investments</h2>

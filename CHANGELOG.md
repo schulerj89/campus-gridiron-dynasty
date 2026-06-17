@@ -2,6 +2,14 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.0.0 - 2026-06-16
+
+- Added the Program Blueprint major-release feature with annual Program Points, category allocations, lock timing, and director goals.
+- Connected blueprint allocations to recruiting budget, scouting reveal speed, recruiting pressure, player development, retention, program review, and coach carousel stability.
+- Preserved the previous season's resolved director review and surfaced it in the Program tab after offseason development.
+- Documented the CFB game expert playthrough decision in `docs/v1-major-release-decision.md`.
+- Expanded smoke screenshots and unit coverage for blueprint allocation, budget effects, lock timing, and offseason rollover.
+
 ## 0.10.0 - 2026-06-16
 
 - Focused the Overview dashboard during offseason and preseason by hiding the regular Dynasty Command panel and latest national awards.

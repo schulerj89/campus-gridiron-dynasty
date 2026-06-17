@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { advanceWeek, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
+import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 import { TARGET_ROSTER } from "../ratings";
+import { blueprintRemaining, blueprintSpent } from "../blueprint";
 
 const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
 
@@ -52,6 +53,34 @@ describe("dynasty flow", () => {
     expect(userTeam.roster.some((player) => player.awards.length > 0)).toBe(true);
   });
 
+  it("allocates the annual program blueprint before kickoff and locks it after games begin", () => {
+    let state = createDynasty(8921);
+    const beforeBudget = state.recruiting.seasonBudget;
+    expect(canEditProgramBlueprint(state)).toBe(true);
+
+    state = allocateBlueprintPoint(state, "recruitingReach");
+    let userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    expect(userTeam.blueprint?.allocations.recruitingReach).toBe(1);
+    expect(state.recruiting.seasonBudget).toBeGreaterThan(beforeBudget);
+
+    state = autoAllocateProgramBlueprint(state);
+    userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    expect(userTeam.blueprint ? blueprintRemaining(userTeam.blueprint) : 1).toBe(0);
+    expect(userTeam.blueprint ? blueprintSpent(userTeam.blueprint) : 0).toBe(userTeam.blueprint?.totalPoints);
+
+    const advanced = advanceWeek({
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        autoEnabled: false,
+      },
+    });
+    expect(canEditProgramBlueprint(advanced)).toBe(false);
+    const lockedAttempt = allocateBlueprintPoint(advanced, "scoutingNetwork");
+    const lockedTeam = lockedAttempt.teams.find((team) => team.id === state.userTeamId)!;
+    expect(lockedTeam.blueprint?.allocations.scoutingNetwork).toBe(userTeam.blueprint?.allocations.scoutingNetwork);
+  });
+
   it("creates offseason departures and records recruiting class rank", () => {
     let state = forceUserPlayoff(forceUserAward(createDynasty(8933)));
     for (let week = 1; week <= 15; week += 1) {
@@ -78,9 +107,14 @@ describe("dynasty flow", () => {
     expect(state.phase).toBe("preseason");
     expect(state.offseasonReport?.developmentComplete).toBe(true);
     const preseasonReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
+    const preseasonTeam = state.teams.find((team) => team.id === state.userTeamId)!;
     expect(preseasonReport?.progressions.every((progression) => progression.afterOverall >= progression.beforeOverall)).toBe(true);
     expect(state.offseasonReport?.teams.every((report) => report.walkOns.length >= 0)).toBe(true);
     expect(state.teams.every((team) => team.roster.length >= ROSTER_FLOOR)).toBe(true);
+    expect(preseasonTeam.lastBlueprint?.resolved).toBe(true);
+    expect(preseasonTeam.lastBlueprint?.goals).toHaveLength(3);
+    expect(preseasonTeam.blueprint?.year).toBe(state.calendarYear);
+    expect(preseasonTeam.blueprint?.resolved).toBe(false);
     const incomingFreshmen = state.teams.flatMap((team) => team.roster.filter((player) => player.incomingFreshman));
     expect(incomingFreshmen.length).toBeGreaterThan(0);
     expect(incomingFreshmen.every((player) => player.year === "FR" && player.careerStats.length === 0)).toBe(true);

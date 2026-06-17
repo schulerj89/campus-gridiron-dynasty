@@ -1,5 +1,6 @@
 import type { DynastyState, PollSnapshot } from "./types";
 import { createPollSnapshot } from "./polls";
+import { ensureProgramBlueprint } from "./blueprint";
 
 const DB_NAME = "campus-gridiron-dynasty";
 const STORE_NAME = "dynasties";
@@ -62,6 +63,7 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     ...team,
     helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
     depthChart: team.depthChart ?? {},
+    blueprint: ensureProgramBlueprint(team, raw.calendarYear, team.id !== raw.userTeamId),
     roster: team.roster.map((player) => ({
       ...player,
       streak: player.streak && player.streak.weeks > 0 ? player.streak : undefined,
