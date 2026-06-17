@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.3.3 - 2026-06-17
+
+- Added `npm run release:check` to verify package metadata, lockfile metadata, visible app version, and latest changelog heading agree.
+- Documented the release-hygiene check in project docs and AGENTS guidance.
+- Refreshed smoke screenshots with the visible patch version.
+
 ## 1.3.2 - 2026-06-17
 
 - Made smoke tests use an isolated preview server port selected by `scripts/run-smoke.mjs` instead of reusing unrelated servers.

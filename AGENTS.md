@@ -40,6 +40,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 ```bash
 npm run build
 npm run test
+npm run release:check
 npm run smoke
 ```
 
@@ -80,4 +81,5 @@ Update this file when core simulation rules, commands, storage, or QA expectatio
 
 - Bump `package.json`, `package-lock.json`, and `src/version.ts` together.
 - Add a `CHANGELOG.md` entry for every app version bump.
+- Run `npm run release:check` before committing version bumps.
 - Update smoke expectations when the visible version changes.

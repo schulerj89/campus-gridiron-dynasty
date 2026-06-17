@@ -18,6 +18,7 @@ The app stores saves locally in IndexedDB. Local storage only keeps the active s
 ```bash
 npm run build
 npm run test
+npm run release:check
 npm run smoke
 ```
 
@@ -26,7 +27,7 @@ Smoke coverage runs Chromium desktop, WebKit desktop, and WebKit with an iPhone 
 
 ## Versioning
 
-When bumping the app version, update `package.json`, `package-lock.json`, `src/version.ts`, smoke expectations, and `CHANGELOG.md` in the same change.
+When bumping the app version, update `package.json`, `package-lock.json`, `src/version.ts`, smoke expectations, and `CHANGELOG.md` in the same change. Run `npm run release:check` before committing a version bump.
 
 QA screenshots are written to:
 
