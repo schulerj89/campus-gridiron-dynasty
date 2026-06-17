@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.2 - 2026-06-17
+
+- Fixed weekly recruiting updates so committed recruits keep their `softPledge` stage instead of being narrowed back to top-school list stages.
+- Added regression coverage for committed board refunds and signed recruit preservation during weekly recruiting updates.
+- Refreshed smoke screenshots with the visible patch version.
+
 ## 1.4.1 - 2026-06-17
 
 - Fixed Program Blueprint budget refreshes so spent recruiting points stay sunk when a rebuild lowers the season budget.

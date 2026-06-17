@@ -264,7 +264,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
 export function advanceRecruitingWeek(state: DynastyState): DynastyState {
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
-    if (recruit.stage === "signed") return recruit;
+    if (recruit.stage === "signed" || recruit.committedTeamId) return recruit;
     const moved = simulateOtherSchools(rng, recruit, state.teams);
     return maybeCommit(rng, narrowTopSchools(rng, moved, state.week), state.week);
   });

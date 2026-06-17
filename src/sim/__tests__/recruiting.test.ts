@@ -3,6 +3,7 @@ import { createDynasty } from "../generate";
 import { advanceWeek } from "../dynasty";
 import {
   addRecruitToBoard,
+  advanceRecruitingWeek,
   autoRecruit,
   OFFER_COST,
   offerScholarship,
@@ -207,6 +208,44 @@ describe("recruiting", () => {
     expect(advanced.recruiting.pointsSpent).toBeGreaterThan(0);
     expect(advanced.recruiting.pointsRemaining).toBeLessThan(invested);
     expect(advanced.recruiting.lastActions.join(" ")).toContain("reallocated");
+  });
+
+  it("keeps committed recruits as soft pledges during weekly recruiting updates", () => {
+    let state = createDynasty(5686);
+    const otherTeam = state.teams.find((team) => team.id !== state.userTeamId)!;
+    const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;
+    const signedRecruit = state.recruits.find((candidate) => candidate.id !== recruit.id)!;
+    state = offerScholarship(state, recruit.id);
+    const invested = state.recruiting.investedByRecruit[recruit.id] ?? 0;
+    const beforePoints = state.recruiting.pointsRemaining;
+
+    const prepared = {
+      ...state,
+      week: 7,
+      recruits: state.recruits.map((candidate) => {
+        if (candidate.id === recruit.id) {
+          return {
+            ...candidate,
+            committedTeamId: otherTeam.id,
+            stage: "softPledge" as const,
+          };
+        }
+        if (candidate.id === signedRecruit.id) {
+          return {
+            ...candidate,
+            committedTeamId: otherTeam.id,
+            stage: "signed" as const,
+          };
+        }
+        return candidate;
+      }),
+    };
+
+    const advanced = advanceRecruitingWeek(prepared);
+    expect(advanced.recruits.find((candidate) => candidate.id === recruit.id)?.stage).toBe("softPledge");
+    expect(advanced.recruits.find((candidate) => candidate.id === signedRecruit.id)?.stage).toBe("signed");
+    expect(advanced.recruiting.board).not.toContain(recruit.id);
+    expect(advanced.recruiting.pointsRemaining).toBe(beforePoints + invested);
   });
 
   it("does not spend points or log actions for invalid recruit targets", () => {
