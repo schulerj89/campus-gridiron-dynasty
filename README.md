@@ -58,6 +58,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/all-american-second-desktop.png`
 - `artifacts/screenshots/all-conference-first-desktop.png`
 - `artifacts/screenshots/all-conference-second-desktop.png`
+- `artifacts/screenshots/program-record-book-desktop.png`
 - `artifacts/screenshots/dashboard-playoff-bracket-desktop.png`
 - `artifacts/screenshots/playoffs-desktop.png`
 - `artifacts/screenshots/awards-playoff-desktop.png`
@@ -102,6 +103,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Signing-day recruits are incoming freshmen: they do not advance class year or gain offseason development until after kickoff clears the incoming marker.
 - Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.
 - Weekly matchup previews should be derived from pending user games and existing team/unit ratings; do not hand-author matchup outcomes.
+- Program record book totals should be derived from completed user-team history and never maintained as duplicate state.
 - The game should stay playable on WebKit and on mobile-width screens.
 
 ## Research Notes

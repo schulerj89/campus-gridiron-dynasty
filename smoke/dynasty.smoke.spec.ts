@@ -54,9 +54,11 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
 
   await page.getByRole("button", { name: /Awards/ }).click();
   await expect(page.getByTestId("awards-panel")).toBeVisible();
+  await expect(page.getByTestId("program-record-book-panel")).toContainText("Program Record Book");
   await expect(page.getByTestId("playoff-panel")).toBeVisible();
   await expect(page.getByText("Dynasty History")).toBeVisible();
   if (testInfo.project.name === "chromium-desktop") {
+    await page.getByTestId("program-record-book-panel").screenshot({ path: path.join(screenshotDir, "program-record-book-desktop.png") });
     await page.screenshot({ path: path.join(screenshotDir, "awards-playoff-desktop.png"), fullPage: true });
   }
 });

@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.3.0 - 2026-06-17
+
+- Added a Program Record Book panel to the Awards page using completed user-team history.
+- Summarized best record, best final rank, recruiting peak, Crown Bowl titles, Summit Four trips, bowl trips, top-10 finishes, and award totals.
+- Added record-book selector tests, expert decision documentation, and smoke screenshot coverage after a multi-season debug simulation.
+
 ## 1.2.0 - 2026-06-17
 
 - Added Weekly Matchup Preview panels to the dashboard and Schedule page for the next pending user game.

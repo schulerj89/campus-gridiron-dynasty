@@ -544,6 +544,61 @@ select {
   color: var(--red);
 }
 
+.record-book-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.record-book-metrics .metric small {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  margin-top: 8px;
+}
+
+.record-book-split {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.55fr);
+}
+
+.record-book-split h3 {
+  font-size: 1rem;
+  margin-bottom: 10px;
+}
+
+.record-book-table {
+  overflow-x: auto;
+}
+
+.table-row.record-book-row {
+  min-width: 760px;
+  grid-template-columns: 70px 90px 70px minmax(150px, 1fr) 76px 78px;
+}
+
+.table-row.record-book-header {
+  background: transparent;
+  border-color: transparent;
+  min-height: auto;
+  padding-bottom: 0;
+}
+
+.record-book-awards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.record-book-awards span {
+  background: rgba(240, 184, 74, 0.14);
+  border: 1px solid rgba(240, 184, 74, 0.45);
+  border-radius: 999px;
+  color: #f8d58a;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 7px 9px;
+}
+
 .poll-snapshot-card {
   background: #0f171b;
   border: 1px solid var(--line);
@@ -1740,6 +1795,7 @@ select {
   .goal-grid,
   .matchup-head-to-head,
   .matchup-edge-grid,
+  .record-book-split,
   .offseason-grid,
   .offseason-steps {
     grid-template-columns: 1fr;
