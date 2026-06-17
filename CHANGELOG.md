@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.3.5 - 2026-06-17
+
+- Fixed recruiting budget reconciliation after Program Blueprint changes so spent plus remaining points equals the current season budget.
+- Added regression coverage for manual and auto-built blueprint changes after recruiting points have already been spent.
+- Refreshed smoke screenshots with the visible patch version.
+
 ## 1.3.4 - 2026-06-17
 
 - Fixed coach-pool hiring so the displaced user coach returns to the available pool instead of disappearing.

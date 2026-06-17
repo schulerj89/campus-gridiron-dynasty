@@ -4,6 +4,7 @@ import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canE
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 import { TARGET_ROSTER } from "../ratings";
 import { blueprintRemaining, blueprintSpent } from "../blueprint";
+import { scoutRecruit } from "../recruiting";
 
 const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
 
@@ -79,6 +80,17 @@ describe("dynasty flow", () => {
     const lockedAttempt = allocateBlueprintPoint(advanced, "scoutingNetwork");
     const lockedTeam = lockedAttempt.teams.find((team) => team.id === state.userTeamId)!;
     expect(lockedTeam.blueprint?.allocations.scoutingNetwork).toBe(userTeam.blueprint?.allocations.scoutingNetwork);
+  });
+
+  it("keeps recruiting budget accounting balanced after blueprint changes", () => {
+    let state = createDynasty(8922);
+    state = scoutRecruit(state, state.recruits[0]!.id);
+
+    const allocated = allocateBlueprintPoint(state, "recruitingReach");
+    expect(allocated.recruiting.pointsRemaining + allocated.recruiting.pointsSpent).toBe(allocated.recruiting.seasonBudget);
+
+    const autoBuilt = autoAllocateProgramBlueprint(state);
+    expect(autoBuilt.recruiting.pointsRemaining + autoBuilt.recruiting.pointsSpent).toBe(autoBuilt.recruiting.seasonBudget);
   });
 
   it("creates offseason departures and records recruiting class rank", () => {

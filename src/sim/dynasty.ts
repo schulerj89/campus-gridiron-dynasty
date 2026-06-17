@@ -547,13 +547,15 @@ function refreshRecruitingBudget(state: DynastyState): DynastyState {
   const previousBudget = state.recruiting.seasonBudget ?? calculateSeasonRecruitingBudget(userTeam);
   const seasonBudget = calculateSeasonRecruitingBudget(userTeam);
   const budgetDelta = Math.max(0, seasonBudget - previousBudget);
+  const pointsRemaining = clamp(state.recruiting.pointsRemaining + budgetDelta, 0, seasonBudget);
   return {
     ...state,
     recruiting: {
       ...state.recruiting,
       weeklyPoints: calculateWeeklyRecruitingPoints(userTeam),
       seasonBudget,
-      pointsRemaining: clamp(state.recruiting.pointsRemaining + budgetDelta, 0, seasonBudget),
+      pointsRemaining,
+      pointsSpent: Math.max(0, seasonBudget - pointsRemaining),
     },
   };
 }
