@@ -437,7 +437,10 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
     topClasses: fullClassRankings.slice(0, 10),
     userRecruitingRank: recruitingRankByTeam.get(signedState.userTeamId),
   };
-  const developmentResults = signedState.teams.map((team) => recordAndDevelopTeam(rng, team, signedState.calendarYear, champion?.id === team.id, departuresByTeam.get(team.id) ?? [], recruitingRankByTeam.get(team.id)));
+  const currentAwardsByTeam = seasonAwardNamesByTeam(signedState.seasonAwards);
+  const developmentResults = signedState.teams.map((team) =>
+    recordAndDevelopTeam(rng, team, signedState.calendarYear, champion?.id === team.id, departuresByTeam.get(team.id) ?? [], recruitingRankByTeam.get(team.id), currentAwardsByTeam.get(team.id) ?? []),
+  );
   const rosterFloorResults = developmentResults.map((result) => {
     const filled = ensureRosterFloor(rng, result.team, signedState.calendarYear);
     return {
@@ -638,8 +641,9 @@ function recordAndDevelopTeam(
   champion: boolean,
   departures: PlayerDeparture[],
   recruitingClassRank?: number,
+  currentSeasonAwards: string[] = [],
 ): { team: Team; progressions: PlayerProgression[]; programChanges: ProgramChange[] } {
-  const awards = team.roster.flatMap((player) => player.awards);
+  const awards = currentSeasonAwards;
   const conferencePeers = 10;
   const conferenceFinish = Math.min(conferencePeers, team.season.confLosses + 1);
   const postseason = champion ? "Crown Bowl Champion" : team.season.rank && team.season.rank <= 8 ? "Summit Four" : team.season.wins >= 7 ? "Bowl Eligible" : "Missed Bowls";
@@ -672,6 +676,24 @@ function recordAndDevelopTeam(
     progressions: developed.progressions,
     programChanges: review.changes,
   };
+}
+
+function seasonAwardNamesByTeam(seasonAwards?: SeasonAwards): Map<string, string[]> {
+  const awardsByTeam = new Map<string, string[]>();
+  if (!seasonAwards) return awardsByTeam;
+  const awardGroups = [
+    seasonAwards.nationalAwards,
+    seasonAwards.allAmericans.first,
+    seasonAwards.allAmericans.second,
+    seasonAwards.allAmericans.freshman,
+    ...Object.values(seasonAwards.allConference).flatMap((group) => [group.first, group.second, group.freshman]),
+  ];
+  for (const award of awardGroups.flat()) {
+    const awards = awardsByTeam.get(award.teamId) ?? [];
+    awards.push(award.awardName);
+    awardsByTeam.set(award.teamId, awards);
+  }
+  return awardsByTeam;
 }
 
 function developAndGraduate(rng: Rng, team: Team, year: number, departures: PlayerDeparture[]): { roster: Player[]; progressions: PlayerProgression[] } {

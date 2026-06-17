@@ -28,6 +28,8 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
 - Program record book summaries should be calculated from completed user-team history, not stored as separate mutable dynasty state.
+- Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
+- Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.
 - Annual Program Blueprint state lives on each team and must affect recruiting budget, scouting speed, recruiting pressure, player development, retention, program review, and coach carousel stability.
 - Director Goals should appear before Week 1 and the previous resolved blueprint review should remain visible during the next preseason.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.

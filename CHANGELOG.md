@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.3.1 - 2026-06-17
+
+- Hardened legacy save normalization for missing debug fields, recruiting defaults, team history, dynasty history, weekly awards, and poll movement arrays.
+- Fixed team-history award recording so completed seasons store only that season's honors instead of re-counting older player career awards.
+- Added regression coverage for older save shapes and stale player awards during offseason history creation.
+
 ## 1.3.0 - 2026-06-17
 
 - Added a Program Record Book panel to the Awards page using completed user-team history.

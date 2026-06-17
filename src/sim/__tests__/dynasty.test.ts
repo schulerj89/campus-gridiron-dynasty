@@ -148,6 +148,43 @@ describe("dynasty flow", () => {
     expect(userReport?.walkOns.every((walkOn) => walkOn.overall <= 60)).toBe(true);
   }, 20_000);
 
+  it("records only current-season awards in team history", () => {
+    const state = createDynasty(8935);
+    const prepared = {
+      ...state,
+      phase: "offseason" as const,
+      week: 21,
+      seasonAwards: undefined,
+      offseasonReport: {
+        year: state.calendarYear,
+        signingComplete: true,
+        developmentComplete: false,
+        topClasses: [],
+        teams: state.teams.map((team) => ({
+          teamId: team.id,
+          teamName: team.name,
+          departures: [],
+          signees: [],
+          walkOns: [],
+          progressions: [],
+          programChanges: [],
+        })),
+      },
+      teams: state.teams.map((team) =>
+        team.id === state.userTeamId
+          ? {
+              ...team,
+              roster: team.roster.map((player, index) => (index === 0 ? { ...player, awards: ["Legacy Honor"] } : player)),
+            }
+          : team,
+      ),
+    };
+
+    const advanced = advanceWeek(prepared);
+    const userHistory = advanced.teams.find((team) => team.id === state.userTeamId)?.history[0];
+    expect(userHistory?.awards).toEqual([]);
+  });
+
   it("does not log a coach point spend when no point is available", () => {
     const state = createDynasty(9021);
     const prepared = {

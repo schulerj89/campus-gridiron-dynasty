@@ -1,6 +1,7 @@
 import type { DynastyState, PollSnapshot } from "./types";
 import { createPollSnapshot } from "./polls";
 import { ensureProgramBlueprint } from "./blueprint";
+import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints } from "./generate";
 
 const DB_NAME = "campus-gridiron-dynasty";
 const STORE_NAME = "dynasties";
@@ -58,11 +59,19 @@ function requestToPromise<T = unknown>(request: IDBRequest<T>): Promise<T> {
 }
 
 export function normalizeDynastyState(input: DynastyState): DynastyState {
-  const raw = input as DynastyState & { rankings?: DynastyState["rankings"] };
+  const raw = input as DynastyState & {
+    rankings?: DynastyState["rankings"];
+    recruiting?: Partial<DynastyState["recruiting"]>;
+    debugFlags?: Partial<DynastyState["debugFlags"]>;
+    debugLog?: DynastyState["debugLog"];
+    weeklyAwards?: DynastyState["weeklyAwards"];
+    history?: DynastyState["history"];
+  };
   const teams = raw.teams.map((team, index) => ({
     ...team,
     helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
     depthChart: team.depthChart ?? {},
+    history: team.history ?? [],
     blueprint: ensureProgramBlueprint(team, raw.calendarYear, team.id !== raw.userTeamId),
     roster: team.roster.map((player) => ({
       ...player,
@@ -77,16 +86,42 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     lastPitchWeek: Number.isFinite((recruit as typeof recruit & { lastPitchWeek?: number }).lastPitchWeek) ? recruit.lastPitchWeek : undefined,
   }));
   const rankings = normalizeRankings(raw.rankings, teams, raw);
+  const recruiting = normalizeRecruiting(raw.recruiting, teams.find((team) => team.id === raw.userTeamId) ?? teams[0]);
+  const debugFlags = raw.debugFlags ?? {};
   return {
     ...raw,
     teams,
     recruits,
     rankings,
-    offseasonReport: raw.phase === "regular" ? undefined : normalizeOffseasonReport(raw.offseasonReport),
-    recruiting: {
-      ...raw.recruiting,
-      investedByRecruit: raw.recruiting.investedByRecruit ?? {},
+    weeklyAwards: raw.weeklyAwards ?? [],
+    history: raw.history ?? [],
+    debugFlags: {
+      forceUserPlayoff: debugFlags.forceUserPlayoff ?? false,
+      forceUserAward: debugFlags.forceUserAward ?? false,
+      fastSimSeasons: debugFlags.fastSimSeasons ?? 0,
     },
+    debugLog: raw.debugLog ?? [],
+    offseasonReport: raw.phase === "regular" ? undefined : normalizeOffseasonReport(raw.offseasonReport),
+    recruiting,
+  };
+}
+
+function normalizeRecruiting(recruiting: Partial<DynastyState["recruiting"]> | undefined, team: DynastyState["teams"][number] | undefined): DynastyState["recruiting"] {
+  const seasonBudget = finiteNumber(recruiting?.seasonBudget) ?? (team ? calculateSeasonRecruitingBudget(team) : 0);
+  const weeklyPoints = finiteNumber(recruiting?.weeklyPoints) ?? (team ? calculateWeeklyRecruitingPoints(team) : 0);
+  const pointsRemaining = clampNumber(finiteNumber(recruiting?.pointsRemaining) ?? seasonBudget, 0, seasonBudget);
+  const pointsSpent = clampNumber(finiteNumber(recruiting?.pointsSpent) ?? Math.max(0, seasonBudget - pointsRemaining), 0, seasonBudget);
+  return {
+    weeklyPoints,
+    seasonBudget,
+    pointsRemaining,
+    pointsSpent,
+    investedByRecruit: recruiting?.investedByRecruit ?? {},
+    boardLimit: finiteNumber(recruiting?.boardLimit) ?? 35,
+    board: Array.isArray(recruiting?.board) ? recruiting.board : [],
+    autoEnabled: typeof recruiting?.autoEnabled === "boolean" ? recruiting.autoEnabled : true,
+    profile: recruiting?.profile ?? "balanced",
+    lastActions: Array.isArray(recruiting?.lastActions) ? recruiting.lastActions : [],
   };
 }
 
@@ -109,15 +144,25 @@ function normalizeOffseasonReport(report: DynastyState["offseasonReport"]): Dyna
 function normalizeRankings(rankings: DynastyState["rankings"] | undefined, teams: DynastyState["teams"], state: DynastyState): PollSnapshot[] {
   if (!rankings?.length) return [createPollSnapshot(teams, state.calendarYear, state.week, state.phase).poll];
   return rankings.map((poll) => {
-    if (poll.allEntries?.length === teams.length) return poll;
+    const movedIn = poll.movedIn ?? [];
+    const movedOut = poll.movedOut ?? [];
+    if (poll.allEntries?.length === teams.length) return { ...poll, movedIn, movedOut };
     const rebuilt = createPollSnapshot(teams, poll.year, poll.week, poll.phase).poll;
     return {
       ...rebuilt,
-      entries: poll.entries,
-      movedIn: poll.movedIn,
-      movedOut: poll.movedOut.map((entry) => rebuilt.allEntries.find((candidate) => candidate.teamId === entry.teamId) ?? entry),
+      entries: poll.entries ?? rebuilt.entries,
+      movedIn,
+      movedOut: movedOut.map((entry) => rebuilt.allEntries.find((candidate) => candidate.teamId === entry.teamId) ?? entry),
     };
   });
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function fallbackHelmetIndex(teamId: string, index: number): number {
