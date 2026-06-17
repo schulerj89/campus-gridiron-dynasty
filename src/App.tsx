@@ -1264,7 +1264,7 @@ function Schedule({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
   const [selectedGame, setSelectedGame] = useState<Game | undefined>();
   const matchupPreview = buildMatchupPreview(state);
-  const games = state.schedule.filter((game) => game.homeTeamId === userTeam.id || game.awayTeamId === userTeam.id || game.week === state.week).slice(0, 24);
+  const games = scheduleGamesForDisplay(state, userTeam.id);
   const standings = [...state.teams]
     .filter((team) => team.conferenceId === userTeam.conferenceId)
     .sort((a, b) => b.season.confWins - a.season.confWins || a.season.confLosses - b.season.confLosses || b.season.wins - a.season.wins);
@@ -1313,6 +1313,20 @@ function Schedule({ state }: { state: DynastyState }) {
       {selectedGame && <GameModal game={selectedGame} teams={state.teams} onClose={() => setSelectedGame(undefined)} />}
     </>
   );
+}
+
+function scheduleGamesForDisplay(state: DynastyState, userTeamId: string): Game[] {
+  const gamesById = new Map([...state.schedule, ...(state.playoff?.games ?? [])].map((game) => [game.id, game]));
+  return [...gamesById.values()]
+    .filter((game) => game.homeTeamId === userTeamId || game.awayTeamId === userTeamId || game.week === state.week)
+    .sort((a, b) => {
+      const userGameDelta = Number(b.homeTeamId === userTeamId || b.awayTeamId === userTeamId) - Number(a.homeTeamId === userTeamId || a.awayTeamId === userTeamId);
+      if (userGameDelta) return userGameDelta;
+      const currentWeekDelta = Number(b.week === state.week) - Number(a.week === state.week);
+      if (currentWeekDelta) return currentWeekDelta;
+      return a.week - b.week || a.id.localeCompare(b.id);
+    })
+    .slice(0, 24);
 }
 
 function MatchupPreviewPanel({ preview, testId }: { preview?: MatchupPreviewData; testId: string }) {

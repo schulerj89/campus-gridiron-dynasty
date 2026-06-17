@@ -32,6 +32,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
+- The Schedule tab should display regular-season games and postseason playoff games with box-score access.
 - Program record book summaries should be calculated from completed user-team history, not stored as separate mutable dynasty state.
 - Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.
@@ -60,7 +61,7 @@ The smoke script chooses an available preview port and smoke specs use fixed see
 ## QA Expectations
 
 - Use the Debug tab for forced playoff, forced award, forced walk-on need, auto recruit, and multi-season checks.
-- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, player modal, recruiting needs, matchup previews, program record book, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, walk-ons, preseason progression, program review, and mobile dashboard coverage.
+- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, player modal, recruiting needs, matchup previews, postseason schedule, program record book, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, walk-ons, preseason progression, program review, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
 ## UI Organization

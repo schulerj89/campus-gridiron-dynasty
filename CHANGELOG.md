@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.6 - 2026-06-17
+
+- Fixed the Schedule tab so postseason playoff games appear alongside regular-season games.
+- Prioritized user-team games and current-week fillers in the Schedule table while preserving box-score drill-in.
+- Added smoke coverage and a screenshot for postseason Schedule rows with fictional bowl names.
+
 ## 1.4.5 - 2026-06-17
 
 - Fixed signing day so it no longer trims returning players before the offseason departure list is applied.

@@ -51,6 +51,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/coach-pool-postseason-desktop.png`
 - `artifacts/screenshots/box-score-desktop.png`
 - `artifacts/screenshots/schedule-matchup-preview-desktop.png`
+- `artifacts/screenshots/schedule-postseason-desktop.png`
 - `artifacts/screenshots/player-of-week-desktop.png`
 - `artifacts/screenshots/conference-player-of-week-desktop.png`
 - `artifacts/screenshots/leaderboard-desktop.png`
@@ -110,6 +111,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Signing-day recruits are incoming freshmen: they do not advance class year or gain offseason development until after kickoff clears the incoming marker.
 - Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.
 - Weekly matchup previews should be derived from pending user games and existing team/unit ratings; do not hand-author matchup outcomes.
+- The Schedule tab should include postseason playoff games and keep box-score drill-in available.
 - Program record book totals should be derived from completed user-team history and never maintained as duplicate state.
 - Completed season history should store only current-season award names; player career award lists must not be re-counted in later seasons.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before the app renders or advances.

@@ -74,8 +74,9 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Schedule" }).click();
   await expect(page.getByTestId("schedule-matchup-preview")).toContainText("Matchup Preview");
   await page.getByTestId("schedule-matchup-preview").screenshot({ path: path.join(screenshotDir, "schedule-matchup-preview-desktop.png") });
-  await expect(page.getByTestId("game-row").first()).toContainText(/W1/);
-  await page.getByTestId("game-row").first().click();
+  const completedWeekOneRow = page.getByTestId("game-row").filter({ hasText: /W1/ }).first();
+  await expect(completedWeekOneRow).toBeVisible();
+  await completedWeekOneRow.click();
   await expect(page.getByTestId("box-score-modal")).toBeVisible();
   await expect(page.getByTestId("box-score-modal")).toContainText("PaTD");
   await page.getByTestId("box-score-modal").screenshot({ path: path.join(screenshotDir, "box-score-desktop.png") });
@@ -128,6 +129,9 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Overview" }).click();
   await expect(page.getByTestId("dashboard-playoff-bracket")).toBeVisible();
   await page.getByTestId("dashboard-playoff-bracket").screenshot({ path: path.join(screenshotDir, "dashboard-playoff-bracket-desktop.png") });
+  await page.getByRole("button", { name: "Schedule" }).click();
+  await expect(page.getByTestId("game-row").first()).toContainText(/Bowl/);
+  await page.screenshot({ path: path.join(screenshotDir, "schedule-postseason-desktop.png"), fullPage: true });
   await page.getByRole("button", { name: "Program" }).click();
   await expect(page.getByTestId("coach-pool-panel")).toBeVisible();
   await page.getByTestId("coach-pool-panel").screenshot({ path: path.join(screenshotDir, "coach-pool-postseason-desktop.png") });
