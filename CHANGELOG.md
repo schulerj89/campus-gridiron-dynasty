@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.3.4 - 2026-06-17
+
+- Fixed coach-pool hiring so the displaced user coach returns to the available pool instead of disappearing.
+- Added a postseason hiring regression covering installed, removed, and returned coach states.
+- Refreshed smoke screenshots with the visible patch version.
+
 ## 1.3.3 - 2026-06-17
 
 - Added `npm run release:check` to verify package metadata, lockfile metadata, visible app version, and latest changelog heading agree.

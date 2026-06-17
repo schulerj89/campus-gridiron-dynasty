@@ -109,6 +109,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Completed season history should store only current-season award names; player career award lists must not be re-counted in later seasons.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before the app renders or advances.
 - Smoke tests should use the repo-local runner and explicit seed query params; do not reuse an arbitrary server on the preview port.
+- Hiring from the coach pool should return the displaced user coach to the pool with no `hiredBy` assignment.
 - The game should stay playable on WebKit and on mobile-width screens.
 
 ## Research Notes

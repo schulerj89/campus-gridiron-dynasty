@@ -215,6 +215,22 @@ describe("dynasty flow", () => {
     expect(updated).toBe(state);
   });
 
+  it("returns the displaced user coach to the pool when hiring staff", () => {
+    const state = { ...createDynasty(9032), phase: "postseason" as const };
+    const hiredCoach = state.coachPool.find((coach) => coach.role === "head")!;
+    const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    const displacedCoach = userTeam.coaches.head;
+
+    const updated = hireCoach(state, hiredCoach.id);
+    const updatedTeam = updated.teams.find((team) => team.id === state.userTeamId)!;
+
+    expect(updatedTeam.coaches.head.id).toBe(hiredCoach.id);
+    expect(updatedTeam.coaches.head.hiredBy).toBe(state.userTeamId);
+    expect(updated.coachPool.some((coach) => coach.id === hiredCoach.id)).toBe(false);
+    expect(updated.coachPool.find((coach) => coach.id === displacedCoach.id)?.hiredBy).toBeUndefined();
+    expect(updated.coachPool).toHaveLength(state.coachPool.length);
+  });
+
   it("can smoke simulate multiple seasons", () => {
     const state = createDynasty(9123);
     const advanced = simulateSeasons(state, 3);

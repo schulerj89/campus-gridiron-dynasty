@@ -250,6 +250,9 @@ export function hireCoach(state: DynastyState, coachId: string): DynastyState {
   if (state.phase !== "postseason" && state.phase !== "offseason") return state;
   const coach = state.coachPool.find((candidate) => candidate.id === coachId);
   if (!coach) return state;
+  const userTeam = state.teams.find((team) => team.id === state.userTeamId);
+  if (!userTeam) return state;
+  const displacedCoach = userTeam.coaches[coach.role];
   const teams = state.teams.map((team) => {
     if (team.id !== state.userTeamId) return team;
     return {
@@ -263,7 +266,10 @@ export function hireCoach(state: DynastyState, coachId: string): DynastyState {
   return {
     ...state,
     teams,
-    coachPool: state.coachPool.filter((candidate) => candidate.id !== coachId),
+    coachPool: [
+      ...state.coachPool.filter((candidate) => candidate.id !== coachId && candidate.id !== displacedCoach.id),
+      { ...displacedCoach, hiredBy: undefined },
+    ],
     debugLog: [`Hired ${coach.name} as ${coach.role} coach.`, ...state.debugLog].slice(0, 20),
   };
 }
