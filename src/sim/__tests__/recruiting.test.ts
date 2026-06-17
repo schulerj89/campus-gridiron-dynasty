@@ -1,7 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
 import { advanceWeek } from "../dynasty";
-import { addRecruitToBoard, autoRecruit, OFFER_COST, offerScholarship, PITCH_COST, isPipelineRecruit, pitchRecruit, SCOUT_COST, scoutRecruit, signRecruitingClass } from "../recruiting";
+import {
+  addRecruitToBoard,
+  autoRecruit,
+  OFFER_COST,
+  offerScholarship,
+  PITCH_COST,
+  isPipelineRecruit,
+  pitchRecruit,
+  removeRecruitFromBoard,
+  rescindScholarship,
+  SCOUT_COST,
+  scoutRecruit,
+  signRecruitingClass,
+} from "../recruiting";
 
 describe("recruiting", () => {
   it("fills a smart board from team needs when auto recruit runs", () => {
@@ -9,6 +22,45 @@ describe("recruiting", () => {
     const recruited = autoRecruit(state, "test auto");
     expect(recruited.recruiting.board.length).toBeGreaterThan(0);
     expect(recruited.recruiting.pointsRemaining).toBeLessThan(state.recruiting.pointsRemaining);
+  });
+
+  it("balances auto-recruit board targets across positions instead of only chasing the largest need", () => {
+    const state = createDynasty(4568);
+    const teams = state.teams.map((team) =>
+      team.id === state.userTeamId
+        ? {
+            ...team,
+            roster: team.roster.map((player) => ({
+              ...player,
+              year: player.position === "OL" ? ("SR" as const) : ("FR" as const),
+            })),
+          }
+        : team,
+    );
+    const recruited = autoRecruit(
+      {
+        ...state,
+        teams,
+        recruiting: {
+          ...state.recruiting,
+          board: [],
+          investedByRecruit: {},
+          pointsRemaining: state.recruiting.seasonBudget,
+          pointsSpent: 0,
+        },
+      },
+      "test auto",
+    );
+    const boardRecruits = recruited.recruiting.board.map((id) => recruited.recruits.find((recruit) => recruit.id === id)!);
+    const positions = boardRecruits.map((recruit) => recruit.position);
+    const positionCounts = positions.reduce<Record<string, number>>((counts, position) => {
+      counts[position] = (counts[position] ?? 0) + 1;
+      return counts;
+    }, {});
+
+    expect(new Set(positions).size).toBeGreaterThanOrEqual(8);
+    expect(positionCounts.OL).toBeGreaterThan(0);
+    expect(positionCounts.OL).toBeLessThan(boardRecruits.length / 2);
   });
 
   it("spends points to unlock attributes and gem or bust information", () => {
@@ -37,6 +89,29 @@ describe("recruiting", () => {
 
     const duplicate = offerScholarship(state, recruit.id);
     expect(duplicate.recruiting.pointsRemaining).toBe(state.recruiting.pointsRemaining);
+  });
+
+  it("can rescind scholarships and remove recruits from the board without refunding sunk points", () => {
+    let state = createDynasty(5684);
+    const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;
+
+    state = offerScholarship(state, recruit.id);
+    state = scoutRecruit(state, recruit.id);
+    const beforeRescindPoints = state.recruiting.pointsRemaining;
+    const beforeRescindSpent = state.recruiting.pointsSpent;
+
+    state = rescindScholarship(state, recruit.id);
+    const rescinded = state.recruits.find((candidate) => candidate.id === recruit.id)!;
+    expect(rescinded.offers).not.toContain(state.userTeamId);
+    expect(state.recruiting.pointsRemaining).toBe(beforeRescindPoints);
+    expect(state.recruiting.pointsSpent).toBe(beforeRescindSpent);
+    expect(state.recruiting.investedByRecruit[recruit.id]).toBe(OFFER_COST + SCOUT_COST);
+
+    state = removeRecruitFromBoard(state, recruit.id);
+    expect(state.recruiting.board).not.toContain(recruit.id);
+    expect(state.recruiting.investedByRecruit[recruit.id]).toBeUndefined();
+    expect(state.recruiting.pointsRemaining).toBe(beforeRescindPoints);
+    expect(state.recruiting.pointsSpent).toBe(beforeRescindSpent);
   });
 
   it("requires an offer before pitching and blocks repeat pitches until the next week", () => {

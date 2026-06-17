@@ -97,7 +97,8 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
 - Recruiting scholarships are one-time offers that add prospects to the board, and pitches require an offer with a one-week cooldown per recruit.
 - Recruiting action points are tracked by recruit and return when a board prospect commits.
-- Auto-recruit should fill the board, use scouting information when choosing targets, and reallocate refunded points after commitments.
+- Removing a recruit from the board or rescinding a scholarship frees the board/offer state but does not immediately refund sunk recruiting points.
+- Auto-recruit should fill the board, balance position targets against team needs, use scouting information when choosing targets, and reallocate refunded points after commitments.
 - Recruits committed to other programs remain visible in the database with destination indicators but cannot be added, scouted, or pitched.
 - Offseason advancement should expose departures, four late recruiting weeks, signing day, preseason player development, and kickoff as distinct steps.
 - Teams should stay at or above the 85-player roster floor after offseason turnover; add labeled walk-ons capped around 60 overall only when recruiting cannot fill the roster.

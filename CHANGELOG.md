@@ -2,6 +2,14 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.0 - 2026-06-17
+
+- Added recruiting board removal and scholarship rescind actions for prospects the user no longer wants to pursue.
+- Kept recruiting points as sunk costs when a user removes a recruit or rescinds a scholarship, preserving commitment refunds as the only point-return path.
+- Reworked auto-recruit board construction to balance position targets and roster needs instead of over-filling one high-need position.
+- Added regression coverage for board control actions and balanced auto-recruit position mixes.
+- Refreshed smoke screenshots with the visible minor version.
+
 ## 1.3.6 - 2026-06-17
 
 - Hardened legacy save loading against stale user-team, recruit offer, recruit interest, commitment, board, and investment IDs.

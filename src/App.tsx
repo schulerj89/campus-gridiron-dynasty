@@ -36,7 +36,21 @@ import {
   Wrench,
   X,
 } from "lucide-react";
-import { addRecruitToBoard, autoRecruit, gemBustFor, isPipelineRecruit, OFFER_COST, offerScholarship, pitchRecruit, PITCH_COST, positionNeeds, SCOUT_COST, scoutRecruit } from "./sim/recruiting";
+import {
+  addRecruitToBoard,
+  autoRecruit,
+  gemBustFor,
+  isPipelineRecruit,
+  OFFER_COST,
+  offerScholarship,
+  pitchRecruit,
+  PITCH_COST,
+  positionNeeds,
+  removeRecruitFromBoard,
+  rescindScholarship,
+  SCOUT_COST,
+  scoutRecruit,
+} from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
@@ -1051,6 +1065,7 @@ function RecruitCard({
 }) {
   const known = recruit.knownAttributes.slice(0, 5);
   const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
+  const lockedCommitment = Boolean(recruit.committedTeamId);
   const offered = recruit.offers?.includes(userTeam.id);
   const pitchedThisWeek = recruit.lastPitchWeek === week;
   return (
@@ -1078,18 +1093,28 @@ function RecruitCard({
         <button className="secondary" onClick={() => onOpen(recruit.id)}>
           Details
         </button>
-        {!onBoard && (
-          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || committedElsewhere}>
+        {onBoard ? (
+          <button className="secondary" onClick={() => onUpdate((state) => removeRecruitFromBoard(state, recruit.id))}>
+            Remove
+          </button>
+        ) : (
+          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || lockedCommitment}>
             Add
           </button>
         )}
-        <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={offered || boardFull || pointsRemaining < OFFER_COST || committedElsewhere}>
-          Offer
-        </button>
-        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || committedElsewhere}>
+        {offered ? (
+          <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={lockedCommitment}>
+            Rescind
+          </button>
+        ) : (
+          <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={(boardFull && !onBoard) || pointsRemaining < OFFER_COST || lockedCommitment}>
+            Offer
+          </button>
+        )}
+        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || lockedCommitment}>
           Scout
         </button>
-        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || committedElsewhere}>
+        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || lockedCommitment}>
           Pitch
         </button>
       </div>
@@ -1121,6 +1146,7 @@ function RecruitModal({
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const offered = recruit.offers?.includes(userTeam.id);
   const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
+  const lockedCommitment = Boolean(recruit.committedTeamId);
   const pitchedThisWeek = recruit.lastPitchWeek === week;
   const topSchools = Object.entries(recruit.interest)
     .sort((a, b) => b[1] - a[1])
@@ -1202,18 +1228,28 @@ function RecruitModal({
               {recruit.knownAttributes.length ? recruit.knownAttributes.slice(0, 6).map((key) => <span key={key}>{shortAttr(key)} {recruit.attributes[key]}</span>) : <span>No ratings unlocked</span>}
             </div>
             <div className="button-row">
-              {!onBoard && (
-                <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || committedElsewhere}>
+              {onBoard ? (
+                <button className="secondary" onClick={() => onUpdate((state) => removeRecruitFromBoard(state, recruit.id))}>
+                  Remove Board
+                </button>
+              ) : (
+                <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || lockedCommitment}>
                   Add Board
                 </button>
               )}
-              <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={offered || boardFull || pointsRemaining < OFFER_COST || committedElsewhere}>
-                Offer Scholarship
-              </button>
-              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || committedElsewhere}>
+              {offered ? (
+                <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={lockedCommitment}>
+                  Rescind Scholarship
+                </button>
+              ) : (
+                <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={(boardFull && !onBoard) || pointsRemaining < OFFER_COST || lockedCommitment}>
+                  Offer Scholarship
+                </button>
+              )}
+              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || lockedCommitment}>
                 Scout
               </button>
-              <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || committedElsewhere}>
+              <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || lockedCommitment}>
                 Pitch
               </button>
             </div>
