@@ -14,6 +14,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Initial player ratings and attributes are capped at 93.
 - Position-specific attribute caps in `src/sim/ratings.ts` limit unrelated skills for each position.
 - Recruit hidden trait bands live in `src/sim/ratings.ts`; elite recruit entry cap is 83.
+- WR and CB recruit speed may exceed the recruit entry cap as an athletic exception up to 93, but recruit overall and non-speed attributes must stay inside the trait cap.
 - Each recruiting class should include thousands of recruits with about 2-4% five-stars and 10-20% four-stars.
 - Recruiting scholarships are tracked per recruit, add prospects to the board, and gate one-pitch-per-week recruiting actions.
 - Recruiting action points are tracked per recruit and return when a board prospect commits.
@@ -35,6 +36,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Signing-day recruits are incoming freshmen and must be excluded from preseason development/year progression until kickoff clears the marker.
 - Player hot/cold streaks should be rare, temporary, and applied through effective ratings rather than permanent base ratings.
 - Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.
+- Individual receiver matchups should pair top WRs against top CBs and influence target share, yards, touchdowns, and play-by-play outcomes.
 - Offensive strategies should affect pass/run volume while still adjusting toward roster strength and game state.
 - QB completion rates should be centered on accuracy, awareness, receivers, pass protection, opposing coverage, and strategy; do not let average passers get pushed into an automatic high-completion clamp.
 - Offensive line quality must materially affect rushing output, pass efficiency, and sack prevention in both box scores and down-by-down play-by-play.

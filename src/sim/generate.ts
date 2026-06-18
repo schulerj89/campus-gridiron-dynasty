@@ -212,7 +212,7 @@ export function createRecruitClass(rng: Rng, teams: Team[], count = 2600): Recru
     const state = `${rng.pick(STATES)}`;
     const hometown = `${rng.pick(CITIES)}, ${state}`;
     const attributes = createAttributes(rng, position, targetOverall, 83);
-    const overall = calculateOverall(position, attributes);
+    const overall = clamp(calculateOverall(position, attributes), 20, band.entryMax);
     const potential = rng.nextInt(band.potentialMin, band.potentialMax);
     const interest = createRecruitInterest(rng, teams, state, stars);
     const topSchools = sortSchoolsByInterest(interest).slice(0, stars === 5 ? 14 : 10);
@@ -418,7 +418,66 @@ function createAttributes(rng: Rng, position: Position, targetOverall: number, c
     raw[key] = clamp(base, 20, cap);
   }
   const normalized = normalizeAttributesForPosition(position, raw, targetOverall);
-  return applyPositionCaps(position, Object.fromEntries(Object.entries(normalized).map(([key, value]) => [key, clamp(value, 20, cap)])) as Attributes, cap);
+  const capped = Object.fromEntries(Object.entries(normalized).map(([key, value]) => [key, clamp(value, 20, cap)])) as Attributes;
+  return applyGenerationCaps(position, applyAthleticArchetype(rng, position, capped, targetOverall, cap), cap);
+}
+
+function applyAthleticArchetype(rng: Rng, position: Position, attributes: Attributes, targetOverall: number, cap: number): Attributes {
+  const speedCap = athleticSpeedCap(position, cap);
+  if (position !== "WR" && position !== "CB") return attributes;
+
+  const next = { ...attributes };
+  const archetype = rng.weighted<"burner" | "balanced" | "possession">([
+    { value: "burner", weight: 28 },
+    { value: "balanced", weight: 52 },
+    { value: "possession", weight: 20 },
+  ]);
+
+  if (position === "CB") {
+    if (archetype === "burner") {
+      next.speed = Math.max(next.speed, clamp(targetOverall + rng.nextInt(7, 15), 20, speedCap));
+      next.interception = clamp(next.interception - rng.nextInt(0, 3), 20, cap);
+      next.defAwareness = clamp(next.defAwareness - rng.nextInt(0, 2), 20, cap);
+      return next;
+    }
+    if (archetype === "balanced") {
+      next.speed = Math.max(next.speed, clamp(targetOverall + rng.nextInt(2, 7), 20, speedCap));
+      return next;
+    }
+    next.defAwareness = Math.max(next.defAwareness, clamp(targetOverall + rng.nextInt(2, 7), 20, cap));
+    next.interception = Math.max(next.interception, clamp(targetOverall + rng.nextInt(2, 7), 20, cap));
+    return next;
+  }
+
+  if (archetype === "burner") {
+    next.speed = Math.max(next.speed, clamp(targetOverall + rng.nextInt(8, 16), 20, speedCap));
+    next.catching = clamp(next.catching - rng.nextInt(1, 5), 20, cap);
+    next.routeRunning = clamp(next.routeRunning - rng.nextInt(0, 3), 20, cap);
+    next.awareness = clamp(next.awareness - rng.nextInt(0, 3), 20, cap);
+    return next;
+  }
+
+  if (archetype === "balanced") {
+    next.speed = Math.max(next.speed, clamp(targetOverall + rng.nextInt(2, 8), 20, speedCap));
+    return next;
+  }
+
+  next.catching = Math.max(next.catching, clamp(targetOverall + rng.nextInt(3, 8), 20, cap));
+  next.routeRunning = Math.max(next.routeRunning, clamp(targetOverall + rng.nextInt(2, 7), 20, cap));
+  return next;
+}
+
+function applyGenerationCaps(position: Position, attributes: Attributes, cap: number): Attributes {
+  const capped = applyPositionCaps(position, attributes, cap);
+  const speedCap = athleticSpeedCap(position, cap);
+  if (speedCap > cap) {
+    capped.speed = clamp(attributes.speed, 20, speedCap);
+  }
+  return capped;
+}
+
+function athleticSpeedCap(position: Position, cap: number): number {
+  return cap < 93 && (position === "WR" || position === "CB") ? 93 : cap;
 }
 
 function rollStars(rng: Rng): 1 | 2 | 3 | 4 | 5 {

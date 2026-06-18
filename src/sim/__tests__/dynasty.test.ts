@@ -353,9 +353,9 @@ describe("dynasty flow", () => {
     const userTeam = base.teams.find((team) => team.id === base.userTeamId)!;
     const breakoutIds = userTeam.roster
       .filter((player) => player.year !== "SR")
-      .slice(0, 8)
+      .slice(0, 16)
       .map((player) => player.id);
-    const tunedTeams = base.teams.map((team) => (team.id === base.userTeamId ? tuneDevelopmentTeam(team, new Set(breakoutIds)) : team));
+    const tunedTeams = base.teams.map((team) => (team.id === base.userTeamId ? tuneDevelopmentTeam(team, new Set(breakoutIds), 99, 99, 99) : team));
     const state: DynastyState = {
       ...base,
       rngState: 42,

@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.19.0 - 2026-06-18
+
+- Added WR and CB athletic archetypes so speed varies more realistically while preserving recruit overall and non-speed rating caps.
+- Added individual WR/TE-vs-coverage matchup multipliers for target share, receiving yards, receiving touchdowns, play-by-play target selection, completion chance, and pass-play yardage.
+- Added regression coverage for WR/CB speed exceptions and controlled elite receiver usage against weak versus shutdown corner matchups.
+
 ## 1.18.0 - 2026-06-18
 
 - Made offensive line quality directly influence pass yards per attempt, play-by-play sack chance, and passing completion windows.

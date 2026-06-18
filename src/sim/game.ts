@@ -54,6 +54,7 @@ interface PlayContext {
   kicker?: Player;
   returners: Player[];
   defenders: Player[];
+  receiverMatchups: Map<string, ReceiverMatchup>;
   pancakeBlockers: string[];
   passProtectionEdge: number;
   passRemaining: number;
@@ -79,6 +80,14 @@ interface ScriptedPlay {
   distance?: number;
   yardLine?: string;
   yards?: number;
+}
+
+interface ReceiverMatchup {
+  defender?: Player;
+  edge: number;
+  targetMultiplier: number;
+  yardMultiplier: number;
+  completionModifier: number;
 }
 
 const STREAK_FOCUS: Record<Position, AttributeKey[]> = {
@@ -294,8 +303,9 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
       }
     });
   }
-  const receivingWeights = receivingUsageWeights(targets);
-  const targetWeights = targetUsageWeights(targets);
+  const receiverMatchups = receiverCoverageMatchups(targets, opponent.roster);
+  const receivingWeights = receivingUsageWeights(targets, receiverMatchups);
+  const targetWeights = targetUsageWeights(targets, receiverMatchups);
   for (const [playerId, value] of splitAmount(targets, targetAttempts, (player) => targetWeights.get(player.id) ?? receivingSkill(player))) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.receivingTargets += value;
@@ -434,24 +444,26 @@ function rotationAt(rng: Rng, roster: Player[], positions: string[], count: numb
   return uniquePlayers([...core, ...extra]).slice(0, count);
 }
 
-function receivingUsageWeights(targets: Player[]): Map<string, number> {
+function receivingUsageWeights(targets: Player[], matchups = new Map<string, ReceiverMatchup>()): Map<string, number> {
   const roleMultipliers = [1.85, 1.35, 1, 0.78, 0.62, 0.5, 0.42];
   const ranked = [...targets].sort((a, b) => receivingSkill(b) - receivingSkill(a));
   return new Map(
     ranked.map((player, index) => {
       const eliteBonus = player.position === "WR" && effectiveOverall(player) >= 90 ? 1.12 : 1;
-      return [player.id, receivingSkill(player) * (roleMultipliers[index] ?? 0.42) * eliteBonus];
+      const matchup = matchups.get(player.id);
+      return [player.id, receivingSkill(player) * (roleMultipliers[index] ?? 0.42) * eliteBonus * (matchup?.yardMultiplier ?? 1)];
     }),
   );
 }
 
-function targetUsageWeights(targets: Player[]): Map<string, number> {
+function targetUsageWeights(targets: Player[], matchups = new Map<string, ReceiverMatchup>()): Map<string, number> {
   const roleMultipliers = [1.58, 1.28, 1, 0.86, 0.72, 0.6, 0.52];
   const ranked = [...targets].sort((a, b) => receivingSkill(b) - receivingSkill(a));
   return new Map(
     ranked.map((player, index) => {
       const eliteBonus = player.position === "WR" && effectiveOverall(player) >= 90 ? 1.04 : 1;
-      return [player.id, receivingSkill(player) * (roleMultipliers[index] ?? 0.52) * eliteBonus];
+      const matchup = matchups.get(player.id);
+      return [player.id, receivingSkill(player) * (roleMultipliers[index] ?? 0.52) * eliteBonus * (matchup?.targetMultiplier ?? 1)];
     }),
   );
 }
@@ -459,6 +471,46 @@ function targetUsageWeights(targets: Player[]): Map<string, number> {
 function receivingSkill(player: Player): number {
   const attributes = effectiveAttributes(player);
   return effectiveOverall(player) + attributes.catching * 0.55 + attributes.routeRunning * 0.5 + attributes.speed * 0.25 + attributes.awareness * 0.15;
+}
+
+function receiverCoverageMatchups(targets: Player[], opponentRoster: Player[]): Map<string, ReceiverMatchup> {
+  const receivers = [...targets].sort((a, b) => receivingSkill(b) - receivingSkill(a));
+  const corners = topAt(opponentRoster, ["CB"], 5).sort((a, b) => coverageSkill(b) - coverageSkill(a));
+  const safeties = topAt(opponentRoster, ["S"], 4).sort((a, b) => coverageSkill(b) - coverageSkill(a));
+  const linebackers = topAt(opponentRoster, ["LB"], 4).sort((a, b) => coverageSkill(b) - coverageSkill(a));
+  const fallback = uniquePlayers([...corners, ...safeties, ...linebackers]).sort((a, b) => coverageSkill(b) - coverageSkill(a));
+  let wideoutIndex = 0;
+  let tightEndIndex = 0;
+
+  return new Map(
+    receivers.map((receiver) => {
+      const defender =
+        receiver.position === "WR"
+          ? corners[Math.min(wideoutIndex++, Math.max(0, corners.length - 1))] ?? fallback[0]
+          : safeties[tightEndIndex++] ?? linebackers[0] ?? fallback[0];
+      const edge = clamp(receiverMatchupSkill(receiver) - (defender ? coverageSkill(defender) : 65), -70, 70);
+      return [
+        receiver.id,
+        {
+          defender,
+          edge,
+          targetMultiplier: clamp(1 + edge / 175, 0.68, 1.38),
+          yardMultiplier: clamp(1 + edge / 165, 0.68, 1.42),
+          completionModifier: clamp(edge / 520, -0.1, 0.1),
+        },
+      ];
+    }),
+  );
+}
+
+function receiverMatchupSkill(player: Player): number {
+  const attributes = effectiveAttributes(player);
+  return effectiveOverall(player) * 0.32 + attributes.speed * 0.36 + attributes.routeRunning * 0.38 + attributes.catching * 0.22 + attributes.awareness * 0.12;
+}
+
+function coverageSkill(player: Player): number {
+  const attributes = effectiveAttributes(player);
+  return effectiveOverall(player) * 0.32 + attributes.speed * 0.36 + attributes.defAwareness * 0.36 + attributes.interception * 0.24 + attributes.tackle * 0.06;
 }
 
 function uniquePlayers(players: Player[]): Player[] {
@@ -704,6 +756,7 @@ function buildPlayByPlay(rng: Rng, home: Team, away: Team, homeProfile: TeamGame
 function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGameProfile, side: "home" | "away"): PlayContext {
   const units = teamUnitRatings(team.roster);
   const opponentUnits = teamUnitRatings(opponent.roster);
+  const targets = rotationAt(rng, team.roster, ["WR", "TE"], 7);
   return {
     team,
     opponent,
@@ -711,11 +764,12 @@ function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGa
     profile,
     qb: topAt(team.roster, ["QB"], 1)[0],
     backs: rotationAt(rng, team.roster, ["HB"], 3),
-    targets: rotationAt(rng, team.roster, ["WR", "TE"], 7),
+    targets,
     punter: topAt(team.roster, ["P"], 1)[0],
     kicker: topAt(team.roster, ["K"], 1)[0],
     returners: uniquePlayers([...topAt(opponent.roster, ["WR"], 3), ...topAt(opponent.roster, ["CB"], 2), ...topAt(opponent.roster, ["HB"], 1)]),
     defenders: uniquePlayers([...topAt(opponent.roster, ["CB"], 3), ...topAt(opponent.roster, ["S"], 3), ...topAt(opponent.roster, ["LB"], 3), ...topAt(opponent.roster, ["DL"], 3)]),
+    receiverMatchups: receiverCoverageMatchups(targets, opponent.roster),
     pancakeBlockers: [...profile.pancakeBlockers],
     passProtectionEdge: units.blocking - opponentUnits.defense,
     passRemaining: profile.passAttempts,
@@ -862,7 +916,9 @@ function buildNormalPlay(rng: Rng, context: PlayContext, state: DriveState): Scr
 function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay {
   context.passRemaining = Math.max(0, context.passRemaining - 1);
   const quarterback = context.qb?.name ?? "The quarterback";
-  const target = selectTarget(rng, context)?.name ?? "the receiver";
+  const targetPlayer = selectTarget(rng, context);
+  const target = targetPlayer?.name ?? "the receiver";
+  const matchup = targetPlayer ? context.receiverMatchups.get(targetPlayer.id) : undefined;
   const qbAccuracy = context.qb ? effectiveAttributes(context.qb).accuracy : 70;
   const pressurePenalty = -context.passProtectionEdge / 420;
 
@@ -875,11 +931,12 @@ function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
     };
   }
 
-  const completionChance = clamp(0.58 + (qbAccuracy - 70) / 180 + context.passProtectionEdge / 560 - (state.distance >= 10 ? 0.04 : 0), 0.44, 0.78);
+  const completionChance = clamp(0.58 + (qbAccuracy - 70) / 180 + context.passProtectionEdge / 560 + (matchup?.completionModifier ?? 0) - (state.distance >= 10 ? 0.04 : 0), 0.42, 0.8);
   if (!rng.chance(completionChance)) {
+    const coveragePhrase = matchup?.defender ? ` under coverage from ${matchup.defender.name}` : "";
     return {
       ...basePlay(context, "pass", 0, state, 0),
-      description: `${quarterback} threw incomplete for ${target}.`,
+      description: `${quarterback} threw incomplete for ${target}${coveragePhrase}.`,
     };
   }
 
@@ -887,7 +944,8 @@ function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
   const baseGain = state.distance <= 3 ? rng.nextInt(2, 9) : rng.nextInt(4, 18);
   const explosive = rng.chance(0.14) ? rng.nextInt(10, 28) : 0;
   const conversionBoost = state.down === 3 && baseGain < state.distance && rng.chance(0.42) ? state.distance - baseGain + rng.nextInt(0, 7) : 0;
-  const yards = clamp(baseGain + explosive + conversionBoost, 0, maxGain);
+  const matchupYards = matchup ? Math.round(matchup.edge / 12) : 0;
+  const yards = clamp(baseGain + explosive + conversionBoost + matchupYards, 0, maxGain);
   return {
     ...basePlay(context, "pass", 0, state, yards),
     description: `${quarterback} completed to ${target} for ${yardPhrase(yards)}.`,
@@ -1010,7 +1068,7 @@ function selectRunner(rng: Rng, context: PlayContext): Player | undefined {
 }
 
 function selectTarget(rng: Rng, context: PlayContext): Player | undefined {
-  return weightedPlayer(rng, context.targets, (player) => receivingSkill(player));
+  return weightedPlayer(rng, context.targets, (player) => receivingSkill(player) * (context.receiverMatchups.get(player.id)?.targetMultiplier ?? 1));
 }
 
 function selectDefender(rng: Rng, context: PlayContext): Player | undefined {

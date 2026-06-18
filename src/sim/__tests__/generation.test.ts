@@ -42,10 +42,33 @@ describe("world generation", () => {
   it("caps initial player and recruit ratings", () => {
     const state = createDynasty(2345);
     const playerMax = Math.max(...state.teams.flatMap((team) => team.roster.map((player) => Math.max(player.overall, ...Object.values(player.attributes)))));
-    const recruitMax = Math.max(...state.recruits.map((recruit) => Math.max(recruit.overall, ...Object.values(recruit.attributes))));
+    const recruitOverallMax = Math.max(...state.recruits.map((recruit) => recruit.overall));
+    const recruitNonSpeedMax = Math.max(
+      ...state.recruits.flatMap((recruit) =>
+        Object.entries(recruit.attributes)
+          .filter(([key]) => !(key === "speed" && (recruit.position === "WR" || recruit.position === "CB")))
+          .map(([, value]) => value),
+      ),
+    );
+    const recruitAthleticSpeedMax = Math.max(...state.recruits.filter((recruit) => recruit.position === "WR" || recruit.position === "CB").map((recruit) => recruit.attributes.speed));
     expect(playerMax).toBeLessThanOrEqual(93);
-    expect(recruitMax).toBeLessThanOrEqual(83);
+    expect(recruitOverallMax).toBeLessThanOrEqual(83);
+    expect(recruitNonSpeedMax).toBeLessThanOrEqual(83);
+    expect(recruitAthleticSpeedMax).toBeLessThanOrEqual(93);
     expect(state.recruits.every((recruit) => !recruit.traitRevealed)).toBe(true);
+  });
+
+  it("creates wide receiver speed archetypes while preserving recruit caps", () => {
+    const state = createDynasty(2346);
+    const rosterReceiverSpeeds = state.teams.flatMap((team) => team.roster.filter((player) => player.position === "WR").map((player) => player.attributes.speed));
+    const recruitReceiverSpeeds = state.recruits.filter((recruit) => recruit.position === "WR").map((recruit) => recruit.attributes.speed);
+    const recruitCornerSpeeds = state.recruits.filter((recruit) => recruit.position === "CB").map((recruit) => recruit.attributes.speed);
+
+    expect(Math.max(...rosterReceiverSpeeds)).toBeGreaterThanOrEqual(90);
+    expect(rosterReceiverSpeeds.filter((speed) => speed >= 85).length).toBeGreaterThan(20);
+    expect(Math.max(...recruitReceiverSpeeds)).toBeGreaterThanOrEqual(88);
+    expect(Math.max(...recruitCornerSpeeds)).toBeGreaterThanOrEqual(88);
+    expect(Math.max(...recruitReceiverSpeeds, ...recruitCornerSpeeds)).toBeLessThanOrEqual(93);
   });
 
   it("normalizes invalid selected team ids to an existing team", () => {

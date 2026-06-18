@@ -34,6 +34,21 @@ describe("game simulation stat pacing", () => {
     expect(eliteTargetShare).toBeLessThanOrEqual(0.4);
   });
 
+  it("uses individual corner matchups to change elite receiver usage", () => {
+    const strongCorner = controlledCornerMatchupSetup(7134, "strong");
+    const weakCorner = controlledCornerMatchupSetup(7134, "weak");
+    const strongTotals = receiverMatchupTotals(strongCorner, 7340);
+    const weakTotals = receiverMatchupTotals(weakCorner, 7340);
+    const strongTargetShare = strongTotals.eliteTargets / strongTotals.teamTargets;
+    const weakTargetShare = weakTotals.eliteTargets / weakTotals.teamTargets;
+    const strongYardShare = strongTotals.eliteYards / strongTotals.teamYards;
+    const weakYardShare = weakTotals.eliteYards / weakTotals.teamYards;
+
+    expect(weakTargetShare).toBeGreaterThan(strongTargetShare + 0.03);
+    expect(weakYardShare).toBeGreaterThan(strongYardShare + 0.04);
+    expect(weakTotals.eliteYards).toBeGreaterThan(strongTotals.eliteYards);
+  });
+
   it("separates scoring kicks and records full down-by-down play-by-play totals", () => {
     const { teams, game } = controlledReceivingSetup(7104);
     let result = simulateGame(new Rng(7105), game, teams);
@@ -189,6 +204,54 @@ function controlledPassingStressSetup(seed: number): { teams: Team[]; game: Game
     return team;
   });
   return { teams, game: userGames[0]!, userTeamId };
+}
+
+function controlledCornerMatchupSetup(seed: number, corner: "strong" | "weak"): { teams: Team[]; game: Game; userTeamId: string; eliteReceiverId: string } {
+  const state = createDynasty(seed, "team-1");
+  const userTeamId = state.userTeamId;
+  const userGames = state.schedule.filter((game) => game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
+  const game = userGames[0]!;
+  const opponentId = game.homeTeamId === userTeamId ? game.awayTeamId : game.homeTeamId;
+  const userTeam = state.teams.find((team) => team.id === userTeamId)!;
+  const opponentTeam = state.teams.find((team) => team.id === opponentId)!;
+  const eliteReceiverId = userTeam.roster.find((player) => player.position === "WR")!.id;
+  const topCornerId = opponentTeam.roster.find((player) => player.position === "CB")!.id;
+  const teams = state.teams.map((team) => {
+    if (team.id === userTeamId) {
+      return {
+        ...team,
+        offensiveStrategy: "airRaid" as const,
+        roster: team.roster.map((player) => tuneMatchupUserPlayer(player, eliteReceiverId)),
+      };
+    }
+    if (team.id === opponentId) {
+      return {
+        ...team,
+        roster: team.roster.map((player) => tuneCornerMatchupOpponent(player, topCornerId, corner)),
+      };
+    }
+    return team;
+  });
+
+  return { teams, game, userTeamId, eliteReceiverId };
+}
+
+function receiverMatchupTotals(setup: { teams: Team[]; game: Game; userTeamId: string; eliteReceiverId: string }, seed: number): { eliteTargets: number; eliteYards: number; teamTargets: number; teamYards: number } {
+  return Array.from({ length: 16 }, (_, index) => index).reduce(
+    (totals, _, index) => {
+      const result = simulateGame(new Rng(seed + index), setup.game, setup.teams);
+      const userBox = teamBoxFor(result.game, setup.userTeamId)!;
+      const updatedUserTeam = result.teams.find((team) => team.id === setup.userTeamId)!;
+      const eliteReceiver = updatedUserTeam.roster.find((player) => player.id === setup.eliteReceiverId)!;
+      return {
+        eliteTargets: totals.eliteTargets + eliteReceiver.stats.receivingTargets,
+        eliteYards: totals.eliteYards + eliteReceiver.stats.receivingYards,
+        teamTargets: totals.teamTargets + userBox.totals.receivingTargets,
+        teamYards: totals.teamYards + userBox.totals.receivingYards,
+      };
+    },
+    { eliteTargets: 0, eliteYards: 0, teamTargets: 0, teamYards: 0 },
+  );
 }
 
 function controlledLineSetup(seed: number, line: "strong" | "weak"): { teams: Team[]; games: Game[]; userTeamId: string } {
@@ -371,6 +434,89 @@ function tuneStrongCoveragePlayer(player: Player): Player {
         ...player.attributes,
         tackle: Math.max(player.attributes.tackle, 86),
         defAwareness: Math.max(player.attributes.defAwareness, 84),
+      },
+    };
+  }
+  return player;
+}
+
+function tuneMatchupUserPlayer(player: Player, eliteReceiverId: string): Player {
+  if (player.id === eliteReceiverId) {
+    return {
+      ...player,
+      overall: 92,
+      attributes: {
+        ...player.attributes,
+        speed: 94,
+        catching: 94,
+        routeRunning: 94,
+        awareness: 90,
+      },
+    };
+  }
+  if (player.position === "QB") {
+    return {
+      ...player,
+      overall: 90,
+      attributes: {
+        ...player.attributes,
+        throwPower: 91,
+        accuracy: 91,
+        awareness: 90,
+      },
+    };
+  }
+  if (player.position === "WR" || player.position === "TE") {
+    return {
+      ...player,
+      overall: 75,
+      attributes: {
+        ...player.attributes,
+        speed: 75,
+        catching: 75,
+        routeRunning: 75,
+        awareness: 74,
+      },
+    };
+  }
+  if (player.position === "OL") {
+    return {
+      ...player,
+      overall: 82,
+      attributes: {
+        ...player.attributes,
+        runBlock: 82,
+        passBlock: 82,
+        awareness: 82,
+      },
+    };
+  }
+  return player;
+}
+
+function tuneCornerMatchupOpponent(player: Player, topCornerId: string, corner: "strong" | "weak"): Player {
+  if (player.position === "CB" || player.position === "S" || player.position === "LB") {
+    const topCornerValue = corner === "strong" && player.id === topCornerId ? 96 : 56;
+    return {
+      ...player,
+      overall: corner === "strong" && player.id === topCornerId ? 94 : 58,
+      attributes: {
+        ...player.attributes,
+        speed: topCornerValue,
+        defAwareness: topCornerValue,
+        interception: topCornerValue,
+        tackle: Math.max(player.attributes.tackle, 58),
+      },
+    };
+  }
+  if (player.position === "DL") {
+    return {
+      ...player,
+      overall: 72,
+      attributes: {
+        ...player.attributes,
+        tackle: 72,
+        defAwareness: 70,
       },
     };
   }
