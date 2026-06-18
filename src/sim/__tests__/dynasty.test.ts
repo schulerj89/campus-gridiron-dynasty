@@ -267,6 +267,24 @@ describe("dynasty flow", () => {
     expect(userReport?.walkOns.every((walkOn) => walkOn.overall <= 60)).toBe(true);
   }, 20_000);
 
+  it("keeps signing-day report player ids linked to roster players", () => {
+    let state = forceUserPlayoff(createDynasty(8936));
+    for (let week = 1; week <= 15; week += 1) {
+      state = advanceWeek(state);
+    }
+    for (let week = 0; week < 4; week += 1) {
+      state = advanceWeek(state);
+    }
+    state = advanceWeek(state);
+
+    expect(state.offseasonReport?.signingComplete).toBe(true);
+    for (const teamReport of state.offseasonReport?.teams ?? []) {
+      const team = state.teams.find((candidate) => candidate.id === teamReport.teamId)!;
+      const rosterIds = new Set(team.roster.map((player) => player.id));
+      expect(teamReport.signees.every((signee) => rosterIds.has(signee.playerId))).toBe(true);
+    }
+  }, 30_000);
+
   it("records only current-season awards in team history", () => {
     const state = createDynasty(8935);
     const prepared = {

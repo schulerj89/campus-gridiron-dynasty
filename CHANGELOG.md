@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.2 - 2026-06-18
+
+- Fixed signing-day report signee player IDs so they match the actual roster players created from recruits.
+- Added regression coverage that verifies every signee report entry links to a player on that team roster.
+
 ## 1.12.1 - 2026-06-18
 
 - Kept Program Blueprint Auto Build available before kickoff even when the current plan has no remaining points.

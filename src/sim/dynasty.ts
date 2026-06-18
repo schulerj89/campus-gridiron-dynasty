@@ -475,7 +475,7 @@ function runSigningDay(state: DynastyState): DynastyState {
   const signedState = signRecruitingClass(state);
   const { fullClassRankings, recruitingRankByTeam } = classRankingContext(signedState);
   const baseReport = signedState.offseasonReport ?? createOffseasonReport(signedState.teams, signedState.calendarYear);
-  const offseasonReport = enrichOffseasonReport(baseReport, fullClassRankings, recruitingRankByTeam, signedState.userTeamId, signedState.recruits);
+  const offseasonReport = enrichOffseasonReport(baseReport, fullClassRankings, recruitingRankByTeam, signedState.userTeamId, signedState.recruits, signedState.year);
   return {
     ...signedState,
     week: PRESEASON_DEVELOPMENT_WEEK,
@@ -504,7 +504,7 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
   const rng = new Rng(signedState.rngState);
   const { fullClassRankings, recruitingRankByTeam } = classRankingContext(signedState);
   const baseReport =
-    signedState.offseasonReport ?? enrichOffseasonReport(createOffseasonReport(signedState.teams, signedState.calendarYear), fullClassRankings, recruitingRankByTeam, signedState.userTeamId, signedState.recruits);
+    signedState.offseasonReport ?? enrichOffseasonReport(createOffseasonReport(signedState.teams, signedState.calendarYear), fullClassRankings, recruitingRankByTeam, signedState.userTeamId, signedState.recruits, signedState.year);
   const departuresByTeam = new Map(baseReport.teams.map((teamReport) => [teamReport.teamId, teamReport.departures]));
   const champion = signedState.playoff?.championTeamId ? signedState.teams.find((team) => team.id === signedState.playoff?.championTeamId) : undefined;
   const historyEntry = {
@@ -901,8 +901,15 @@ function createOffseasonReport(teams: Team[], year: number): OffseasonReport {
   };
 }
 
-function enrichOffseasonReport(report: OffseasonReport, topClasses: OffseasonReport["topClasses"], recruitingRankByTeam: Map<string, number>, userTeamId: string, recruits: Recruit[] = []): OffseasonReport {
-  const signeesByTeam = signeesForTeams(recruits, report.year);
+function enrichOffseasonReport(
+  report: OffseasonReport,
+  topClasses: OffseasonReport["topClasses"],
+  recruitingRankByTeam: Map<string, number>,
+  userTeamId: string,
+  recruits: Recruit[] = [],
+  classYear = report.year,
+): OffseasonReport {
+  const signeesByTeam = signeesForTeams(recruits, classYear);
   return {
     ...report,
     topClasses,
