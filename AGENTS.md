@@ -29,6 +29,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Player offseason progression must not regress attributes or overall.
 - Signing-day recruits are incoming freshmen and must be excluded from preseason development/year progression until kickoff clears the marker.
 - Player hot/cold streaks should be rare, temporary, and applied through effective ratings rather than permanent base ratings.
+- Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.
 - Dynasty length is 20 years.
 - Debug Sim To End should finish the 20th season and reach the `complete` phase.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.

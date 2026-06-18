@@ -112,6 +112,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Player offseason development must never regress attributes or overall.
 - Signing-day recruits are incoming freshmen: they do not advance class year or gain offseason development until after kickoff clears the incoming marker.
 - Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.
+- Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.
 - Weekly matchup previews should be derived from pending user games and existing team/unit ratings; do not hand-author matchup outcomes.
 - The Schedule tab should include postseason playoff games and keep box-score drill-in available.
 - Regular-season schedules should give every team 12 games without duplicate opponent pairings when possible.

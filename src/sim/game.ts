@@ -179,12 +179,13 @@ function applyPlayerStats(rng: Rng, roster: Player[], opponent: Team, pointsFor:
       player.stats.rushTd += value;
     });
   }
-  for (const [playerId, value] of splitAmount(targets, passYards, (player) => effectiveOverall(player) + effectiveAttributes(player).catching * 0.5 + effectiveAttributes(player).routeRunning * 0.45)) {
+  const receivingWeights = receivingUsageWeights(targets);
+  for (const [playerId, value] of splitAmount(targets, passYards, (player) => receivingWeights.get(player.id) ?? receivingSkill(player))) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.receivingYards += value;
     });
   }
-  for (const [playerId, value] of splitScores(rng, targets, passTd, (player) => effectiveOverall(player) + effectiveAttributes(player).catching * 0.5 + effectiveAttributes(player).routeRunning * 0.4)) {
+  for (const [playerId, value] of splitScores(rng, targets, passTd, (player) => receivingWeights.get(player.id) ?? receivingSkill(player))) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.receivingTd += value;
     });
@@ -251,6 +252,22 @@ function rotationAt(rng: Rng, roster: Player[], positions: string[], count: numb
   const rotationPool = ranked.slice(core.length, Math.min(ranked.length, count + 3));
   const extra = rotationPool.length ? rng.shuffle(rotationPool).slice(0, Math.max(0, count - core.length)) : [];
   return uniquePlayers([...core, ...extra]).slice(0, count);
+}
+
+function receivingUsageWeights(targets: Player[]): Map<string, number> {
+  const roleMultipliers = [1.85, 1.35, 1, 0.78, 0.62, 0.5, 0.42];
+  const ranked = [...targets].sort((a, b) => receivingSkill(b) - receivingSkill(a));
+  return new Map(
+    ranked.map((player, index) => {
+      const eliteBonus = player.position === "WR" && effectiveOverall(player) >= 90 ? 1.12 : 1;
+      return [player.id, receivingSkill(player) * (roleMultipliers[index] ?? 0.42) * eliteBonus];
+    }),
+  );
+}
+
+function receivingSkill(player: Player): number {
+  const attributes = effectiveAttributes(player);
+  return effectiveOverall(player) + attributes.catching * 0.55 + attributes.routeRunning * 0.5 + attributes.speed * 0.25 + attributes.awareness * 0.15;
 }
 
 function uniquePlayers(players: Player[]): Player[] {

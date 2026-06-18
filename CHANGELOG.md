@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.7.0 - 2026-06-17
+
+- Tuned receiving usage so elite WR1 targets are featured more realistically without changing team passing volume.
+- Added role-aware receiving weights for yards and touchdown splits while preserving 5-7 target participation.
+- Added game-sim regression coverage for elite receiver single-game share and 12-game production.
+
 ## 1.6.0 - 2026-06-17
 
 - Reworked the offseason Overview dashboard into focused stages for departures, recruiting, signing day, and preseason development.
