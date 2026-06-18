@@ -219,6 +219,8 @@ export default function App() {
 
   const resetAll = async () => {
     try {
+      latestSaveRequest.current += 1;
+      await saveQueue.cancelPending();
       await clearDynasty();
       setState(undefined);
       setSavedState(undefined);

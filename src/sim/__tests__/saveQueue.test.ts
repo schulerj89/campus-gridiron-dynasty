@@ -36,4 +36,36 @@ describe("dynasty save queue", () => {
     expect(await thirdSave).toMatchObject({ state: third, saved: true });
     expect(savedWeeks).toEqual([1, 3]);
   });
+
+  it("marks in-flight and pending saves stale after cancellation", async () => {
+    const base = createDynasty(6162);
+    const first = { ...base, week: 1 };
+    const second = { ...base, week: 2 };
+    const savedWeeks: number[] = [];
+    let releaseFirst!: () => void;
+    const holdFirst = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const queue = createDynastySaveQueue(async (state) => {
+      savedWeeks.push(state.week);
+      if (state.week === 1) await holdFirst;
+    });
+
+    const firstSave = queue.enqueue(first);
+    const secondSave = queue.enqueue(second);
+    const cancelled = queue.cancelPending();
+
+    expect(await secondSave).toMatchObject({ state: second, saved: false });
+    let cancelResolved = false;
+    void cancelled.then(() => {
+      cancelResolved = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(cancelResolved).toBe(false);
+    releaseFirst();
+    expect(await firstSave).toMatchObject({ state: first, saved: false });
+    await cancelled;
+    expect(cancelResolved).toBe(true);
+    expect(savedWeeks).toEqual([1]);
+  });
 });

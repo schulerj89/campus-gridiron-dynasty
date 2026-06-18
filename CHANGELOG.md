@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.8 - 2026-06-18
+
+- Cancelled pending save queue completions when local saves are cleared.
+- Prevented stale in-flight save completions from updating UI status after reset.
+- Added queue and smoke coverage so cleared saves do not resurrect after reload.
+
 ## 1.12.7 - 2026-06-18
 
 - Added an IndexedDB `updatedAt` index for faster active-save recovery.

@@ -55,7 +55,13 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     if (testInfo.project.name === "chromium-desktop") {
       await page.screenshot({ path: path.join(screenshotDir, "home-continue-summary-desktop.png"), fullPage: true });
     }
-    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Clear local save" }).click();
+    await expect(page.getByTestId("team-picker")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("save-summary")).not.toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId("team-picker")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("save-summary")).not.toBeVisible();
+    await page.getByTestId("new-dynasty").click();
     await expect(page.getByText(/Year 1 of 20/)).toBeVisible({ timeout: 40_000 });
   }
 

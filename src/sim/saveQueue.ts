@@ -17,24 +17,42 @@ export function createDynastySaveQueue(save: (state: DynastyState) => Promise<vo
   let sequence = 0;
   let active = false;
   let pending: PendingSave | undefined;
+  let generation = 0;
+  let idleWaiters: (() => void)[] = [];
+
+  const resolveIdleIfReady = () => {
+    if (active || pending) return;
+    const waiters = idleWaiters;
+    idleWaiters = [];
+    for (const resolve of waiters) resolve();
+  };
 
   const drain = async () => {
     if (active) return;
     active = true;
+    const startedGeneration = generation;
     try {
       while (pending) {
         const current = pending;
         pending = undefined;
+        if (startedGeneration !== generation) {
+          current.resolve({ state: current.state, sequence: current.sequence, saved: false });
+          continue;
+        }
         try {
           await save(current.state);
-          current.resolve({ state: current.state, sequence: current.sequence, saved: true });
+          current.resolve({ state: current.state, sequence: current.sequence, saved: startedGeneration === generation });
         } catch (error) {
           current.reject(error);
         }
       }
     } finally {
       active = false;
-      if (pending) void drain();
+      if (pending) {
+        void drain();
+      } else {
+        resolveIdleIfReady();
+      }
     }
   };
 
@@ -56,6 +74,20 @@ export function createDynastySaveQueue(save: (state: DynastyState) => Promise<vo
       pending = request;
       void drain();
       return promise;
+    },
+    cancelPending(): Promise<void> {
+      generation += 1;
+      if (pending) {
+        pending.resolve({ state: pending.state, sequence: pending.sequence, saved: false });
+        pending = undefined;
+      }
+      if (!active) {
+        resolveIdleIfReady();
+        return Promise.resolve();
+      }
+      return new Promise((resolve) => {
+        idleWaiters.push(resolve);
+      });
     },
   };
 }
