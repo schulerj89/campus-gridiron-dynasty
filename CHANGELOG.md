@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.19.1 - 2026-06-18
+
+- Fixed coach recruiting upgrades so active recruiting season budgets refresh immediately.
+- Preserved sunk recruiting points while reconciling `pointsRemaining + pointsSpent` to the new budget.
+- Added regression coverage for spending a head coach recruiting point after recruiting points are already spent.
+
 ## 1.19.0 - 2026-06-18
 
 - Added WR and CB athletic archetypes so speed varies more realistically while preserving recruit overall and non-speed rating caps.

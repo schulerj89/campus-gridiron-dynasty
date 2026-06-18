@@ -189,6 +189,48 @@ describe("dynasty flow", () => {
     expect(invested.recruiting.pointsRemaining + invested.recruiting.pointsSpent).toBe(invested.recruiting.seasonBudget);
   });
 
+  it("refreshes active recruiting budget when coach recruiting improves", () => {
+    const state = createDynasty(8929);
+    const preparedTeams = state.teams.map((team) =>
+      team.id === state.userTeamId
+        ? {
+            ...team,
+            coaches: {
+              ...team.coaches,
+              head: {
+                ...team.coaches.head,
+                recruiting: 52,
+                points: 1,
+              },
+            },
+          }
+        : team,
+    );
+    const preparedUserTeam = preparedTeams.find((team) => team.id === state.userTeamId)!;
+    const seasonBudget = calculateSeasonRecruitingBudget(preparedUserTeam);
+    const prepared = {
+      ...state,
+      teams: preparedTeams,
+      recruiting: {
+        ...state.recruiting,
+        seasonBudget,
+        weeklyPoints: calculateWeeklyRecruitingPoints(preparedUserTeam),
+        pointsRemaining: seasonBudget - 150,
+        pointsSpent: 150,
+      },
+    };
+
+    const updated = spendCoachPoint(prepared, "head", "recruiting");
+    const updatedUserTeam = updated.teams.find((team) => team.id === state.userTeamId)!;
+
+    expect(updatedUserTeam.coaches.head.recruiting).toBe(54);
+    expect(updatedUserTeam.coaches.head.points).toBe(0);
+    expect(updated.recruiting.seasonBudget).toBeGreaterThan(seasonBudget);
+    expect(updated.recruiting.weeklyPoints).toBe(calculateWeeklyRecruitingPoints(updatedUserTeam));
+    expect(updated.recruiting.pointsSpent).toBe(150);
+    expect(updated.recruiting.pointsRemaining + updated.recruiting.pointsSpent).toBe(updated.recruiting.seasonBudget);
+  });
+
   it("lets training and facilities investments improve preseason development outcomes", () => {
     const base = createDynasty(8955);
     const userTeam = base.teams.find((team) => team.id === base.userTeamId)!;

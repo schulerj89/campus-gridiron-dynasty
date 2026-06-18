@@ -324,11 +324,12 @@ export function spendCoachPoint(state: DynastyState, coachRole: Coach["role"], s
     };
   });
   if (!spentCoachName) return state;
-  return {
+  const updatedState = {
     ...state,
     teams,
     debugLog: [`Spent a coach point on ${spentCoachName} ${skill}.`, ...state.debugLog].slice(0, 20),
   };
+  return skill === "recruiting" ? refreshRecruitingBudget(updatedState) : updatedState;
 }
 
 export function hireCoach(state: DynastyState, coachId: string): DynastyState {
