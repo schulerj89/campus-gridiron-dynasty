@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-The app stores full saves locally in IndexedDB. Local storage keeps only the active save pointer and a compact save summary for quick Continue access; if that pointer is missing or stale, the app recovers the newest IndexedDB dynasty.
+The app stores full saves locally in IndexedDB, including an `updatedAt` index for fast recovery. Local storage keeps only the active save pointer and a compact save summary for quick Continue access; if that pointer is missing or stale, the app recovers the newest IndexedDB dynasty.
 
 ## Test
 
@@ -139,6 +139,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Legacy save loading should sanitize stale team, recruit, board, commitment, and recruiting investment references before simulation code uses them.
 - Legacy offseason reports should default missing class, departure, signee, walk-on, progression, and program-review arrays before rendering.
 - Active save loading should recover the newest IndexedDB dynasty if the local active pointer is missing or stale.
+- IndexedDB save recovery should use the `updatedAt` index instead of scanning full dynasty records when the index is available.
 - Smoke tests should use the repo-local runner and explicit seed query params; do not reuse an arbitrary server on the preview port.
 - Hiring from the coach pool should return the displaced user coach to the pool with no `hiredBy` assignment.
 - Program Blueprint changes must reconcile recruiting `pointsRemaining + pointsSpent` to the current season budget.

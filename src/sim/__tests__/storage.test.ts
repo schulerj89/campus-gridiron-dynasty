@@ -34,6 +34,13 @@ describe("storage migration", () => {
     expect(pickLatestDynastyState([])).toBeUndefined();
   });
 
+  it("falls back to createdAt when updatedAt is missing during latest-save recovery", () => {
+    const first = { ...createDynasty(4145), id: "first-save", createdAt: "2026-01-01T12:00:00.000Z", updatedAt: "not-a-date" };
+    const second = { ...createDynasty(4146), id: "second-save", createdAt: "2026-03-01T12:00:00.000Z", updatedAt: "not-a-date" };
+
+    expect(pickLatestDynastyState([first, second])?.id).toBe("second-save");
+  });
+
   it("fills rankings and helmet indexes for older saves", () => {
     const oldSave = createDynasty(4242) as any;
     delete oldSave.rankings;

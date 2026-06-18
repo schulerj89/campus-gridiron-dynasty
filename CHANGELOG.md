@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.7 - 2026-06-18
+
+- Added an IndexedDB `updatedAt` index for faster active-save recovery.
+- Used the newest-save index cursor when recovering from a missing or stale active localStorage pointer.
+- Kept full-save scanning as a compatibility fallback and added latest-save timestamp coverage.
+
 ## 1.12.6 - 2026-06-18
 
 - Recovered the newest IndexedDB dynasty when the active localStorage pointer is missing or stale.

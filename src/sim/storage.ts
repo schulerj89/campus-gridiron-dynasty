@@ -4,7 +4,9 @@ import { ensureProgramBlueprint } from "./blueprint";
 import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints } from "./generate";
 
 const DB_NAME = "campus-gridiron-dynasty";
+const DB_VERSION = 2;
 const STORE_NAME = "dynasties";
+const UPDATED_AT_INDEX = "updatedAt";
 const ACTIVE_KEY = "campus-gridiron-active-save";
 const ACTIVE_SUMMARY_KEY = "campus-gridiron-active-save-summary";
 
@@ -45,7 +47,7 @@ export async function loadActiveDynasty(): Promise<DynastyState | undefined> {
       saveActiveDynastyMetadata(normalized);
       return normalized;
     }
-    const fallback = pickLatestDynastyState(await requestToPromise<DynastyState[]>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll()));
+    const fallback = await loadLatestDynastyState(db);
     if (!fallback) {
       clearActiveDynastySummary();
       return undefined;
@@ -153,14 +155,46 @@ function isValidSummary(value: Partial<DynastySaveSummary>): value is DynastySav
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      const store = db.objectStoreNames.contains(STORE_NAME)
+        ? request.transaction?.objectStore(STORE_NAME)
+        : db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      if (store && !store.indexNames.contains(UPDATED_AT_INDEX)) {
+        store.createIndex(UPDATED_AT_INDEX, "updatedAt", { unique: false });
       }
     };
     request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function loadLatestDynastyState(db: IDBDatabase): Promise<DynastyState | undefined> {
+  const store = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME);
+  if (store.indexNames.contains(UPDATED_AT_INDEX)) {
+    const indexedLatest = await latestDynastyFromUpdatedAtIndex(store);
+    if (indexedLatest) return indexedLatest;
+  }
+  return pickLatestDynastyState(await requestToPromise<DynastyState[]>(store.getAll()));
+}
+
+function latestDynastyFromUpdatedAtIndex(store: IDBObjectStore): Promise<DynastyState | undefined> {
+  return new Promise((resolve, reject) => {
+    const request = store.index(UPDATED_AT_INDEX).openCursor(null, "prev");
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve(undefined);
+        return;
+      }
+      const state = cursor.value as DynastyState;
+      if (Number.isFinite(Date.parse(state.updatedAt))) {
+        resolve(state);
+        return;
+      }
+      cursor.continue();
+    };
     request.onerror = () => reject(request.error);
   });
 }

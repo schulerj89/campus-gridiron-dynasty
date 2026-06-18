@@ -39,6 +39,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Dynasty length is 20 years.
 - Debug Sim To End should finish the 20th season and reach the `complete` phase.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`; localStorage may keep only the active save pointer and compact summary.
+- IndexedDB migrations should preserve the `dynasties` object store and its `updatedAt` index for fast latest-save recovery.
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - The Rankings tab should display the full 1-70 national board; Top 25 status still controls matchup ranked labels and moved-in/out panels.
 - Rankings, awards, honor teams, and stat leaderboards should visually highlight the user's program when it appears.
