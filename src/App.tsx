@@ -472,6 +472,7 @@ function OffseasonRecap({
   const proDepartures = teamReport.departures.filter((departure) => departure.reason === "pro");
   const walkOns = teamReport.walkOns ?? [];
   const topClasses = report.topClasses;
+  const stage = offseasonStage(state, report);
   return (
     <section className="panel span-2" data-testid="offseason-report-panel">
       <div className="panel-head">
@@ -492,28 +493,26 @@ function OffseasonRecap({
       </div>
       <OffseasonSteps state={state} report={report} />
       <div className="offseason-grid">
-        <DepartureGroup title="Graduated" departures={graduates} />
-        <DepartureGroup title="Went Pro" departures={proDepartures} />
-        <ClassSigneesPanel reports={report.teams} />
-        <WalkOnGroup walkOns={walkOns} />
-        <section className="offseason-column" data-testid="recruiting-ranking-panel">
-          <h3>Recruiting Class Leaderboard</h3>
-          {topClasses.length ? (
-            <div className="table-list class-ranking-list">
-              {topClasses.slice(0, 20).map((entry, index) => (
-                <div key={entry.teamId} className="table-row class-rank-row">
-                  <span>{index + 1}</span>
-                  <strong>{entry.teamName}</strong>
-                  <span>{entry.points} pts</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="muted">Class rankings post after signing day.</p>
-          )}
-        </section>
-        <ProgressionGroup progressions={teamReport.progressions} />
-        <ProgramChangeGroup changes={teamReport.programChanges} />
+        {stage === "departures" && (
+          <>
+            <DepartureGroup title="Graduated" departures={graduates} />
+            <DepartureGroup title="Went Pro" departures={proDepartures} />
+          </>
+        )}
+        {stage === "recruiting" && <OffseasonRecruitingFocus state={state} />}
+        {stage === "signing" && (
+          <>
+            <ClassSigneesPanel reports={report.teams} />
+            <RecruitingRankingPanel topClasses={topClasses} />
+          </>
+        )}
+        {stage === "development" && (
+          <>
+            <ProgressionGroup progressions={teamReport.progressions} />
+            <ProgramChangeGroup changes={teamReport.programChanges} />
+            <WalkOnGroup walkOns={walkOns} />
+          </>
+        )}
       </div>
     </section>
   );
@@ -521,11 +520,12 @@ function OffseasonRecap({
 
 function OffseasonSteps({ state, report }: { state: DynastyState; report: NonNullable<DynastyState["offseasonReport"]> }) {
   const recruitingWeek = state.phase === "offseason" && !report.signingComplete ? Math.min(4, Math.max(1, state.week - 15)) : 4;
+  const stage = offseasonStage(state, report);
   const steps = [
-    { label: "Departures", complete: true, active: state.phase === "offseason" && !report.signingComplete && state.week === 16 },
-    { label: `Recruiting ${recruitingWeek}/4`, complete: report.signingComplete || state.week > 19, active: state.phase === "offseason" && !report.signingComplete },
-    { label: "Signing Day", complete: Boolean(report.signingComplete), active: state.phase === "offseason" && report.signingComplete && !report.developmentComplete },
-    { label: "Development", complete: Boolean(report.developmentComplete), active: state.phase === "preseason" },
+    { label: "Departures", complete: true, active: stage === "departures" },
+    { label: `Recruiting ${recruitingWeek}/4`, complete: report.signingComplete || state.week > 19, active: stage === "recruiting" },
+    { label: "Signing Day", complete: Boolean(report.signingComplete), active: stage === "signing" },
+    { label: "Development", complete: Boolean(report.developmentComplete), active: stage === "development" },
   ];
   return (
     <div className="offseason-steps" data-testid="offseason-steps">
@@ -535,6 +535,43 @@ function OffseasonSteps({ state, report }: { state: DynastyState; report: NonNul
         </span>
       ))}
     </div>
+  );
+}
+
+function OffseasonRecruitingFocus({ state }: { state: DynastyState }) {
+  const boardLimit = state.recruiting.boardLimit ?? 35;
+  const activeBoard = state.recruiting.board.filter((id) => state.recruits.find((recruit) => recruit.id === id && recruit.stage !== "signed" && !recruit.committedTeamId));
+  return (
+    <section className="offseason-column" data-testid="offseason-recruiting-focus-panel">
+      <h3>Offseason Recruiting Window</h3>
+      <div className="metric-grid compact-metrics">
+        <Metric label="Points" value={state.recruiting.pointsRemaining.toLocaleString()} />
+        <Metric label="Board" value={`${activeBoard.length}/${boardLimit}`} />
+        <Metric label="Auto Recruit" value={state.recruiting.autoEnabled ? "On" : "Off"} />
+      </div>
+      <p className="muted">Late-cycle recruiting is active. Use the Recruiting tab to scout, offer, pitch, or let auto-recruit fill remaining needs.</p>
+    </section>
+  );
+}
+
+function RecruitingRankingPanel({ topClasses }: { topClasses: NonNullable<DynastyState["offseasonReport"]>["topClasses"] }) {
+  return (
+    <section className="offseason-column" data-testid="recruiting-ranking-panel">
+      <h3>Recruiting Class Leaderboard</h3>
+      {topClasses.length ? (
+        <div className="table-list class-ranking-list">
+          {topClasses.slice(0, 20).map((entry, index) => (
+            <div key={entry.teamId} className="table-row class-rank-row">
+              <span>{index + 1}</span>
+              <strong>{entry.teamName}</strong>
+              <span>{entry.points} pts</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">Class rankings post after signing day.</p>
+      )}
+    </section>
   );
 }
 
@@ -1741,10 +1778,18 @@ function phaseWeekLabel(state: DynastyState): string {
 }
 
 function offseasonStageLabel(state: DynastyState, report: NonNullable<DynastyState["offseasonReport"]>): string {
-  if (report.developmentComplete) return "Preseason Development";
-  if (report.signingComplete) return "Offseason Signing Day";
-  if (state.week > 19) return "Offseason Signing Day Ready";
-  return `Offseason Recruiting Week ${Math.max(1, state.week - 15)} of 4`;
+  const stage = offseasonStage(state, report);
+  if (stage === "departures") return "Offseason Departures";
+  if (stage === "recruiting") return `Offseason Recruiting Week ${Math.min(4, Math.max(1, state.week - 15))} of 4`;
+  if (stage === "signing") return report.signingComplete ? "Offseason Signing Day" : "Offseason Signing Day Ready";
+  return "Preseason Development";
+}
+
+function offseasonStage(state: DynastyState, report: NonNullable<DynastyState["offseasonReport"]>): "departures" | "recruiting" | "signing" | "development" {
+  if (report.developmentComplete) return "development";
+  if (report.signingComplete || state.week > 19) return "signing";
+  if (state.week === 16) return "departures";
+  return "recruiting";
 }
 
 function attributeGainText(gains: Partial<Record<AttributeKey, number>>): string {

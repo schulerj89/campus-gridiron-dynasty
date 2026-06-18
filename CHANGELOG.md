@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.6.0 - 2026-06-17
+
+- Reworked the offseason Overview dashboard into focused stages for departures, recruiting, signing day, and preseason development.
+- Added a compact offseason recruiting focus panel for late-cycle recruiting weeks.
+- Updated smoke coverage so each offseason stage shows only its relevant panels.
+
 ## 1.5.0 - 2026-06-17
 
 - Reworked the postseason Overview dashboard so the playoff bracket becomes the priority panel.

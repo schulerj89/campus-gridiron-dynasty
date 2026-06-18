@@ -157,13 +157,17 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("offseason-report-panel")).toBeVisible();
   await expect(page.getByTestId("dashboard-command-panel")).not.toBeVisible();
   await expect(page.getByTestId("latest-national-awards-panel")).not.toBeVisible();
-  await expect(page.getByTestId("offseason-steps")).toContainText("Recruiting 1/4");
+  await expect(page.getByTestId("offseason-steps")).toContainText("Departures");
+  await expect(page.getByTestId("graduated-panel")).toBeVisible();
+  await expect(page.getByTestId("offseason-all-classes-panel")).not.toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-dashboard-desktop.png"), fullPage: true });
   await page.getByTestId("offseason-report-panel").screenshot({ path: path.join(screenshotDir, "offseason-departures-desktop.png") });
 
   await page.getByTestId("advance-week").click();
   await expect(page.getByText(/offseason recruiting week 2 of 4/)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByTestId("offseason-steps")).toContainText("Recruiting 2/4");
+  await expect(page.getByTestId("offseason-recruiting-focus-panel")).toBeVisible();
+  await expect(page.getByTestId("graduated-panel")).not.toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-extra-recruiting-desktop.png"), fullPage: true });
 
   for (let week = 0; week < 3; week += 1) {

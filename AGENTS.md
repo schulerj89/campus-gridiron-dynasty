@@ -23,6 +23,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Signing day should distribute enough recruits for every team to sustain roster turnover before walk-ons are needed.
 - Signed recruit player IDs must include the dynasty signing year so multi-season classes cannot collide.
 - Offseason advancement exposes departures, four late recruiting weeks, signing day, preseason player development, and kickoff as separate steps.
+- The Overview offseason report should focus on only the active stage: departures, recruiting, signing day, or development.
 - Signing day must not remove returning players before the offseason departure report is applied.
 - Teams must be restored to the 85-player roster floor after offseason turnover; emergency walk-ons should be labeled and initially capped around 60 overall.
 - Player offseason progression must not regress attributes or overall.
