@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.15.0 - 2026-06-18
+
+- Re-centered QB completion rate around accuracy, awareness, receiving support, blocking, coverage, and pass-heavy strategy so weaker passers can finish below 60%.
+- Increased Air Raid and spread passing touchdown share without changing final scores or total offensive touchdowns.
+- Added regression coverage for weak passing attributes and strategy-driven passing touchdown distribution.
+
 ## 1.14.0 - 2026-06-18
 
 - Added a dedicated Stats tab for national, conference-specific, and User Team leaderboards.

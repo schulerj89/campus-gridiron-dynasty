@@ -89,6 +89,20 @@ describe("game simulation stat pacing", () => {
     expect(runBox.rushAttempts).toBeGreaterThan(airBox.rushAttempts);
     expect(airBox.totals.passAttempts).toBe(airBox.passAttempts);
     expect(runBox.totals.rushAttempts).toBe(runBox.rushAttempts);
+    expect(airBox.totals.passTd).toBeGreaterThanOrEqual(runBox.totals.passTd);
+  });
+
+  it("lets weak passing attributes produce sub-60 completion games", () => {
+    const { teams, game, userTeamId } = controlledPassingStressSetup(7111);
+    const result = simulateGame(new Rng(7112), game, teams);
+    const teamBox = teamBoxFor(result.game, userTeamId)!;
+    const updatedUserTeam = result.teams.find((team) => team.id === userTeamId)!;
+    const quarterback = updatedUserTeam.roster.find((player) => player.position === "QB" && player.stats.passAttempts > 0)!;
+    const completionRate = quarterback.stats.passCompletions / quarterback.stats.passAttempts;
+
+    expect(teamBox.totals.passAttempts).toBe(teamBox.passAttempts);
+    expect(quarterback.stats.passAttempts).toBeGreaterThanOrEqual(24);
+    expect(completionRate).toBeLessThan(0.6);
   });
 
   it("lets an elite receiver produce a realistic 12-game season without changing team passing totals", () => {
@@ -139,6 +153,30 @@ function controlledReceivingSetup(seed: number): { teams: Team[]; game: Game; us
   });
 
   return { teams, game: userGames[0]!, userGames, userTeamId, eliteReceiverId };
+}
+
+function controlledPassingStressSetup(seed: number): { teams: Team[]; game: Game; userTeamId: string } {
+  const state = createDynasty(seed, "team-1");
+  const userTeamId = state.userTeamId;
+  const userGames = state.schedule.filter((game) => game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
+  const opponentIds = new Set(userGames.flatMap((game) => [game.homeTeamId, game.awayTeamId]).filter((teamId) => teamId !== userTeamId));
+  const teams = state.teams.map((team) => {
+    if (team.id === userTeamId) {
+      return {
+        ...team,
+        offensiveStrategy: "airRaid" as const,
+        roster: team.roster.map(tuneWeakPassingPlayer),
+      };
+    }
+    if (opponentIds.has(team.id)) {
+      return {
+        ...team,
+        roster: team.roster.map(tuneStrongCoveragePlayer),
+      };
+    }
+    return team;
+  });
+  return { teams, game: userGames[0]!, userTeamId };
 }
 
 function withUserStrategy(teams: Team[], userTeamId: string, offensiveStrategy: Team["offensiveStrategy"]): Team[] {
@@ -203,6 +241,74 @@ function tuneOpponentPlayer(player: Player): Player {
         ...player.attributes,
         defAwareness: Math.min(player.attributes.defAwareness, 66),
         interception: Math.min(player.attributes.interception, 62),
+      },
+    };
+  }
+  return player;
+}
+
+function tuneWeakPassingPlayer(player: Player): Player {
+  if (player.position === "QB") {
+    return {
+      ...player,
+      overall: 58,
+      attributes: {
+        ...player.attributes,
+        throwPower: 58,
+        accuracy: 52,
+        awareness: 54,
+      },
+    };
+  }
+  if (player.position === "WR" || player.position === "TE") {
+    return {
+      ...player,
+      overall: 58,
+      attributes: {
+        ...player.attributes,
+        speed: 58,
+        catching: 52,
+        routeRunning: 52,
+        awareness: 55,
+      },
+    };
+  }
+  if (player.position === "OL") {
+    return {
+      ...player,
+      overall: 60,
+      attributes: {
+        ...player.attributes,
+        runBlock: 58,
+        passBlock: 56,
+        awareness: 58,
+      },
+    };
+  }
+  return player;
+}
+
+function tuneStrongCoveragePlayer(player: Player): Player {
+  if (player.position === "CB" || player.position === "S" || player.position === "LB") {
+    return {
+      ...player,
+      overall: Math.max(player.overall, 86),
+      attributes: {
+        ...player.attributes,
+        speed: Math.max(player.attributes.speed, 84),
+        defAwareness: Math.max(player.attributes.defAwareness, 88),
+        interception: Math.max(player.attributes.interception, 86),
+      },
+    };
+  }
+  if (player.position === "DL") {
+    return {
+      ...player,
+      overall: Math.max(player.overall, 84),
+      attributes: {
+        ...player.attributes,
+        tackle: Math.max(player.attributes.tackle, 86),
+        defAwareness: Math.max(player.attributes.defAwareness, 84),
       },
     };
   }

@@ -229,7 +229,9 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   const passYards = clamp(Math.round(passAttempts * (5.7 + (units.passing + units.receiving - opponentUnits.coverage) / 70) + rng.nextInt(-30, 52)), 95, 450);
   const rushYards = clamp(Math.round(rushAttempts * (3.6 + (units.rushing + units.blocking - opponentUnits.defense) / 80) + rng.nextInt(-24, 42)), 40, 320);
   const offensiveTd = scoring.offensiveTd;
-  const passTd = clamp(Math.round(offensiveTd * clamp(passRate + (units.passing - units.rushing) / 210, 0.28, 0.78) + rng.nextInt(-1, 1)), 0, Math.min(6, offensiveTd));
+  const passTdShare = passingTouchdownShare(strategy, passRate, units, opponentUnits);
+  const passTdFloor = strategy === "airRaid" && offensiveTd >= 3 && units.passing + units.receiving >= units.rushing + opponentUnits.coverage * 0.75 ? 1 : 0;
+  const passTd = clamp(Math.round(offensiveTd * passTdShare + rng.nextInt(-1, 1)), passTdFloor, Math.min(6, offensiveTd));
   const rushTd = clamp(offensiveTd - passTd, 0, 6);
   const kickLine = kickingLine(rng, kicker, scoring);
   const picks = interceptionsThrown;
@@ -239,7 +241,8 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   const extraPointEvents: ScoringEvent[] = [];
   const missedExtraPointEvents: ScoringEvent[] = [];
   const targetAttempts = clamp(passAttempts - picks - rng.nextInt(0, 3), Math.min(passAttempts, targets.length), passAttempts);
-  const completionRate = clamp(0.59 + (units.passing + units.receiving - opponentUnits.coverage * 1.1) / 260 + rng.nextInt(-4, 5) / 100, 0.47, 0.72);
+  const passerAttributes = qb ? effectiveAttributes(qb) : undefined;
+  const completionRate = quarterbackCompletionRate(rng, strategy, passerAttributes, units, opponentUnits);
   const minimumCompletions = Math.min(targetAttempts, Math.max(passTd, passYards > 0 ? 1 : 0));
   const passCompletions = clamp(Math.round(targetAttempts * completionRate), minimumCompletions, targetAttempts);
   const pancakeBlockers: string[] = [];
@@ -592,6 +595,49 @@ function offensivePassRate(strategy: OffensiveStrategy, passing: number, rushing
   };
   const [min, max] = bounds[strategy];
   return clamp(0.51 + bias[strategy] + (passing - rushing) / 190 + (trailing ? 0.055 : -0.015), min, max);
+}
+
+function quarterbackCompletionRate(
+  rng: Rng,
+  strategy: OffensiveStrategy,
+  attributes: ReturnType<typeof effectiveAttributes> | undefined,
+  units: ReturnType<typeof teamUnitRatings>,
+  opponentUnits: ReturnType<typeof teamUnitRatings>,
+): number {
+  const accuracy = attributes?.accuracy ?? units.passing;
+  const awareness = attributes?.awareness ?? units.passing;
+  const strategyAdjustment: Record<OffensiveStrategy, number> = {
+    balanced: 0,
+    airRaid: -0.018,
+    runHeavy: 0.012,
+    proStyle: 0.006,
+    spreadTempo: -0.01,
+  };
+  const passerQuality = (accuracy - 70) / 460 + (awareness - 70) / 760;
+  const support = (units.receiving - 70) / 560 + (units.blocking - opponentUnits.defense) / 720;
+  const coveragePressure = (opponentUnits.coverage - 70) / 360;
+  const gameNoise = rng.nextInt(-7, 8) / 100;
+  return clamp(0.565 + strategyAdjustment[strategy] + passerQuality + support - coveragePressure + gameNoise, 0.41, 0.73);
+}
+
+function passingTouchdownShare(
+  strategy: OffensiveStrategy,
+  passRate: number,
+  units: ReturnType<typeof teamUnitRatings>,
+  opponentUnits: ReturnType<typeof teamUnitRatings>,
+): number {
+  const strategyAdjustment: Record<OffensiveStrategy, number> = {
+    balanced: 0,
+    airRaid: 0.12,
+    runHeavy: -0.12,
+    proStyle: 0.045,
+    spreadTempo: 0.075,
+  };
+  const rosterFit = (units.passing + units.receiving - units.rushing * 1.2 - 50) / 260;
+  const matchupFit = (units.passing + units.receiving - opponentUnits.coverage - opponentUnits.defense * 0.35) / 300;
+  const minShare = strategy === "airRaid" ? 0.46 : strategy === "runHeavy" ? 0.18 : 0.26;
+  const maxShare = strategy === "runHeavy" ? 0.62 : strategy === "airRaid" ? 0.9 : 0.82;
+  return clamp(passRate + strategyAdjustment[strategy] + rosterFit + matchupFit, minShare, maxShare);
 }
 
 function scoringPlan(rawScore: number): ScoringPlan {
