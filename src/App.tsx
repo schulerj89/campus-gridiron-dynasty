@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   Award,
@@ -54,6 +54,7 @@ import {
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, loadActiveDynastySummary, saveDynasty, summarizeDynastyState, type DynastySaveSummary } from "./sim/storage";
+import { createDynastySaveQueue } from "./sim/saveQueue";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
 import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
@@ -149,6 +150,8 @@ export default function App() {
   const [savedSummary, setSavedSummary] = useState<DynastySaveSummary | undefined>(() => loadActiveDynastySummary());
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [saveStatus, setSaveStatus] = useState("Local DB ready");
+  const saveQueue = useMemo(() => createDynastySaveQueue(saveDynasty), []);
+  const latestSaveRequest = useRef(0);
 
   useEffect(() => {
     loadActiveDynasty()
@@ -169,12 +172,24 @@ export default function App() {
   useEffect(() => {
     if (!state) return;
     const timeout = window.setTimeout(() => {
-      saveDynasty(state)
-        .then(() => setSaveStatus(`Saved Year ${state.year}, Week ${state.week}`))
-        .catch(() => setSaveStatus("Save failed"));
+      queueSave(state, (saved) => `Saved Year ${saved.year}, Week ${saved.week}`);
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [state]);
+
+  const queueSave = (nextState: DynastyState, status: (saved: DynastyState) => string) => {
+    const request = ++latestSaveRequest.current;
+    saveQueue
+      .enqueue(nextState)
+      .then((result) => {
+        if (!result.saved || request !== latestSaveRequest.current) return;
+        setSaveStatus(status(result.state));
+        setSavedSummary(summarizeDynastyState(result.state));
+      })
+      .catch(() => {
+        if (request === latestSaveRequest.current) setSaveStatus("Save failed");
+      });
+  };
 
   const startDynasty = () => {
     const dynasty = createDynasty(dynastySeed(), selectedTeamId);
@@ -252,7 +267,7 @@ export default function App() {
           </p>
         </div>
         <div className="topbar-actions">
-          <button className="secondary" onClick={() => saveDynasty(state).then(() => setSaveStatus("Saved manually")).catch(() => setSaveStatus("Save failed"))}>
+          <button className="secondary" onClick={() => queueSave(state, () => "Saved manually")}>
             <Save size={18} />
             Save
           </button>

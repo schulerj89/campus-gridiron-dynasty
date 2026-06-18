@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.5 - 2026-06-18
+
+- Serialized autosaves and manual saves through a shared dynasty save queue.
+- Coalesced superseded pending saves so older delayed writes cannot finish after newer dynasty progress.
+- Added regression coverage for delayed save ordering and skipped pending save states.
+
 ## 1.12.4 - 2026-06-18
 
 - Made IndexedDB saves and clears resolve only after their transactions complete, preventing false-positive save status.
