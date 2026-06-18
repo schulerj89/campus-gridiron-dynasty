@@ -188,13 +188,18 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
     await page.getByTestId("advance-week").click();
   }
 
-  await expect(page.getByText(/offseason/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/championship recap/)).toBeVisible({ timeout: 90_000 });
   await page.getByRole("button", { name: "Overview" }).click();
   await expect(page.getByTestId("championship-recap-panel")).toContainText("Crown Bowl Champion");
   await expect(page.getByTestId("championship-recap-panel")).toContainText("won the national title");
   await expect(page.getByTestId("playoff-champion-banner")).toBeVisible();
+  await expect(page.getByTestId("offseason-report-panel")).not.toBeVisible();
   await page.getByTestId("championship-recap-panel").screenshot({ path: path.join(screenshotDir, "championship-recap-desktop.png") });
+
+  await page.getByRole("button", { name: "Advance to Offseason" }).click();
+  await expect(page.getByText(/offseason/)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByTestId("offseason-report-panel")).toBeVisible();
+  await expect(page.getByTestId("championship-recap-panel")).not.toBeVisible();
   await expect(page.getByTestId("dashboard-command-panel")).not.toBeVisible();
   await expect(page.getByTestId("latest-national-awards-panel")).not.toBeVisible();
   await expect(page.getByTestId("dashboard-current-poll-panel")).not.toBeVisible();

@@ -413,6 +413,7 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
 
 function advancePostseasonWeek(state: DynastyState): DynastyState {
   if (!state.playoff) return { ...state, phase: "offseason" };
+  if (state.playoff.championTeamId) return openOffseasonAfterChampionship(state);
   const rng = new Rng(state.rngState);
   const gamesThisWeek = state.playoff.games.filter((game) => game.week === state.week && !game.played);
   let teams = state.teams;
@@ -440,7 +441,6 @@ function advancePostseasonWeek(state: DynastyState): DynastyState {
     debug = [`Summit semifinal bowls complete.`, ...debug].slice(0, 20);
   } else {
     nextPlayoff = { ...nextPlayoff, championTeamId: winners[0] };
-    phase = "offseason";
     nextWeek = 16;
     const champion = teams.find((team) => team.id === winners[0]);
     debug = [`${champion?.name ?? "A program"} won the Crown Bowl championship.`, ...debug].slice(0, 20);
@@ -454,12 +454,27 @@ function advancePostseasonWeek(state: DynastyState): DynastyState {
     rngState: rng.currentState(),
     teams: rankedTeams,
     playoff: nextPlayoff,
-    offseasonReport: phase === "offseason" ? createOffseasonReport(rankedTeams, state.calendarYear) : state.offseasonReport,
-    recruiting: phase === "offseason" ? addOffseasonRecruitingBonus(state, rankedTeams) : state.recruiting,
+    offseasonReport: state.offseasonReport,
+    recruiting: state.recruiting,
     rankings: [pollUpdate.poll, ...(state.rankings ?? [])].slice(0, 320),
     phase,
     week: nextWeek,
     debugLog: debug,
+  };
+}
+
+function openOffseasonAfterChampionship(state: DynastyState): DynastyState {
+  const pollUpdate = createPollSnapshot(state.teams, state.calendarYear, 16, "offseason", (state.rankings ?? [])[0]);
+  const rankedTeams = pollUpdate.teams;
+  return {
+    ...state,
+    teams: rankedTeams,
+    phase: "offseason",
+    week: 16,
+    offseasonReport: createOffseasonReport(rankedTeams, state.calendarYear),
+    recruiting: addOffseasonRecruitingBonus(state, rankedTeams),
+    rankings: [pollUpdate.poll, ...(state.rankings ?? [])].slice(0, 320),
+    debugLog: [`Offseason departures opened after the Crown Bowl celebration.`, ...state.debugLog].slice(0, 20),
   };
 }
 

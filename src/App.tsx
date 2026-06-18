@@ -426,13 +426,15 @@ function Overview({
   const userPollEntry = state.rankings?.[0]?.entries.find((entry) => entry.teamId === userTeam.id);
   const offseasonTeamReport = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === userTeam.id);
   const offseasonFocus = Boolean(offseasonTeamReport && state.phase !== "regular" && state.phase !== "postseason");
-  const postseasonFocus = state.phase === "postseason" && Boolean(state.playoff);
-  const championshipFocus = state.phase === "offseason" && Boolean(playoffChampion(state));
+  const champion = playoffChampion(state);
+  const championshipFocus = state.phase === "postseason" && Boolean(champion);
+  const postseasonFocus = state.phase === "postseason" && Boolean(state.playoff) && !championshipFocus;
+  const regularDashboardFocus = !offseasonFocus && !postseasonFocus && !championshipFocus;
   const matchupPreview = buildMatchupPreview(state);
 
   return (
     <>
-      {championshipFocus && <ChampionshipRecap state={state} onNavigate={onNavigate} />}
+      {championshipFocus && <ChampionshipRecap state={state} onUpdate={onUpdate} onNavigate={onNavigate} />}
 
       {offseasonFocus && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
 
@@ -463,7 +465,7 @@ function Overview({
         </section>
       )}
 
-      {!offseasonFocus && !postseasonFocus && (
+      {regularDashboardFocus && (
         <section className="panel span-2 dashboard-panel" data-testid="dashboard-command-panel">
           <div className="panel-head">
             <div className="dashboard-identity">
@@ -503,9 +505,9 @@ function Overview({
         </section>
       )}
 
-      {!offseasonFocus && !postseasonFocus && <MatchupPreviewPanel preview={matchupPreview} testId="dashboard-next-game-panel" />}
+      {regularDashboardFocus && <MatchupPreviewPanel preview={matchupPreview} testId="dashboard-next-game-panel" />}
 
-      {!offseasonFocus && !postseasonFocus && (
+      {regularDashboardFocus && (
         <section className="panel latest-awards-panel" data-testid="latest-national-awards-panel">
           <div className="panel-head compact">
             <h2>Latest National Awards</h2>
@@ -515,7 +517,7 @@ function Overview({
         </section>
       )}
 
-      {!offseasonFocus && !postseasonFocus && (
+      {regularDashboardFocus && (
         <section className="panel ranking-snapshot-panel" data-testid="dashboard-current-poll-panel">
           <div className="panel-head compact">
             <h2>Current Poll</h2>
@@ -537,7 +539,7 @@ function Overview({
   );
 }
 
-function ChampionshipRecap({ state, onNavigate }: { state: DynastyState; onNavigate: (tab: Tab) => void }) {
+function ChampionshipRecap({ state, onUpdate, onNavigate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void; onNavigate: (tab: Tab) => void }) {
   const champion = playoffChampion(state);
   const finalGame = state.playoff?.games.find((game) => game.playoffRound === "final");
   if (!champion || !state.playoff) return null;
@@ -557,6 +559,10 @@ function ChampionshipRecap({ state, onNavigate }: { state: DynastyState; onNavig
           </div>
         </div>
         <div className="button-row compact-row">
+          <button className="primary" onClick={() => onUpdate(advanceWeek)}>
+            <ChevronsRight size={16} />
+            Advance to Offseason
+          </button>
           <button className="secondary" onClick={() => onNavigate("awards")}>
             <Trophy size={16} />
             Playoff Center
@@ -2098,6 +2104,7 @@ function advanceMultipleWeeks(state: DynastyState, weeks: number): DynastyState 
 }
 
 function phaseWeekLabel(state: DynastyState): string {
+  if (state.phase === "postseason" && state.playoff?.championTeamId) return "postseason - championship recap";
   if (state.phase === "offseason") {
     if (!state.offseasonReport?.signingComplete && state.week <= 19) return `offseason recruiting week ${Math.max(1, state.week - 15)} of 4`;
     if (!state.offseasonReport?.signingComplete) return "offseason signing day - ready";

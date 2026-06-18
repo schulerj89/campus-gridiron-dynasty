@@ -58,7 +58,7 @@ describe("dynasty flow", () => {
     expect(userTeam.roster.some((player) => player.awards.length > 0)).toBe(true);
   });
 
-  it("keeps the Crown Bowl champion available when the final round advances to offseason", () => {
+  it("keeps the Crown Bowl champion on a recap step before offseason opens", () => {
     let state = forceUserPlayoff(createDynasty(8913));
     for (let week = 1; week <= 12; week += 1) {
       state = advanceWeek(state);
@@ -68,11 +68,18 @@ describe("dynasty flow", () => {
     }
 
     const finalGame = state.playoff?.games.find((game) => game.playoffRound === "final");
-    expect(state.phase).toBe("offseason");
-    expect(state.offseasonReport).toBeDefined();
+    expect(state.phase).toBe("postseason");
+    expect(state.week).toBe(16);
+    expect(state.offseasonReport).toBeUndefined();
     expect(state.playoff?.championTeamId).toBeDefined();
     expect(finalGame?.played).toBe(true);
     expect(finalGame?.result?.winnerTeamId).toBe(state.playoff?.championTeamId);
+
+    state = advanceWeek(state);
+    expect(state.phase).toBe("offseason");
+    expect(state.week).toBe(16);
+    expect(state.offseasonReport).toBeDefined();
+    expect(state.playoff?.championTeamId).toBe(finalGame?.result?.winnerTeamId);
   });
 
   it("allocates the annual program blueprint before kickoff and locks it after games begin", () => {
@@ -194,7 +201,7 @@ describe("dynasty flow", () => {
 
   it("creates offseason departures and records recruiting class rank", () => {
     let state = forceUserPlayoff(forceUserAward(createDynasty(8933)));
-    for (let week = 1; week <= 15; week += 1) {
+    for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
     }
     expect(state.phase).toBe("offseason");
@@ -268,7 +275,7 @@ describe("dynasty flow", () => {
   it("adds labeled walk-ons when the user roster drops below the floor", () => {
     let state = forceUserPlayoff(forceUserWalkOnNeed(createDynasty(8934)));
     expect(state.teams.find((team) => team.id === state.userTeamId)?.roster.length).toBeLessThan(ROSTER_FLOOR);
-    for (let week = 1; week <= 15; week += 1) {
+    for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
     }
     for (let week = 0; week < 4; week += 1) {
@@ -286,7 +293,7 @@ describe("dynasty flow", () => {
 
   it("keeps signing-day report player ids linked to roster players", () => {
     let state = forceUserPlayoff(createDynasty(8936));
-    for (let week = 1; week <= 15; week += 1) {
+    for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
     }
     for (let week = 0; week < 4; week += 1) {

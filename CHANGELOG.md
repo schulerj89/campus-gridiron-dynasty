@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.13 - 2026-06-18
+
+- Split the Crown Bowl final into a championship recap checkpoint before offseason departures open.
+- Added an `Advance to Offseason` action on the recap so the next advance moves focus to the offseason dashboard.
+- Updated tests and smoke screenshots to verify the recap no longer buries the active offseason panels.
+
 ## 1.12.12 - 2026-06-18
 
 - Moved the Crown Bowl Champion trophy callout into the final bracket column so the champion team appears directly above the championship matchup.
