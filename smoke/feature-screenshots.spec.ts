@@ -128,6 +128,10 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByText(/postseason/)).toBeVisible({ timeout: 90_000 });
   await page.getByRole("button", { name: "Overview" }).click();
   await expect(page.getByTestId("dashboard-playoff-bracket")).toBeVisible();
+  await expect(page.getByTestId("dashboard-playoff-bracket")).toContainText("Postseason Command");
+  await expect(page.getByTestId("dashboard-command-panel")).not.toBeVisible();
+  await expect(page.getByTestId("latest-national-awards-panel")).not.toBeVisible();
+  await expect(page.getByTestId("dashboard-current-poll-panel")).not.toBeVisible();
   await page.getByTestId("dashboard-playoff-bracket").screenshot({ path: path.join(screenshotDir, "dashboard-playoff-bracket-desktop.png") });
   await page.getByRole("button", { name: "Schedule" }).click();
   await expect(page.getByTestId("game-row").first()).toContainText(/Bowl/);

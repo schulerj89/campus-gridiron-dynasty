@@ -351,13 +351,41 @@ function Overview({
   const userPollEntry = state.rankings?.[0]?.entries.find((entry) => entry.teamId === userTeam.id);
   const offseasonTeamReport = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === userTeam.id);
   const offseasonFocus = Boolean(offseasonTeamReport && state.phase !== "regular" && state.phase !== "postseason");
+  const postseasonFocus = state.phase === "postseason" && Boolean(state.playoff);
   const matchupPreview = buildMatchupPreview(state);
 
   return (
     <>
       {offseasonFocus && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
 
-      {!offseasonFocus && (
+      {postseasonFocus && state.playoff && (
+        <section className="panel span-2 postseason-priority-panel" data-testid="dashboard-playoff-bracket">
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">Postseason Command</p>
+              <h2>Summit Four Playoff</h2>
+              <p className="muted">The dashboard follows the playoff bracket until the Crown Bowl is complete.</p>
+            </div>
+            <div className="button-row compact-row">
+              <button className="primary" onClick={() => onUpdate(advanceWeek)}>
+                <ChevronsRight size={16} />
+                Advance Round
+              </button>
+              <button className="secondary" onClick={() => onNavigate("awards")}>
+                <Trophy size={16} />
+                Playoff Center
+              </button>
+              <button className="secondary" onClick={() => onNavigate("schedule")}>
+                <CalendarDays size={16} />
+                Box Scores
+              </button>
+            </div>
+          </div>
+          <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={undefined} />
+        </section>
+      )}
+
+      {!offseasonFocus && !postseasonFocus && (
         <section className="panel span-2 dashboard-panel" data-testid="dashboard-command-panel">
           <div className="panel-head">
             <div className="dashboard-identity">
@@ -397,9 +425,9 @@ function Overview({
         </section>
       )}
 
-      {!offseasonFocus && <MatchupPreviewPanel preview={matchupPreview} testId="dashboard-next-game-panel" />}
+      {!offseasonFocus && !postseasonFocus && <MatchupPreviewPanel preview={matchupPreview} testId="dashboard-next-game-panel" />}
 
-      {!offseasonFocus && (
+      {!offseasonFocus && !postseasonFocus && (
         <section className="panel latest-awards-panel" data-testid="latest-national-awards-panel">
           <div className="panel-head compact">
             <h2>Latest National Awards</h2>
@@ -409,7 +437,8 @@ function Overview({
         </section>
       )}
 
-      <section className="panel ranking-snapshot-panel">
+      {!postseasonFocus && (
+      <section className="panel ranking-snapshot-panel" data-testid="dashboard-current-poll-panel">
         <div className="panel-head compact">
           <h2>Current Poll</h2>
           <TrendingUp size={20} />
@@ -423,28 +452,6 @@ function Overview({
           <p className="muted">{userTeam.name} is outside the Top 25.</p>
         )}
       </section>
-
-      {state.phase === "postseason" && state.playoff && (
-        <section className="panel span-2" data-testid="dashboard-playoff-bracket">
-          <div className="panel-head">
-            <div>
-              <p className="eyebrow">Season Complete</p>
-              <h2>Summit Four Playoff</h2>
-              <p className="muted">The dashboard now follows the postseason bracket until the Crown Bowl is complete.</p>
-            </div>
-            <div className="button-row compact-row">
-              <button className="secondary" onClick={() => onNavigate("awards")}>
-                <Trophy size={16} />
-                Playoff Center
-              </button>
-              <button className="secondary" onClick={() => onNavigate("schedule")}>
-                <CalendarDays size={16} />
-                Box Scores
-              </button>
-            </div>
-          </div>
-          <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={undefined} />
-        </section>
       )}
 
       {!offseasonFocus && state.phase !== "regular" && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}

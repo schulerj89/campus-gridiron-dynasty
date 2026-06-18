@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.5.0 - 2026-06-17
+
+- Reworked the postseason Overview dashboard so the playoff bracket becomes the priority panel.
+- Added an Advance Round control directly on the postseason bracket panel.
+- Hid regular-season command, latest awards, and current-poll panels during postseason because those views remain available through the main navigation.
+
 ## 1.4.9 - 2026-06-17
 
 - Improved regular-season schedule generation to avoid duplicate opponent pairings.
