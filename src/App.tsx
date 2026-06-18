@@ -1733,7 +1733,7 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
             <h2>Director Goals and Program Points</h2>
             <p className="muted">{canEditBlueprint ? "Set or change the season plan before kickoff. Any unused points auto-assign when Week 1 advances." : blueprint.resolved ? "This blueprint resolved during the offseason review; the next plan opens before kickoff." : "Season plan is locked through the year and reopens after offseason development."}</p>
           </div>
-          <button className="secondary" onClick={() => onUpdate(autoAllocateProgramBlueprint)} disabled={!canEditBlueprint || remaining <= 0}>
+          <button className="secondary" onClick={() => onUpdate(autoAllocateProgramBlueprint)} disabled={!canEditBlueprint}>
             <Wrench size={16} />
             Auto Build
           </button>

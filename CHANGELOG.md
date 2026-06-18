@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.1 - 2026-06-18
+
+- Kept Program Blueprint Auto Build available before kickoff even when the current plan has no remaining points.
+- Added smoke coverage that verifies preset-filled Blueprint plans can still be rebuilt.
+
 ## 1.12.0 - 2026-06-18
 
 - Added offensive strategy controls for Balanced, Air Raid, Run Heavy, Pro Style, and Spread Tempo identities that affect pass/run volume.
