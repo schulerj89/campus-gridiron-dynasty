@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.14.0 - 2026-06-18
+
+- Added a dedicated Stats tab for national, conference-specific, and User Team leaderboards.
+- Added derived completion percentage leaderboard support with minimum pass-attempt qualification.
+- Moved the program record book and dynasty history from Awards into the Program page so awards stay focused on honors and playoff results.
+
 ## 1.13.0 - 2026-06-18
 
 - Added persisted passing attempts, completions, rushing attempts, and derived completion percentage displays across box scores, player cards, awards notes, and leaderboards.

@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ArrowUp,
   BadgeDollarSign,
+  BarChart3,
   BookOpen,
   Building2,
   CalendarDays,
@@ -61,12 +62,14 @@ import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "
 import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type BlueprintFocus, type Coach, type Conference, type DynastyState, type Game, type OffensiveStrategy, type PlayByPlayEvent, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
 import { PaginationControls } from "./components/PaginationControls";
+import { ProgramHistory } from "./components/ProgramHistoryView";
 import { Rankings } from "./components/RankingsView";
+import { Stats } from "./components/StatsView";
 import { TeamHelmet } from "./components/TeamHelmet";
 import { APP_VERSION } from "./version";
 import { BLUEPRINT_CATEGORY_META, MAX_BLUEPRINT_CATEGORY_POINTS, blueprintRemaining, blueprintSpent, ensureProgramBlueprint, evaluateProgramBlueprint } from "./sim/blueprint";
 
-type Tab = "overview" | "rankings" | "roster" | "recruiting" | "schedule" | "awards" | "program" | "debug";
+type Tab = "overview" | "rankings" | "roster" | "recruiting" | "schedule" | "stats" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
 type RecruitPositionFilter = "ALL" | Position;
@@ -80,6 +83,7 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "roster", label: "Roster", icon: Users },
   { id: "recruiting", label: "Recruiting", icon: Search },
   { id: "schedule", label: "Schedule", icon: CalendarDays },
+  { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "awards", label: "Awards", icon: Trophy },
   { id: "program", label: "Program", icon: GraduationCap },
   { id: "debug", label: "Debug", icon: Wrench },
@@ -302,6 +306,7 @@ export default function App() {
         {activeTab === "roster" && <Roster state={state} onUpdate={update} />}
         {activeTab === "recruiting" && <Recruiting state={state} onUpdate={update} />}
         {activeTab === "schedule" && <Schedule state={state} />}
+        {activeTab === "stats" && <Stats state={state} />}
         {activeTab === "awards" && <Awards state={state} />}
         {activeTab === "program" && <Program state={state} onUpdate={update} />}
         {activeTab === "debug" && <Debug state={state} onUpdate={update} onReset={resetAll} />}
@@ -1953,6 +1958,7 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
           })}
         </div>
       </section>
+      <ProgramHistory state={state} />
       <section className="panel span-2">
         <div className="panel-head compact">
           <h2>Staff Room</h2>

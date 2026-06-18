@@ -45,6 +45,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - The Rankings tab should display the full 1-70 national board; Top 25 status still controls matchup ranked labels and moved-in/out panels.
 - Rankings, awards, honor teams, and stat leaderboards should visually highlight the user's program when it appears.
+- Stat leaderboards belong on the Stats tab, support National, every conference, and User Team scopes, and should derive completion percentage from attempts and completions.
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
 - The Schedule tab should display regular-season games and postseason playoff games with box-score access.
@@ -84,13 +85,15 @@ The smoke script chooses an available preview port and smoke specs use fixed see
 ## QA Expectations
 
 - Use the Debug tab for forced playoff, forced award, forced walk-on need, auto recruit, and multi-season checks.
-- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, other-team roster, player modal, recruiting needs, matchup previews, box score/play-by-play, postseason schedule, program record book, offensive strategy, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, signing-day pagination, signing-day recruit modal, walk-ons, preseason progression, program review, and mobile dashboard coverage.
+- Keep screenshots in `artifacts/screenshots`, including rankings movement, stats leaderboard, roster/depth chart, other-team roster, player modal, recruiting needs, matchup previews, box score/play-by-play, postseason schedule, program record book, offensive strategy, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, signing-day pagination, signing-day recruit modal, walk-ons, preseason progression, program review, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
 ## UI Organization
 
 - `src/App.tsx` owns app shell state, tab routing, and the main dashboard screens.
-- `src/components/AwardsView.tsx` owns awards, stat leaderboard, honor-team, and playoff bracket presentation.
+- `src/components/AwardsView.tsx` owns awards, honor-team, and playoff bracket presentation.
+- `src/components/StatsView.tsx` owns stat leaderboards, stat scope filtering, and completion percentage display rules.
+- `src/components/ProgramHistoryView.tsx` owns derived program record book and dynasty history presentation.
 - `src/components/RankingsView.tsx` owns national poll presentation.
 - `src/components/PaginationControls.tsx` owns reusable table pagination controls.
 - `src/components/TeamHelmet.tsx` maps `Team.helmetIndex` to generated helmet PNG assets.

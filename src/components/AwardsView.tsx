@@ -1,58 +1,8 @@
-import { useState } from "react";
 import clsx from "clsx";
-import { Award, BookOpen, ClipboardList, LineChart, Medal, Trophy } from "lucide-react";
-import { PaginationControls } from "./PaginationControls";
+import { Award, Medal, Trophy } from "lucide-react";
 import { createSeasonAwards } from "../sim/awards";
 import { getUserTeam } from "../sim/dynasty";
-import { buildProgramRecordBook, type ProgramRecordBook as ProgramRecordBookData } from "../sim/history";
-import type { AwardWinner, DynastyState, Game, PlayerStats, Team } from "../sim/types";
-
-type LeaderboardScope = "national" | "conference" | "team";
-type LeaderboardStatKey = keyof PlayerStats;
-
-const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
-  { key: "passAttempts", label: "Pass Attempts" },
-  { key: "passCompletions", label: "Pass Completions" },
-  { key: "passYards", label: "Passing Yards" },
-  { key: "passTd", label: "Passing TD" },
-  { key: "interceptionsThrown", label: "INT Thrown" },
-  { key: "rushAttempts", label: "Rushing Attempts" },
-  { key: "rushYards", label: "Rushing Yards" },
-  { key: "rushTd", label: "Rushing TD" },
-  { key: "receivingTargets", label: "Receiving Targets" },
-  { key: "receivingYards", label: "Receiving Yards" },
-  { key: "receivingTd", label: "Receiving TD" },
-  { key: "tackles", label: "Tackles" },
-  { key: "sacks", label: "Sacks" },
-  { key: "interceptions", label: "Interceptions" },
-  { key: "pancakes", label: "Pan" },
-  { key: "fieldGoals", label: "Field Goals" },
-  { key: "extraPoints", label: "Extra Points" },
-];
-
-const leaderboardColumns: { key: LeaderboardStatKey; label: string }[] = [
-  { key: "passCompletions", label: "Comp" },
-  { key: "passAttempts", label: "Pass Att" },
-  { key: "passYards", label: "Pass Yds" },
-  { key: "passTd", label: "Pass TD" },
-  { key: "interceptionsThrown", label: "INT Thrown" },
-  { key: "rushAttempts", label: "Rush Att" },
-  { key: "rushYards", label: "Rush Yds" },
-  { key: "rushTd", label: "Rush TD" },
-  { key: "receivingTargets", label: "Targets" },
-  { key: "receivingYards", label: "Rec Yds" },
-  { key: "receivingTd", label: "Rec TD" },
-  { key: "tackles", label: "Tackles" },
-  { key: "sacks", label: "Sacks" },
-  { key: "interceptions", label: "INT" },
-  { key: "pancakes", label: "Pancakes" },
-  { key: "fieldGoals", label: "FG" },
-  { key: "fieldGoalAttempts", label: "FGA" },
-  { key: "extraPoints", label: "XP" },
-  { key: "extraPointAttempts", label: "XPA" },
-];
-
-const LEADERBOARD_PAGE_SIZE = 10;
+import type { AwardWinner, DynastyState, Game, Team } from "../sim/types";
 
 export function Awards({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
@@ -67,7 +17,6 @@ export function Awards({ state }: { state: DynastyState }) {
   const currentChampionName = state.playoff?.championTeamId ? state.teams.find((team) => team.id === state.playoff?.championTeamId)?.name : undefined;
   const bracketChampionName = state.playoff ? currentChampionName : latestHistory?.championName;
   const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
-  const recordBook = buildProgramRecordBook(state);
   return (
     <>
       <section className="panel span-2" data-testid="player-of-week-panel">
@@ -91,8 +40,6 @@ export function Awards({ state }: { state: DynastyState }) {
         </div>
         {state.week >= 8 || state.seasonAwards || state.phase !== "regular" ? <AwardGrid awards={awardSource} userTeamId={state.userTeamId} /> : <p className="muted">Season award tracking unlocks after Week 8.</p>}
       </section>
-      <ProgramRecordBookPanel recordBook={recordBook} />
-      <StatLeaderboard state={state} />
       {state.seasonAwards && (
         <>
           <AwardTeamPanel title="All-American First Team" awards={state.seasonAwards.allAmericans.first} testId="all-american-first-panel" userTeamId={state.userTeamId} />
@@ -114,110 +61,7 @@ export function Awards({ state }: { state: DynastyState }) {
         </div>
         <PlayoffBracket games={playoffGames} teams={state.teams} priorPlayoffTeams={priorPlayoffTeams} championName={bracketChampionName} />
       </section>
-      <section className="panel span-2">
-        <div className="panel-head compact">
-          <h2>Dynasty History</h2>
-          <ClipboardList size={20} />
-        </div>
-        <div className="table-list">
-          {state.history.slice(0, 10).map((entry) => (
-            <div key={entry.year} className="table-row">
-              <span>{entry.year}</span>
-              <strong>{entry.championName ?? "No champion"}</strong>
-              <span>{entry.awardWinners[0]?.playerName ?? "Awards pending"}</span>
-              <span>{entry.topClasses[0]?.teamName ?? "Class pending"}</span>
-              <span>{entry.userRecruitingRank ? `Recruiting #${entry.userRecruitingRank}` : "Recruiting pending"}</span>
-            </div>
-          ))}
-        </div>
-      </section>
     </>
-  );
-}
-
-function ProgramRecordBookPanel({ recordBook }: { recordBook?: ProgramRecordBookData }) {
-  if (!recordBook) {
-    return (
-      <section className="panel span-2" data-testid="program-record-book-panel">
-        <div className="panel-head compact">
-          <h2>Program Record Book</h2>
-          <BookOpen size={20} />
-        </div>
-        <p className="muted">Program history appears after a completed season.</p>
-      </section>
-    );
-  }
-  const metrics = [
-    { label: "Seasons Logged", value: recordBook.seasonsLogged.toString(), detail: recordBook.teamName },
-    { label: "Best Record", value: recordBook.bestRecord?.record ?? "-", detail: recordBook.bestRecord ? `${recordBook.bestRecord.year}` : "Complete a season" },
-    { label: "Best Final Rank", value: recordBook.bestFinalRank ? `#${recordBook.bestFinalRank.rank}` : "-", detail: recordBook.bestFinalRank ? `${recordBook.bestFinalRank.year}` : "No ranked finish" },
-    { label: "Best Class", value: recordBook.bestRecruitingClass ? `#${recordBook.bestRecruitingClass.rank}` : "-", detail: recordBook.bestRecruitingClass ? `${recordBook.bestRecruitingClass.year}` : "No class rank" },
-    { label: "Crown Bowl Titles", value: recordBook.crownBowlTitles.toString(), detail: "Championship seasons" },
-    { label: "Summit Four Trips", value: recordBook.summitFourTrips.toString(), detail: `${recordBook.bowlTrips} bowl trips` },
-    { label: "Top 10 Finishes", value: recordBook.topTenFinishes.toString(), detail: "Final poll" },
-    { label: "Individual Awards", value: recordBook.individualAwards.toString(), detail: "Player honors" },
-  ];
-
-  return (
-    <section className="panel span-2 record-book-panel" data-testid="program-record-book-panel">
-      <div className="panel-head compact">
-        <div>
-          <p className="eyebrow">Program History</p>
-          <h2>Program Record Book</h2>
-        </div>
-        <BookOpen size={20} />
-      </div>
-      <div className="metric-grid record-book-metrics">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="metric">
-            <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-            <small>{metric.detail}</small>
-          </div>
-        ))}
-      </div>
-      <div className="record-book-split">
-        <div>
-          <h3>Recent Seasons</h3>
-          <div className="table-list record-book-table">
-            <div className="table-row record-book-row record-book-header">
-              <span>Year</span>
-              <strong>Record</strong>
-              <span>Rank</span>
-              <span>Postseason</span>
-              <span>Class</span>
-              <span>Awards</span>
-            </div>
-            {recordBook.recentSeasons.length ? (
-              recordBook.recentSeasons.map((season) => (
-                <div key={season.year} className="table-row record-book-row">
-                  <span>{season.year}</span>
-                  <strong>{season.record}</strong>
-                  <span>{season.finalRank ? `#${season.finalRank}` : "-"}</span>
-                  <span>{season.postseason}</span>
-                  <span>{season.recruitingClassRank ? `#${season.recruitingClassRank}` : "-"}</span>
-                  <span>{season.awards.length}</span>
-                </div>
-              ))
-            ) : (
-              <p className="muted">Complete a season to open the record book.</p>
-            )}
-          </div>
-        </div>
-        <div>
-          <h3>Award Shelf</h3>
-          <div className="record-book-awards">
-            {recordBook.awardLeaders.length ? (
-              recordBook.awardLeaders.map((award) => (
-                <span key={award.awardName}>{award.awardName} x{award.count}</span>
-              ))
-            ) : (
-              <p className="muted">Player award totals will accumulate here.</p>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -248,94 +92,6 @@ function AwardTeamPanel({ title: panelTitle, awards, testId, userTeamId }: { tit
         <Medal size={20} />
       </div>
       <HonorGrid awards={awards} limit={16} userTeamId={userTeamId} />
-    </section>
-  );
-}
-
-function StatLeaderboard({ state }: { state: DynastyState }) {
-  const userTeam = getUserTeam(state);
-  const [scope, setScope] = useState<LeaderboardScope>("national");
-  const [statKey, setStatKey] = useState<LeaderboardStatKey>("passYards");
-  const [page, setPage] = useState(1);
-  const userConferenceTeamIds = new Set(state.conferences.find((conference) => conference.id === userTeam.conferenceId)?.teamIds ?? []);
-  const rows = state.teams
-    .filter((team) => scope === "national" || (scope === "conference" ? userConferenceTeamIds.has(team.id) : team.id === userTeam.id))
-    .flatMap((team) =>
-      team.roster.map((player) => ({
-        team,
-        player,
-        value: player.stats[statKey],
-      })),
-    )
-    .filter((row) => row.value > 0)
-    .sort((a, b) => b.value - a.value || b.player.overall - a.player.overall);
-  const pageCount = Math.max(1, Math.ceil(rows.length / LEADERBOARD_PAGE_SIZE));
-  const visibleRows = rows.slice((page - 1) * LEADERBOARD_PAGE_SIZE, page * LEADERBOARD_PAGE_SIZE);
-  const changeScope = (nextScope: LeaderboardScope) => {
-    setScope(nextScope);
-    setPage(1);
-  };
-  const changeStat = (nextStat: LeaderboardStatKey) => {
-    setStatKey(nextStat);
-    setPage(1);
-  };
-
-  return (
-    <section className="panel span-2" data-testid="leaderboard-panel">
-      <div className="panel-head">
-        <div>
-          <p className="eyebrow">Stat Leaders</p>
-          <h2>{leaderboardStats.find((stat) => stat.key === statKey)?.label}</h2>
-        </div>
-        <LineChart size={20} />
-      </div>
-      <div className="filter-grid compact-filters">
-        <label>
-          Scope
-          <select value={scope} onChange={(event) => changeScope(event.target.value as LeaderboardScope)}>
-            <option value="national">National</option>
-            <option value="conference">Conference</option>
-            <option value="team">Team</option>
-          </select>
-        </label>
-        <label>
-          Statistic
-          <select value={statKey} onChange={(event) => changeStat(event.target.value as LeaderboardStatKey)}>
-            {leaderboardStats.map((stat) => (
-              <option key={stat.key} value={stat.key}>{stat.label}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="table-list leaderboard-list">
-        <div className="table-row leaderboard-row leaderboard-header">
-          <span>Rank</span>
-          <strong>Player</strong>
-          <span>Pos</span>
-          <span>Team</span>
-          {leaderboardColumns.map((column) => (
-            <span key={column.key} className={clsx(column.key === statKey && "selected-stat")}>{column.label}</span>
-          ))}
-        </div>
-        {visibleRows.length ? (
-          visibleRows.map((row, index) => (
-            <div key={`${row.player.id}-${statKey}`} className={clsx("table-row leaderboard-row", row.team.id === userTeam.id && "user-team-highlight")} data-testid={row.team.id === userTeam.id ? "user-team-leaderboard-row" : undefined}>
-              <span>{(page - 1) * LEADERBOARD_PAGE_SIZE + index + 1}</span>
-              <strong>{row.player.name}</strong>
-              <span>{row.player.position}</span>
-              <span>{row.team.name}</span>
-              {leaderboardColumns.map((column) => (
-                <span key={column.key} className={clsx(column.key === statKey && "selected-stat")}>
-                  {row.player.stats[column.key].toLocaleString()}
-                </span>
-              ))}
-            </div>
-          ))
-        ) : (
-          <p className="muted">Stat leaders populate after games are played.</p>
-        )}
-      </div>
-      <PaginationControls page={page} pageCount={pageCount} total={rows.length} pageSize={LEADERBOARD_PAGE_SIZE} label="leaders" onPageChange={setPage} />
     </section>
   );
 }

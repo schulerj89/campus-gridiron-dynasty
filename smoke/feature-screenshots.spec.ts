@@ -123,14 +123,22 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("player-of-week-panel").screenshot({ path: path.join(screenshotDir, "player-of-week-desktop.png") });
   await expect(page.getByTestId("conference-player-of-week-panel")).toBeVisible();
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
+  await page.getByRole("button", { name: "Stats" }).click();
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Pass Yds");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Pass Att");
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("Comp %");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Rush Att");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Rush TD");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Targets");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("XP");
-  await page.getByTestId("leaderboard-panel").locator("select").first().selectOption("team");
+  const scopeSelect = page.getByTestId("leaderboard-scope-select");
+  await expect(scopeSelect).toContainText("User Team");
+  const firstConferenceScope = await scopeSelect.locator("option").nth(1).getAttribute("value");
+  if (firstConferenceScope) await scopeSelect.selectOption(firstConferenceScope);
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("leaders:");
+  await scopeSelect.selectOption("user-team");
   await expect(page.getByTestId("user-team-leaderboard-row").first()).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDir, "stats-desktop.png"), fullPage: true });
   await page.getByTestId("leaderboard-panel").screenshot({ path: path.join(screenshotDir, "leaderboard-desktop.png") });
 
   for (let week = 0; week < 7; week += 1) {

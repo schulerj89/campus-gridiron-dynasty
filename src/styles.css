@@ -722,6 +722,14 @@ select {
   grid-template-columns: repeat(2, minmax(160px, 240px));
 }
 
+.filter-grid.stats-filters {
+  grid-template-columns: minmax(180px, 300px) minmax(200px, 300px);
+}
+
+.stats-note {
+  margin-bottom: 12px;
+}
+
 .recruiting-budget-grid {
   margin-bottom: 14px;
 }
@@ -1440,8 +1448,15 @@ select {
 }
 
 .leaderboard-row {
-  min-width: 1280px;
-  grid-template-columns: 46px minmax(120px, 1fr) 44px minmax(120px, 0.9fr) repeat(16, minmax(50px, 0.55fr));
+  gap: 8px;
+  min-width: 1320px;
+  grid-template-columns: 40px minmax(105px, 0.9fr) 38px minmax(105px, 0.8fr) repeat(20, minmax(42px, 0.48fr));
+}
+
+.leaderboard-row span,
+.leaderboard-row strong {
+  font-size: 0.84rem;
+  line-height: 1.25;
 }
 
 .leaderboard-header {

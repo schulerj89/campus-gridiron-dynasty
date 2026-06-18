@@ -93,13 +93,17 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await page.getByTestId("sim-three-seasons").click();
   await expect(page.getByText(/Year 4 of 20/)).toBeVisible({ timeout: 90_000 });
 
-  await page.getByRole("button", { name: /Awards/ }).click();
-  await expect(page.getByTestId("awards-panel")).toBeVisible();
+  await page.getByRole("button", { name: /Program/ }).click();
   await expect(page.getByTestId("program-record-book-panel")).toContainText("Program Record Book");
-  await expect(page.getByTestId("playoff-panel")).toBeVisible();
-  await expect(page.getByText("Dynasty History")).toBeVisible();
+  await expect(page.getByTestId("dynasty-history-panel")).toContainText("Dynasty History");
   if (testInfo.project.name === "chromium-desktop") {
     await page.getByTestId("program-record-book-panel").screenshot({ path: path.join(screenshotDir, "program-record-book-desktop.png") });
+  }
+
+  await page.getByRole("button", { name: /Awards/ }).click();
+  await expect(page.getByTestId("awards-panel")).toBeVisible();
+  await expect(page.getByTestId("playoff-panel")).toBeVisible();
+  if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "awards-playoff-desktop.png"), fullPage: true });
   }
 });
