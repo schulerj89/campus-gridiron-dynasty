@@ -14,6 +14,7 @@ export const BLUEPRINT_CATEGORY_META: { key: BlueprintCategory; label: string; e
 export const MAX_BLUEPRINT_CATEGORY_POINTS = 6;
 
 const CATEGORY_KEYS = BLUEPRINT_CATEGORY_META.map((category) => category.key);
+const MAX_BLUEPRINT_TOTAL_POINTS = BLUEPRINT_CATEGORY_META.length * MAX_BLUEPRINT_CATEGORY_POINTS;
 
 export function createProgramBlueprint(team: Team, year: number, autoAllocate = false): ProgramBlueprint {
   const totalPoints = calculateBlueprintBudget(team);
@@ -30,11 +31,12 @@ export function createProgramBlueprint(team: Team, year: number, autoAllocate = 
 
 export function ensureProgramBlueprint(team: Team, year: number, autoAllocate = false): ProgramBlueprint {
   if (!team.blueprint || team.blueprint.year !== year) return createProgramBlueprint(team, year, autoAllocate);
+  const totalPoints = normalizeBlueprintTotalPoints(team.blueprint.totalPoints, calculateBlueprintBudget(team));
   const normalized: ProgramBlueprint = {
     ...team.blueprint,
-    totalPoints: Number.isFinite(team.blueprint.totalPoints) ? team.blueprint.totalPoints : calculateBlueprintBudget(team),
+    totalPoints,
     focus: team.blueprint.focus ?? "custom",
-    allocations: normalizeBlueprintAllocations(team.blueprint.allocations),
+    allocations: normalizeBlueprintAllocations(team.blueprint.allocations, totalPoints),
     goals: team.blueprint.goals?.length ? team.blueprint.goals : createDirectorGoals(team, year),
     resolved: Boolean(team.blueprint.resolved),
   };
@@ -95,10 +97,18 @@ export function emptyBlueprintAllocations(): Record<BlueprintCategory, number> {
   );
 }
 
-export function normalizeBlueprintAllocations(input?: Partial<Record<BlueprintCategory, number>>): Record<BlueprintCategory, number> {
+export function normalizeBlueprintAllocations(input?: Partial<Record<BlueprintCategory, number>>, totalPoints?: number): Record<BlueprintCategory, number> {
   const allocations = emptyBlueprintAllocations();
   for (const key of CATEGORY_KEYS) {
-    allocations[key] = clamp(Math.round(input?.[key] ?? 0), 0, MAX_BLUEPRINT_CATEGORY_POINTS);
+    allocations[key] = normalizeCategoryPoints(input?.[key]);
+  }
+  const maxSpent = totalPoints === undefined ? MAX_BLUEPRINT_TOTAL_POINTS : normalizeBlueprintTotalPoints(totalPoints, MAX_BLUEPRINT_TOTAL_POINTS);
+  let spent = Object.values(allocations).reduce((sum, value) => sum + value, 0);
+  for (const key of [...CATEGORY_KEYS].reverse()) {
+    while (spent > maxSpent && allocations[key] > 0) {
+      allocations[key] -= 1;
+      spent -= 1;
+    }
   }
   return allocations;
 }
@@ -201,6 +211,16 @@ function calculateBlueprintBudget(team: Team): number {
   const culture = Math.round((team.coaches.head.culture + team.coaches.offense.culture + team.coaches.defense.culture) / 3);
   const seasonLift = Math.floor(team.season.wins / 3) + (team.season.rank && team.season.rank <= 10 ? 2 : team.season.rank && team.season.rank <= 25 ? 1 : 0);
   return clamp(Math.round(12 + programStrength / 8 + (culture - 55) / 12 + seasonLift), 16, 28);
+}
+
+function normalizeBlueprintTotalPoints(value: unknown, fallback: number): number {
+  const normalized = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  return clamp(Math.round(normalized), 0, MAX_BLUEPRINT_TOTAL_POINTS);
+}
+
+function normalizeCategoryPoints(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return clamp(Math.round(value), 0, MAX_BLUEPRINT_CATEGORY_POINTS);
 }
 
 function createDirectorGoals(team: Team, year: number): DirectorGoal[] {

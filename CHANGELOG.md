@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.3 - 2026-06-18
+
+- Reconciled legacy recruiting budgets on load so spent plus remaining points always equals the season budget.
+- Hardened Program Blueprint allocation loading against non-finite values and over-allocated corrupt saves.
+- Added storage migration coverage for recruiting budget and Blueprint allocation normalization.
+
 ## 1.12.2 - 2026-06-18
 
 - Fixed signing-day report signee player IDs so they match the actual roster players created from recruits.

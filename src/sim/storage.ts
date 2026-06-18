@@ -202,10 +202,12 @@ function normalizeRecruiting(
   team: DynastyState["teams"][number] | undefined,
   recruits: DynastyState["recruits"],
 ): DynastyState["recruiting"] {
-  const seasonBudget = finiteNumber(recruiting?.seasonBudget) ?? (team ? calculateSeasonRecruitingBudget(team) : 0);
-  const weeklyPoints = finiteNumber(recruiting?.weeklyPoints) ?? (team ? calculateWeeklyRecruitingPoints(team) : 0);
-  const pointsRemaining = clampNumber(finiteNumber(recruiting?.pointsRemaining) ?? seasonBudget, 0, seasonBudget);
-  const pointsSpent = clampNumber(finiteNumber(recruiting?.pointsSpent) ?? Math.max(0, seasonBudget - pointsRemaining), 0, seasonBudget);
+  const seasonBudget = Math.max(0, Math.round(finiteNumber(recruiting?.seasonBudget) ?? (team ? calculateSeasonRecruitingBudget(team) : 0)));
+  const weeklyPoints = Math.max(0, Math.round(finiteNumber(recruiting?.weeklyPoints) ?? (team ? calculateWeeklyRecruitingPoints(team) : 0)));
+  const rawPointsRemaining = finiteNumber(recruiting?.pointsRemaining);
+  const rawPointsSpent = finiteNumber(recruiting?.pointsSpent);
+  const pointsSpent = clampNumber(Math.round(rawPointsSpent ?? (rawPointsRemaining === undefined ? 0 : seasonBudget - rawPointsRemaining)), 0, seasonBudget);
+  const pointsRemaining = seasonBudget - pointsSpent;
   const boardLimit = Math.max(1, Math.floor(finiteNumber(recruiting?.boardLimit) ?? 35));
   const activeRecruitIds = new Set(recruits.filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId).map((recruit) => recruit.id));
   const board = uniqueValidIds(recruiting?.board, activeRecruitIds).slice(0, boardLimit);

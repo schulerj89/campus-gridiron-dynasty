@@ -157,6 +157,36 @@ describe("storage migration", () => {
     expect(reportTeam?.programChanges).toEqual([]);
   });
 
+  it("reconciles legacy recruiting budgets and corrupt Blueprint allocations", () => {
+    const oldSave = createDynasty(5555) as any;
+    oldSave.recruiting.seasonBudget = 1000;
+    oldSave.recruiting.pointsSpent = 700;
+    oldSave.recruiting.pointsRemaining = 900;
+    oldSave.recruiting.weeklyPoints = Number.NaN;
+    oldSave.teams[0].blueprint.totalPoints = 3;
+    oldSave.teams[0].blueprint.allocations = {
+      scoutingNetwork: Number.NaN,
+      recruitingReach: Number.POSITIVE_INFINITY,
+      trainingStaff: -4,
+      facilities: 7,
+      academicSupport: 2.4,
+      playerTrust: undefined,
+      coachRetention: 6,
+    };
+
+    const normalized = normalizeDynastyState(oldSave);
+    const allocations = normalized.teams[0]!.blueprint!.allocations;
+    const allocationValues = Object.values(allocations);
+
+    expect(normalized.recruiting.seasonBudget).toBe(1000);
+    expect(normalized.recruiting.pointsSpent).toBe(700);
+    expect(normalized.recruiting.pointsRemaining).toBe(300);
+    expect(normalized.recruiting.pointsSpent + normalized.recruiting.pointsRemaining).toBe(normalized.recruiting.seasonBudget);
+    expect(normalized.recruiting.weeklyPoints).toBeGreaterThan(0);
+    expect(allocationValues.every((value) => Number.isFinite(value) && Number.isInteger(value) && value >= 0 && value <= 6)).toBe(true);
+    expect(allocationValues.reduce((sum, value) => sum + value, 0)).toBeLessThanOrEqual(normalized.teams[0]!.blueprint!.totalPoints);
+  });
+
   it("normalizes older completed box scores for new strategy, play, target, and XP fields", () => {
     const oldSave = createDynasty(5656) as any;
     const game = oldSave.schedule[0];
