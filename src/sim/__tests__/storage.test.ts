@@ -120,4 +120,30 @@ describe("storage migration", () => {
     expect(normalized.recruiting.board).toEqual([activeRecruitId]);
     expect(normalized.recruiting.investedByRecruit).toEqual({ [activeRecruitId]: 120 });
   });
+
+  it("fills missing offseason report arrays for older saves", () => {
+    const oldSave = createDynasty(5454) as any;
+    const team = oldSave.teams[0];
+    oldSave.phase = "offseason";
+    oldSave.week = 20;
+    oldSave.offseasonReport = {
+      year: oldSave.calendarYear,
+      teams: [
+        {
+          teamId: team.id,
+          teamName: team.name,
+        },
+      ],
+    };
+
+    const normalized = normalizeDynastyState(oldSave);
+    const reportTeam = normalized.offseasonReport?.teams[0];
+
+    expect(normalized.offseasonReport?.topClasses).toEqual([]);
+    expect(reportTeam?.departures).toEqual([]);
+    expect(reportTeam?.signees).toEqual([]);
+    expect(reportTeam?.walkOns).toEqual([]);
+    expect(reportTeam?.progressions).toEqual([]);
+    expect(reportTeam?.programChanges).toEqual([]);
+  });
 });

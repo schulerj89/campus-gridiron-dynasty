@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.11.3 - 2026-06-17
+
+- Hardened legacy offseason report loading when older saves are missing `topClasses` or report arrays.
+- Added defaults for departures, signees, walk-ons, progressions, and program changes during offseason report normalization.
+- Added storage regression coverage for older offseason saves.
+
 ## 1.11.2 - 2026-06-17
 
 - Updated the Rankings page to display the full 1-70 national board instead of only Top 25 entries.

@@ -193,12 +193,15 @@ function uniqueValidIds(value: unknown, validIds: Set<string>): string[] {
 
 function normalizeOffseasonReport(report: DynastyState["offseasonReport"]): DynastyState["offseasonReport"] {
   if (!report) return undefined;
+  const reportTeams = Array.isArray(report.teams) ? report.teams : [];
   return {
     ...report,
+    topClasses: Array.isArray(report.topClasses) ? report.topClasses : [],
     signingComplete: Boolean(report.signingComplete),
     developmentComplete: Boolean(report.developmentComplete),
-    teams: report.teams.map((teamReport) => ({
+    teams: reportTeams.map((teamReport) => ({
       ...teamReport,
+      departures: teamReport.departures ?? [],
       signees: teamReport.signees ?? [],
       walkOns: teamReport.walkOns ?? [],
       progressions: teamReport.progressions ?? [],
