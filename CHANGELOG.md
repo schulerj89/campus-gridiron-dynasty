@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.8 - 2026-06-17
+
+- Fixed scouting so a full recruiting board cannot create off-board sunk investments.
+- Disabled Scout on off-board prospects when the recruiting board is already full.
+- Added regression coverage for full-board scout attempts and normal scout-to-board behavior.
+
 ## 1.4.7 - 2026-06-17
 
 - Fixed Debug Sim To End so it completes the full 20-year dynasty instead of stopping at Year 20 kickoff.

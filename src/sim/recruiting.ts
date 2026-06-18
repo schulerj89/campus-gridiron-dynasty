@@ -112,6 +112,9 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
   const target = state.recruits.find((recruit) => recruit.id === recruitId);
   if (!target || target.stage === "signed" || target.committedTeamId) return state;
   if (state.recruiting.pointsRemaining < SCOUT_COST) return state;
+  const boardLimit = recruitingBoardLimit(state);
+  const board = boardWithRecruit(state.recruiting.board, recruitId, boardLimit);
+  if (!state.recruiting.board.includes(recruitId) && board.length === state.recruiting.board.length) return state;
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
     if (recruit.id !== recruitId || recruit.stage === "signed") return recruit;
@@ -127,7 +130,7 @@ export function scoutRecruit(state: DynastyState, recruitId: string): DynastySta
       pointsRemaining: state.recruiting.pointsRemaining - SCOUT_COST,
       pointsSpent: (state.recruiting.pointsSpent ?? 0) + SCOUT_COST,
       investedByRecruit: addRecruitInvestment(state.recruiting.investedByRecruit, recruitId, SCOUT_COST),
-      board: boardWithRecruit(state.recruiting.board, recruitId, recruitingBoardLimit(state)),
+      board,
       lastActions: [`Scouted ${recruit?.name ?? "recruit"} for ${SCOUT_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };

@@ -1111,7 +1111,7 @@ function RecruitCard({
             Offer
           </button>
         )}
-        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || lockedCommitment}>
+        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={(boardFull && !onBoard) || pointsRemaining < SCOUT_COST || lockedCommitment}>
           Scout
         </button>
         <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || lockedCommitment}>
@@ -1246,7 +1246,7 @@ function RecruitModal({
                   Offer Scholarship
                 </button>
               )}
-              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={pointsRemaining < SCOUT_COST || lockedCommitment}>
+              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={(boardFull && !onBoard) || pointsRemaining < SCOUT_COST || lockedCommitment}>
                 Scout
               </button>
               <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || pointsRemaining < PITCH_COST || lockedCommitment}>

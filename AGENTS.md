@@ -16,6 +16,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Recruiting scholarships are tracked per recruit, add prospects to the board, and gate one-pitch-per-week recruiting actions.
 - Recruiting action points are tracked per recruit and return when a board prospect commits.
 - Removing a recruit from the board or rescinding a scholarship should free board/offer state but not immediately refund sunk recruiting points.
+- Scouting an off-board recruit should require board space before spending points.
 - Auto-recruit should fill the board, balance position targets against team needs, use scouting/gem-bust information when available, and reallocate refunded points after commitments.
 - Committed recruits should preserve their commitment stage through weekly recruiting updates until signing day.
 - Recruiting UI should keep position needs visible with roster target, active board, offer, and pledge coverage.

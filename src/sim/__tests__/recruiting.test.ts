@@ -77,6 +77,49 @@ describe("recruiting", () => {
     expect(scouted.gemBust).toMatch(/gem|solid|bust/);
   });
 
+  it("adds an off-board recruit when scouting if the board has room", () => {
+    const state = createDynasty(5677);
+    const recruit = state.recruits[0]!;
+    const beforePoints = state.recruiting.pointsRemaining;
+    const scouted = scoutRecruit({
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        board: [],
+        investedByRecruit: {},
+      },
+    }, recruit.id);
+
+    expect(scouted.recruiting.board).toContain(recruit.id);
+    expect(scouted.recruiting.pointsRemaining).toBe(beforePoints - SCOUT_COST);
+    expect(scouted.recruiting.pointsSpent).toBe(state.recruiting.pointsSpent + SCOUT_COST);
+    expect(scouted.recruiting.investedByRecruit[recruit.id]).toBe(SCOUT_COST);
+  });
+
+  it("does not spend scouting points for an off-board recruit when the board is full", () => {
+    const state = createDynasty(5676);
+    const boardLimit = state.recruiting.boardLimit ?? 35;
+    const board = state.recruits.slice(0, boardLimit).map((recruit) => recruit.id);
+    const recruit = state.recruits.find((candidate) => !board.includes(candidate.id))!;
+    const prepared = {
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        board,
+        investedByRecruit: {},
+        lastActions: ["existing action"],
+      },
+    };
+
+    const attempted = scoutRecruit(prepared, recruit.id);
+
+    expect(attempted.recruiting.board).toEqual(board);
+    expect(attempted.recruiting.pointsRemaining).toBe(prepared.recruiting.pointsRemaining);
+    expect(attempted.recruiting.pointsSpent).toBe(prepared.recruiting.pointsSpent);
+    expect(attempted.recruiting.investedByRecruit).toEqual({});
+    expect(attempted.recruiting.lastActions).toEqual(["existing action"]);
+  });
+
   it("offers a scholarship once, adds the recruit to the board, and spends points", () => {
     let state = createDynasty(5679);
     const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;
