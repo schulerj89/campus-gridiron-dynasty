@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.6 - 2026-06-18
+
+- Recovered the newest IndexedDB dynasty when the active localStorage pointer is missing or stale.
+- Rewrote active save metadata after fallback recovery so Continue points back at a valid save.
+- Added storage and smoke coverage for newest-save recovery after pointer drift.
+
 ## 1.12.5 - 2026-06-18
 
 - Serialized autosaves and manual saves through a shared dynasty save queue.

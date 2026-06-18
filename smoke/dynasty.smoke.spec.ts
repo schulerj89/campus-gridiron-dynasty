@@ -42,8 +42,16 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   if (testInfo.project.name !== "webkit-iphone-15-pro-max") {
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByTestId("save-status")).toContainText("Saved", { timeout: 20_000 });
+    await page.evaluate(() => {
+      localStorage.setItem("campus-gridiron-active-save", "missing-save");
+      localStorage.removeItem("campus-gridiron-active-save-summary");
+    });
     await page.reload();
     await expect(page.getByTestId("save-summary")).toContainText("Continue", { timeout: 20_000 });
+    await page.waitForFunction(() => {
+      const activeId = localStorage.getItem("campus-gridiron-active-save");
+      return Boolean(activeId && activeId !== "missing-save");
+    });
     if (testInfo.project.name === "chromium-desktop") {
       await page.screenshot({ path: path.join(screenshotDir, "home-continue-summary-desktop.png"), fullPage: true });
     }

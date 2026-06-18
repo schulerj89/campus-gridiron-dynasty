@@ -38,7 +38,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Game box scores should expose strategy, play count, pass/rush attempts, targets, separate FG/XP stats, and scoring play-by-play.
 - Dynasty length is 20 years.
 - Debug Sim To End should finish the 20th season and reach the `complete` phase.
-- Saves are local-only through IndexedDB via `src/sim/storage.ts`.
+- Saves are local-only through IndexedDB via `src/sim/storage.ts`; localStorage may keep only the active save pointer and compact summary.
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - The Rankings tab should display the full 1-70 national board; Top 25 status still controls matchup ranked labels and moved-in/out panels.
 - Rankings, awards, honor teams, and stat leaderboards should visually highlight the user's program when it appears.
@@ -52,6 +52,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.
 - Legacy save loading should sanitize stale user-team, recruit offer, recruit interest, commitment, board, and investment IDs before simulation code uses them.
 - Legacy offseason report loading should default missing topClasses, departures, signees, walk-ons, progressions, and program changes.
+- Active save loading should recover the newest IndexedDB dynasty if the active localStorage pointer is missing or stale.
 - Smoke tests should use `scripts/run-smoke.mjs` and fixed seed query params instead of reusing an arbitrary preview server.
 - Hiring from the coach pool should return the displaced user coach to the pool with no `hiredBy` assignment.
 - Program Blueprint changes must reconcile recruiting `pointsRemaining + pointsSpent` to the current season budget.

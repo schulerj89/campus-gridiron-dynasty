@@ -28,8 +28,7 @@ export async function saveDynasty(state: DynastyState): Promise<void> {
     const transaction = db.transaction(STORE_NAME, "readwrite");
     transaction.objectStore(STORE_NAME).put(savedState);
     await transactionToPromise(transaction);
-    if (hasLocalStorage()) localStorage.setItem(ACTIVE_KEY, state.id);
-    saveActiveDynastySummary(summarizeDynastyState(savedState));
+    saveActiveDynastyMetadata(savedState);
   } finally {
     db.close();
   }
@@ -38,15 +37,22 @@ export async function saveDynasty(state: DynastyState): Promise<void> {
 export async function loadActiveDynasty(): Promise<DynastyState | undefined> {
   if (!hasIndexedDb()) return undefined;
   const activeId = hasLocalStorage() ? localStorage.getItem(ACTIVE_KEY) : undefined;
-  if (!activeId) return undefined;
   const db = await openDb();
   try {
-    const result = await requestToPromise<DynastyState | undefined>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(activeId));
-    if (!result) {
+    const activeSave = activeId ? await requestToPromise<DynastyState | undefined>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(activeId)) : undefined;
+    if (activeSave) {
+      const normalized = normalizeDynastyState(activeSave);
+      saveActiveDynastyMetadata(normalized);
+      return normalized;
+    }
+    const fallback = pickLatestDynastyState(await requestToPromise<DynastyState[]>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll()));
+    if (!fallback) {
       clearActiveDynastySummary();
       return undefined;
     }
-    return normalizeDynastyState(result);
+    const normalized = normalizeDynastyState(fallback);
+    saveActiveDynastyMetadata(normalized);
+    return normalized;
   } finally {
     db.close();
   }
@@ -107,6 +113,15 @@ export function summarizeDynastyState(state: DynastyState): DynastySaveSummary {
     week: state.week,
     updatedAt: state.updatedAt,
   };
+}
+
+export function pickLatestDynastyState(states: DynastyState[]): DynastyState | undefined {
+  return [...states].sort((a, b) => saveTimestamp(b) - saveTimestamp(a))[0];
+}
+
+function saveActiveDynastyMetadata(state: DynastyState): void {
+  if (hasLocalStorage()) localStorage.setItem(ACTIVE_KEY, state.id);
+  saveActiveDynastySummary(summarizeDynastyState(state));
 }
 
 function saveActiveDynastySummary(summary: DynastySaveSummary): void {
@@ -410,6 +425,13 @@ function finiteNumber(value: unknown): number | undefined {
 
 function clampNumber(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function saveTimestamp(state: DynastyState): number {
+  const updatedAt = Date.parse(state.updatedAt);
+  if (Number.isFinite(updatedAt)) return updatedAt;
+  const createdAt = Date.parse(state.createdAt);
+  return Number.isFinite(createdAt) ? createdAt : 0;
 }
 
 function fallbackHelmetIndex(teamId: string, index: number): number {

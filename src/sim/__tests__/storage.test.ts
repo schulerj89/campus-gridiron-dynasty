@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { loadActiveDynastySummary, normalizeDynastyState, summarizeDynastyState } from "../storage";
+import { loadActiveDynastySummary, normalizeDynastyState, pickLatestDynastyState, summarizeDynastyState } from "../storage";
 
 describe("storage migration", () => {
   it("builds a compact active save summary for quick home-screen retrieval", () => {
@@ -18,6 +18,20 @@ describe("storage migration", () => {
       week: state.week,
       updatedAt: state.updatedAt,
     });
+  });
+
+  it("selects the newest saved dynasty for active pointer recovery", () => {
+    const older = { ...createDynasty(4142), id: "older-save", updatedAt: "2026-01-05T12:00:00.000Z" };
+    const newer = { ...createDynasty(4143), id: "newer-save", updatedAt: "2026-04-05T12:00:00.000Z" };
+    const createdAtFallback = {
+      ...createDynasty(4144),
+      id: "created-at-fallback-save",
+      createdAt: "2026-02-05T12:00:00.000Z",
+      updatedAt: "not-a-date",
+    };
+
+    expect(pickLatestDynastyState([older, newer, createdAtFallback])?.id).toBe("newer-save");
+    expect(pickLatestDynastyState([])).toBeUndefined();
   });
 
   it("fills rankings and helmet indexes for older saves", () => {
