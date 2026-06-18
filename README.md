@@ -37,6 +37,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/rankings-desktop.png`
 - `artifacts/screenshots/rankings-movement-desktop.png`
 - `artifacts/screenshots/roster-desktop.png`
+- `artifacts/screenshots/roster-other-team-desktop.png`
 - `artifacts/screenshots/depth-chart-desktop.png`
 - `artifacts/screenshots/player-profile-modal-desktop.png`
 - `artifacts/screenshots/player-stats-modal-desktop.png`
@@ -91,6 +92,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Initial generated players must not exceed 93 in any rating.
 - Generated players and recruits also use position-specific off-skill caps so non-role attributes stay plausible.
 - Team helmets use generated fictional 16-bit PNG assets with no logos, letters, mascots, or licensed marks.
+- The Roster Room should allow viewing any program roster while keeping depth-chart movement editable only for the user program.
 - National poll rankings are stored as dynasty snapshots with Top 25 entries, full 1-70 all-team ranks, votes, first-place votes, and weekly movement.
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.

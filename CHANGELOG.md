@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.9.0 - 2026-06-17
+
+- Added a Roster Room program selector so any team roster can be inspected.
+- Added opponent roster context with conference, overall, identity, record, helmet, and team power.
+- Kept depth-chart reordering editable only for the user program and added smoke screenshot coverage for another team roster.
+
 ## 1.8.0 - 2026-06-17
 
 - Made Program Blueprint allocations persist through the season after Week 1 kickoff.

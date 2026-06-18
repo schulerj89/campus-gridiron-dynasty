@@ -714,10 +714,20 @@ function DepartureGroup({ title: groupTitle, departures }: { title: string; depa
 }
 
 function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
-  const team = getUserTeam(state);
+  const [selectedTeamId, setSelectedTeamId] = useState(state.userTeamId);
   const [positionFilter, setPositionFilter] = useState<RosterFilter>("ALL");
   const [selectedPlayer, setSelectedPlayer] = useState<Player | undefined>();
   const [modalTab, setModalTab] = useState<PlayerModalTab>("profile");
+  useEffect(() => {
+    if (!state.teams.some((candidate) => candidate.id === selectedTeamId)) {
+      setSelectedTeamId(state.userTeamId);
+    }
+  }, [selectedTeamId, state.teams, state.userTeamId]);
+  const team = state.teams.find((candidate) => candidate.id === selectedTeamId) ?? getUserTeam(state);
+  const isUserTeam = team.id === state.userTeamId;
+  const conference = state.conferences.find((candidate) => candidate.id === team.conferenceId);
+  const units = teamUnitRatings(team.roster);
+  const teamOptions = [...state.teams].sort((a, b) => a.name.localeCompare(b.name));
   const sorted = [...team.roster].sort((a, b) => b.overall - a.overall || b.potential - a.potential);
   const filtered = positionFilter === "ALL" ? sorted : sorted.filter((player) => player.position === positionFilter);
   const depthChart = buildDepthChart(team, 5);
@@ -727,6 +737,7 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
     setModalTab("profile");
   };
   const movePlayer = (position: Position, playerId: string, direction: "up" | "down") => {
+    if (!isUserTeam) return;
     onUpdate((current) => ({
       ...current,
       teams: current.teams.map((candidate) => (candidate.id === team.id ? moveDepthChartPlayer(candidate, position, playerId, direction) : candidate)),
@@ -739,9 +750,35 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
         <div className="panel-head">
           <div>
             <p className="eyebrow">Roster Room</p>
-            <h2>{team.roster.length} players</h2>
+            <h2>{team.name}</h2>
+            <p className="muted">{team.roster.length} players - {conference?.name ?? "Independent"} - OVR {units.overall}</p>
           </div>
           <Users size={20} />
+        </div>
+        <div className="filter-grid compact-filters roster-team-picker" data-testid="roster-team-picker">
+          <label>
+            Program
+            <select
+              value={team.id}
+              onChange={(event) => {
+                setSelectedTeamId(event.target.value);
+                setSelectedPlayer(undefined);
+              }}
+              data-testid="roster-team-select"
+            >
+              {teamOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}{option.id === state.userTeamId ? " (your program)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="team-summary-strip" data-testid="roster-view-team-summary">
+            <TeamHelmet team={team} size="sm" />
+            <span>{teamIdentity(team)}</span>
+            <span>{team.season.wins}-{team.season.losses}</span>
+            <span>Power {teamPower(team.roster)}</span>
+          </div>
         </div>
         <div className="roster-controls" data-testid="position-filter">
           {(["ALL", ...POSITIONS] as RosterFilter[]).map((position) => (
@@ -767,7 +804,10 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
 
       <section className="panel span-2" data-testid="depth-chart-panel">
         <div className="panel-head compact">
-          <h2>Depth Chart</h2>
+          <div>
+            <h2>Depth Chart</h2>
+            <p className="muted">{isUserTeam ? "Editable for your program." : "View only for other programs."}</p>
+          </div>
           <ClipboardList size={20} />
         </div>
         <div className="depth-grid">
@@ -783,10 +823,10 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
                     <StreakBadge player={player} compact showNeutral={false} />
                   </button>
                   <div className="depth-actions">
-                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "up")} disabled={index === 0} aria-label={`Move ${player.name} up`}>
+                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "up")} disabled={!isUserTeam || index === 0} aria-label={`Move ${player.name} up`}>
                       <ArrowUp size={15} />
                     </button>
-                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "down")} disabled={index === slot.players.length - 1} aria-label={`Move ${player.name} down`}>
+                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "down")} disabled={!isUserTeam || index === slot.players.length - 1} aria-label={`Move ${player.name} down`}>
                       <ArrowDown size={15} />
                     </button>
                   </div>

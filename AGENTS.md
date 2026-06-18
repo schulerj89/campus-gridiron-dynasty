@@ -51,6 +51,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Unspent user Program Blueprint points should auto-fill at Week 1 kickoff while preserving any manual allocations.
 - Director Goals should appear before Week 1 and the previous resolved blueprint review should remain visible during the next preseason.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
+- Roster Room can inspect any team roster, but depth-chart movement should remain user-team only.
 
 ## Frequent Commands
 
@@ -68,7 +69,7 @@ The smoke script chooses an available preview port and smoke specs use fixed see
 ## QA Expectations
 
 - Use the Debug tab for forced playoff, forced award, forced walk-on need, auto recruit, and multi-season checks.
-- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, player modal, recruiting needs, matchup previews, postseason schedule, program record book, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, walk-ons, preseason progression, program review, and mobile dashboard coverage.
+- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, other-team roster, player modal, recruiting needs, matchup previews, postseason schedule, program record book, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, walk-ons, preseason progression, program review, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
 ## UI Organization

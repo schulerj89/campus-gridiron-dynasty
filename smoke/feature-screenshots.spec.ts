@@ -32,6 +32,17 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("attributes-panel")).toBeVisible();
   await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "attributes-desktop.png") });
   await page.getByRole("button", { name: "Close player card" }).click();
+  const rosterTeamSelect = page.getByTestId("roster-team-select");
+  const userRosterTeam = await rosterTeamSelect.inputValue();
+  const rosterTeamOptions = await rosterTeamSelect.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
+  const otherRosterTeam = rosterTeamOptions.find((value) => value !== userRosterTeam);
+  if (otherRosterTeam) {
+    await rosterTeamSelect.selectOption(otherRosterTeam);
+    await expect(page.getByTestId("depth-chart-panel")).toContainText("View only");
+    await expect(page.getByTestId("roster-view-team-summary")).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotDir, "roster-other-team-desktop.png"), fullPage: true });
+    await rosterTeamSelect.selectOption(userRosterTeam);
+  }
 
   await page.getByRole("button", { name: "Rankings" }).click();
   await expect(page.getByTestId("rankings-panel")).toContainText("Top 25");
