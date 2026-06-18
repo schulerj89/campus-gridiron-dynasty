@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.13.0 - 2026-06-18
+
+- Added persisted passing attempts, completions, rushing attempts, and derived completion percentage displays across box scores, player cards, awards notes, and leaderboards.
+- Reworked offensive line pancake generation so blockers receive plausible game stats and positive rush play-by-play can cite a pancake block.
+- Added legacy save normalization and regression coverage for new attempt/completion fields and pancake play evidence.
+
 ## 1.12.13 - 2026-06-18
 
 - Split the Crown Bowl final into a championship recap checkpoint before offseason departures open.

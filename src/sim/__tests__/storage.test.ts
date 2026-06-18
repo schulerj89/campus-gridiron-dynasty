@@ -296,8 +296,14 @@ describe("storage migration", () => {
     expect(box?.strategy).toBe("balanced");
     expect(box?.plays).toBeGreaterThan(0);
     expect(box?.passAttempts).toBeGreaterThan(0);
+    expect(box?.totals.passAttempts).toBe(box?.passAttempts);
+    expect(box?.totals.passCompletions).toBeGreaterThan(0);
+    expect(box?.totals.rushAttempts).toBe(box?.rushAttempts);
     expect(box?.totals.receivingTargets).toBe(0);
     expect(box?.totals.extraPoints).toBe(0);
+    expect(box?.players[0]?.stats.passAttempts).toBeGreaterThan(0);
+    expect(box?.players[0]?.stats.passCompletions).toBeGreaterThan(0);
+    expect(box?.players[0]?.stats.rushAttempts).toBeGreaterThan(0);
     expect(box?.players[0]?.stats.extraPointAttempts).toBe(0);
     expect(normalized.schedule[0]?.result?.playByPlay).toEqual([]);
   });

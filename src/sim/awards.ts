@@ -228,8 +228,8 @@ function addStats(left: PlayerStats, right: PlayerStats): PlayerStats {
 
 function noteFor(player: AwardEntry["player"]): string {
   const stats = player.stats;
-  if (player.position === "QB") return `${stats.passYards.toLocaleString()} pass yards, ${stats.passTd} TD`;
-  if (player.position === "HB") return `${stats.rushYards.toLocaleString()} rush yards, ${stats.rushTd} TD`;
+  if (player.position === "QB") return `${stats.passCompletions}/${stats.passAttempts} passing, ${stats.passYards.toLocaleString()} yards, ${stats.passTd} TD`;
+  if (player.position === "HB") return `${stats.rushAttempts} carries, ${stats.rushYards.toLocaleString()} rush yards, ${stats.rushTd} TD`;
   if (player.position === "WR" || player.position === "TE") return `${stats.receivingYards.toLocaleString()} receiving yards, ${stats.receivingTargets} targets, ${stats.receivingTd} TD`;
   if (player.position === "OL") return `${stats.pancakes} pancakes`;
   if (player.position === "K" || player.position === "P") return `${stats.fieldGoals}/${stats.fieldGoalAttempts} FG, ${stats.extraPoints}/${stats.extraPointAttempts} XP`;

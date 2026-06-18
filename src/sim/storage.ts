@@ -329,6 +329,9 @@ function normalizeTeamBoxScore(box: TeamBoxScore): TeamBoxScore {
   const totals = normalizeStats(box.totals);
   const passAttempts = Number.isFinite(box.passAttempts) ? box.passAttempts : totals.passYards > 0 ? Math.max(1, Math.round(totals.passYards / 7)) : 0;
   const rushAttempts = Number.isFinite(box.rushAttempts) ? box.rushAttempts : totals.rushYards > 0 ? Math.max(1, Math.round(totals.rushYards / 4)) : 0;
+  if (totals.passAttempts === 0 && passAttempts > 0) totals.passAttempts = passAttempts;
+  if (totals.passCompletions === 0 && passAttempts > 0 && totals.passYards > 0) totals.passCompletions = Math.min(passAttempts, Math.max(1, Math.round(passAttempts * 0.6)));
+  if (totals.rushAttempts === 0 && rushAttempts > 0) totals.rushAttempts = rushAttempts;
   return {
     ...box,
     strategy: box.strategy ?? "balanced",
@@ -341,10 +344,14 @@ function normalizeTeamBoxScore(box: TeamBoxScore): TeamBoxScore {
 }
 
 function normalizeStats(stats: Partial<PlayerStats> | undefined): PlayerStats {
-  return {
+  const normalized = {
     ...emptyStats(),
     ...(stats ?? {}),
   };
+  if (stats?.passAttempts === undefined && normalized.passYards > 0) normalized.passAttempts = Math.max(1, Math.round(normalized.passYards / 7));
+  if (stats?.passCompletions === undefined && normalized.passAttempts > 0 && normalized.passYards > 0) normalized.passCompletions = Math.min(normalized.passAttempts, Math.max(1, Math.round(normalized.passAttempts * 0.6)));
+  if (stats?.rushAttempts === undefined && normalized.rushYards > 0) normalized.rushAttempts = Math.max(1, Math.round(normalized.rushYards / 4));
+  return normalized;
 }
 
 function normalizeOffensiveStrategy(value: unknown, scheme?: string): OffensiveStrategy {

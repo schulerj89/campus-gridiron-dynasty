@@ -47,9 +47,12 @@ export type DirectorGoalStatus = "active" | "met" | "missed";
 
 export interface PlayerStats {
   games: number;
+  passAttempts: number;
+  passCompletions: number;
   passYards: number;
   passTd: number;
   interceptionsThrown: number;
+  rushAttempts: number;
   rushYards: number;
   rushTd: number;
   receivingTargets: number;
@@ -495,9 +498,12 @@ export interface DynastyState {
 export function emptyStats(): PlayerStats {
   return {
     games: 0,
+    passAttempts: 0,
+    passCompletions: 0,
     passYards: 0,
     passTd: 0,
     interceptionsThrown: 0,
+    rushAttempts: 0,
     rushYards: 0,
     rushTd: 0,
     receivingTargets: 0,

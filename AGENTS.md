@@ -35,7 +35,9 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Player hot/cold streaks should be rare, temporary, and applied through effective ratings rather than permanent base ratings.
 - Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.
 - Offensive strategies should affect pass/run volume while still adjusting toward roster strength and game state.
-- Game box scores should expose strategy, play count, pass/rush attempts, targets, separate FG/XP stats, and down-by-down play-by-play with punts, turnovers, kicks, yards, down, distance, and field position.
+- Game box scores should expose strategy, play count, passing attempts/completions, rushing attempts, targets, separate FG/XP stats, and down-by-down play-by-play with punts, turnovers, kicks, yards, down, distance, and field position.
+- Completion percentage should be derived from completions and attempts, not stored as a separate stat.
+- Offensive line pancakes should be blocker-weighted, visible in player/leaderboard stats, and allowed to be zero in poor blocking games.
 - Dynasty length is 20 years.
 - Debug Sim To End should finish the 20th season and reach the `complete` phase.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`; localStorage may keep only the active save pointer and compact summary.

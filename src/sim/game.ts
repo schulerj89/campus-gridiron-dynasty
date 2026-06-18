@@ -19,6 +19,7 @@ interface TeamGameProfile {
   scoringEvents: ScoringEvent[];
   extraPointEvents: ScoringEvent[];
   missedExtraPointEvents: ScoringEvent[];
+  pancakeBlockers: string[];
 }
 
 interface ScoringEvent {
@@ -53,6 +54,7 @@ interface PlayContext {
   kicker?: Player;
   returners: Player[];
   defenders: Player[];
+  pancakeBlockers: string[];
   passRemaining: number;
   rushRemaining: number;
   scoringEvents: ScoringEvent[];
@@ -236,8 +238,15 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   const scoringEvents: ScoringEvent[] = [];
   const extraPointEvents: ScoringEvent[] = [];
   const missedExtraPointEvents: ScoringEvent[] = [];
+  const targetAttempts = clamp(passAttempts - picks - rng.nextInt(0, 3), Math.min(passAttempts, targets.length), passAttempts);
+  const completionRate = clamp(0.59 + (units.passing + units.receiving - opponentUnits.coverage * 1.1) / 260 + rng.nextInt(-4, 5) / 100, 0.47, 0.72);
+  const minimumCompletions = Math.min(targetAttempts, Math.max(passTd, passYards > 0 ? 1 : 0));
+  const passCompletions = clamp(Math.round(targetAttempts * completionRate), minimumCompletions, targetAttempts);
+  const pancakeBlockers: string[] = [];
 
   mutateActivePlayer(updated, appeared, qb?.id, (player) => {
+    player.stats.passAttempts += passAttempts;
+    player.stats.passCompletions += passCompletions;
     player.stats.passYards += passYards;
     player.stats.passTd += passTd;
     player.stats.interceptionsThrown += picks;
@@ -245,7 +254,9 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   const qbAttributes = qb ? effectiveAttributes(qb) : undefined;
   const qbRushYards = qbAttributes ? clamp(Math.round(Math.max(0, qbAttributes.speed - 45) * rng.next() * 0.45), 0, Math.min(85, Math.round(rushYards * 0.28))) : 0;
   const qbRushTd = qbAttributes && rushTd > 0 && rng.chance(clamp((qbAttributes.speed - 50) / 170, 0.03, 0.28)) ? 1 : 0;
+  const qbRushAttempts = qbRushYards > 0 || qbRushTd > 0 ? clamp(Math.round(rushAttempts * clamp((qbAttributes?.speed ?? 50) / 650, 0.03, 0.14)) + rng.nextInt(0, 2), 1, Math.min(8, rushAttempts)) : 0;
   mutateActivePlayer(updated, appeared, qb?.id, (player) => {
+    player.stats.rushAttempts += qbRushAttempts;
     player.stats.rushYards += qbRushYards;
     player.stats.rushTd += qbRushTd;
     if (qbRushTd > 0) {
@@ -256,6 +267,11 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
       });
     }
   });
+  for (const [playerId, value] of splitAmount(backs, Math.max(0, rushAttempts - qbRushAttempts), (player) => effectiveOverall(player) + effectiveAttributes(player).speed * 0.35 + effectiveAttributes(player).awareness * 0.25)) {
+    mutateActivePlayer(updated, appeared, playerId, (player) => {
+      player.stats.rushAttempts += value;
+    });
+  }
   for (const [playerId, value] of splitAmount(backs, Math.max(0, rushYards - qbRushYards), (player) => effectiveOverall(player) + effectiveAttributes(player).speed * 0.4 + effectiveAttributes(player).awareness * 0.2)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.rushYards += value;
@@ -275,7 +291,6 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   }
   const receivingWeights = receivingUsageWeights(targets);
   const targetWeights = targetUsageWeights(targets);
-  const targetAttempts = clamp(passAttempts - picks - rng.nextInt(0, 3), Math.min(passAttempts, targets.length), passAttempts);
   for (const [playerId, value] of splitAmount(targets, targetAttempts, (player) => targetWeights.get(player.id) ?? receivingSkill(player))) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.receivingTargets += value;
@@ -298,9 +313,11 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
       }
     });
   }
-  for (const [playerId, value] of splitAmount(blockers, Math.round(pointsFor + rushYards / 9), (player) => effectiveOverall(player) + effectiveAttributes(player).runBlock + effectiveAttributes(player).passBlock)) {
+  const pancakeCount = clamp(Math.round(0.8 + rushYards / 64 + pointsFor / 28 + (units.blocking - opponentUnits.defense) / 38 + rng.nextInt(-2, 2)), 0, 10);
+  for (const [playerId, value] of splitScores(rng, blockers, pancakeCount, (player) => effectiveOverall(player) + effectiveAttributes(player).runBlock * 0.8 + effectiveAttributes(player).passBlock * 0.35)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
-      player.stats.pancakes += Math.round(value / 26);
+      player.stats.pancakes += value;
+      for (let index = 0; index < value; index += 1) pancakeBlockers.push(player.name);
     });
   }
   const tacklePool = clamp(56 + Math.round(pointsAgainst * 0.28) + Math.round((opponentUnits.rushing + opponentUnits.passing) / 45) + rng.nextInt(-5, 9), 50, 85);
@@ -392,6 +409,7 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
       scoringEvents,
       extraPointEvents,
       missedExtraPointEvents,
+      pancakeBlockers,
     },
   };
 }
@@ -648,6 +666,7 @@ function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGa
     kicker: topAt(team.roster, ["K"], 1)[0],
     returners: uniquePlayers([...topAt(opponent.roster, ["WR"], 3), ...topAt(opponent.roster, ["CB"], 2), ...topAt(opponent.roster, ["HB"], 1)]),
     defenders: uniquePlayers([...topAt(opponent.roster, ["CB"], 3), ...topAt(opponent.roster, ["S"], 3), ...topAt(opponent.roster, ["LB"], 3), ...topAt(opponent.roster, ["DL"], 3)]),
+    pancakeBlockers: [...profile.pancakeBlockers],
     passRemaining: profile.passAttempts,
     rushRemaining: profile.rushAttempts,
     scoringEvents: rng.shuffle(profile.scoringEvents),
@@ -830,9 +849,10 @@ function buildRushPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
   const shortYardageBoost = state.distance <= 2 ? 1 : 0;
   const explosive = rng.chance(0.09) ? rng.nextInt(8, 21) : 0;
   const yards = clamp(rng.nextInt(-3, 8) + shortYardageBoost + explosive, -5, maxGain);
+  const pancakeBlocker = yards > 0 ? context.pancakeBlockers.shift() : undefined;
   return {
     ...basePlay(context, "rush", 0, state, yards),
-    description: `${runner} rushed for ${yardPhrase(yards)}.`,
+    description: `${runner} rushed for ${yardPhrase(yards)}${pancakeBlocker ? ` behind ${pancakeBlocker}'s pancake block` : ""}.`,
   };
 }
 
@@ -1028,9 +1048,12 @@ function buildTeamBoxScore(before: Team, after: Team, score: number, profile: Te
 function diffStats(before: PlayerStats, after: PlayerStats): PlayerStats {
   return {
     games: Math.max(0, after.games - before.games),
+    passAttempts: after.passAttempts - before.passAttempts,
+    passCompletions: after.passCompletions - before.passCompletions,
     passYards: after.passYards - before.passYards,
     passTd: after.passTd - before.passTd,
     interceptionsThrown: after.interceptionsThrown - before.interceptionsThrown,
+    rushAttempts: after.rushAttempts - before.rushAttempts,
     rushYards: after.rushYards - before.rushYards,
     rushTd: after.rushTd - before.rushTd,
     receivingTargets: after.receivingTargets - before.receivingTargets,
@@ -1059,7 +1082,9 @@ function sumStats(stats: PlayerStats[]): PlayerStats {
 function statImpact(stats: PlayerStats): number {
   return (
     stats.passYards * 0.05 +
+    stats.passCompletions * 0.25 +
     stats.passTd * 12 +
+    stats.rushAttempts * 0.08 +
     stats.rushYards * 0.08 +
     stats.rushTd * 12 +
     stats.receivingTargets * 0.6 +

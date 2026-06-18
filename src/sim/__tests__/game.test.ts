@@ -20,6 +20,10 @@ describe("game simulation stat pacing", () => {
 
     expect(teamBox!.totals.receivingYards).toBe(teamBox!.totals.passYards);
     expect(teamBox!.totals.receivingTd).toBe(teamBox!.totals.passTd);
+    expect(teamBox!.totals.passAttempts).toBe(teamBox!.passAttempts);
+    expect(teamBox!.totals.passCompletions).toBeGreaterThan(0);
+    expect(teamBox!.totals.passCompletions).toBeLessThanOrEqual(teamBox!.totals.passAttempts);
+    expect(teamBox!.totals.rushAttempts).toBe(teamBox!.rushAttempts);
     expect(teamBox!.totals.receivingTargets).toBeGreaterThanOrEqual(5);
     expect(teamBox!.totals.receivingTargets).toBeLessThanOrEqual(teamBox!.passAttempts);
     expect(receivingLines.length).toBeGreaterThanOrEqual(5);
@@ -44,7 +48,11 @@ describe("game simulation stat pacing", () => {
       expect(teamBox.totals.extraPoints).toBeLessThanOrEqual(teamBox.totals.extraPointAttempts);
       expect(teamBox.totals.fieldGoals).toBeLessThanOrEqual(teamBox.totals.fieldGoalAttempts);
       expect(offensiveTd * 6 + teamBox.totals.extraPoints + teamBox.totals.fieldGoals * 3).toBe(teamBox.score);
+      expect(teamBox.totals.passAttempts).toBe(teamBox.passAttempts);
+      expect(teamBox.totals.passCompletions).toBeLessThanOrEqual(teamBox.totals.passAttempts);
+      expect(teamBox.totals.rushAttempts).toBe(teamBox.rushAttempts);
     }
+    expect(box.home.totals.pancakes + box.away.totals.pancakes).toBeGreaterThan(0);
 
     const finalEvent = result.game.result!.playByPlay?.at(-1);
     expect(result.game.result!.playByPlay?.length).toBeGreaterThan(0);
@@ -57,6 +65,7 @@ describe("game simulation stat pacing", () => {
     expect(events.some((event) => event.down && event.distance !== undefined && event.yardLine)).toBe(true);
     expect(events.some((event) => event.type === "punt" && /punted \d+ yards (to .+, returned \d+ yards|with no return)/.test(event.description))).toBe(true);
     expect(events.some((event) => event.type === "turnover" && /intercepted by .+, returned \d+ yards/.test(event.description))).toBe(true);
+    expect(events.some((event) => event.type === "rush" && event.description.includes("pancake block"))).toBe(true);
     for (let index = 0; index < events.length; index += 1) {
       const event = events[index]!;
       if (event.type !== "extraPoint" && event.type !== "missedExtraPoint") continue;
@@ -78,6 +87,8 @@ describe("game simulation stat pacing", () => {
     expect(runBox.strategy).toBe("runHeavy");
     expect(airBox.passAttempts).toBeGreaterThan(runBox.passAttempts);
     expect(runBox.rushAttempts).toBeGreaterThan(airBox.rushAttempts);
+    expect(airBox.totals.passAttempts).toBe(airBox.passAttempts);
+    expect(runBox.totals.rushAttempts).toBe(runBox.rushAttempts);
   });
 
   it("lets an elite receiver produce a realistic 12-game season without changing team passing totals", () => {

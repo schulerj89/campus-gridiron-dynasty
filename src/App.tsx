@@ -1121,12 +1121,15 @@ function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Play
               <div key={row.label} className="table-row stat-row">
                 <strong>{row.label}</strong>
                 <span>{row.stats.games} GP</span>
+                <span>{row.stats.passCompletions}/{row.stats.passAttempts} ({completionPct(row.stats)})</span>
                 <span>{row.stats.passYards} PYD</span>
+                <span>{row.stats.rushAttempts} ATT</span>
                 <span>{row.stats.rushYards} RYD</span>
                 <span>{row.stats.receivingTargets} TGT</span>
                 <span>{row.stats.receivingYards} REC</span>
                 <span>{row.stats.tackles} TKL</span>
                 <span>{row.stats.interceptions} INT</span>
+                <span>{row.stats.pancakes} PAN</span>
                 <span>{row.stats.fieldGoals}/{row.stats.fieldGoalAttempts} FG</span>
                 <span>{row.stats.extraPoints}/{row.stats.extraPointAttempts} XP</span>
               </div>
@@ -1775,11 +1778,11 @@ function TeamBoxScorePanel({ box }: { box: TeamBoxScore }) {
       </div>
       <div className="mini-metrics">
         <span>{strategyLabel(box.strategy)} - {box.plays} plays</span>
-        <span>{box.passAttempts} dropbacks, {box.totals.passYards} pass, {box.totals.passTd} PaTD</span>
-        <span>{box.rushAttempts} rushes, {box.totals.rushYards} rush, {box.totals.rushTd} RuTD</span>
+        <span>{box.totals.passCompletions}/{box.totals.passAttempts} passing ({completionPct(box.totals)}), {box.totals.passYards} pass, {box.totals.passTd} PaTD</span>
+        <span>{box.totals.rushAttempts} rushes, {box.totals.rushYards} rush, {box.totals.rushTd} RuTD</span>
         <span>{box.totals.receivingTargets} targets, {box.totals.receivingYards} rec, {box.totals.receivingTd} RecTD</span>
         <span>{box.totals.fieldGoals}/{box.totals.fieldGoalAttempts} FG, {box.totals.extraPoints}/{box.totals.extraPointAttempts} XP</span>
-        <span>{box.totals.tackles} tackles</span>
+        <span>{box.totals.tackles} tackles, {box.totals.pancakes} pancakes</span>
       </div>
       <div className="box-player-list">
         {box.players.map((line) => (
@@ -2199,14 +2202,18 @@ function playerStatRows(player: Player): { label: string; stats: PlayerStats }[]
 
 function gameLineSummary(stats: PlayerStats): string {
   const parts: string[] = [];
-  if (stats.passYards || stats.passTd || stats.interceptionsThrown) parts.push(`${stats.passYards} PYD, ${stats.passTd} PaTD, ${stats.interceptionsThrown} INT`);
-  if (stats.rushYards || stats.rushTd) parts.push(`${stats.rushYards} RYD, ${stats.rushTd} RuTD`);
+  if (stats.passAttempts || stats.passYards || stats.passTd || stats.interceptionsThrown) parts.push(`${stats.passCompletions}/${stats.passAttempts} (${completionPct(stats)}), ${stats.passYards} PYD, ${stats.passTd} PaTD, ${stats.interceptionsThrown} INT`);
+  if (stats.rushAttempts || stats.rushYards || stats.rushTd) parts.push(`${stats.rushAttempts} ATT, ${stats.rushYards} RYD, ${stats.rushTd} RuTD`);
   if (stats.receivingYards || stats.receivingTd || stats.receivingTargets) parts.push(`${stats.receivingTargets} TGT, ${stats.receivingYards} REC, ${stats.receivingTd} RecTD`);
   if (stats.tackles || stats.sacks || stats.interceptions) parts.push(`${stats.tackles} TKL, ${stats.sacks} SCK, ${stats.interceptions} INT`);
   if (stats.pancakes) parts.push(`${stats.pancakes} PAN`);
   if (stats.fieldGoalAttempts) parts.push(`${stats.fieldGoals}/${stats.fieldGoalAttempts} FG`);
   if (stats.extraPointAttempts) parts.push(`${stats.extraPoints}/${stats.extraPointAttempts} XP`);
   return parts.join(" | ") || "Appeared";
+}
+
+function completionPct(stats: PlayerStats): string {
+  return stats.passAttempts ? `${Math.round((stats.passCompletions / stats.passAttempts) * 100)}%` : "0%";
 }
 
 function playMeta(event: PlayByPlayEvent): string {

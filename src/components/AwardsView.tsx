@@ -11,9 +11,12 @@ type LeaderboardScope = "national" | "conference" | "team";
 type LeaderboardStatKey = keyof PlayerStats;
 
 const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
+  { key: "passAttempts", label: "Pass Attempts" },
+  { key: "passCompletions", label: "Pass Completions" },
   { key: "passYards", label: "Passing Yards" },
   { key: "passTd", label: "Passing TD" },
   { key: "interceptionsThrown", label: "INT Thrown" },
+  { key: "rushAttempts", label: "Rushing Attempts" },
   { key: "rushYards", label: "Rushing Yards" },
   { key: "rushTd", label: "Rushing TD" },
   { key: "receivingTargets", label: "Receiving Targets" },
@@ -28,9 +31,12 @@ const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
 ];
 
 const leaderboardColumns: { key: LeaderboardStatKey; label: string }[] = [
+  { key: "passCompletions", label: "Comp" },
+  { key: "passAttempts", label: "Pass Att" },
   { key: "passYards", label: "Pass Yds" },
   { key: "passTd", label: "Pass TD" },
   { key: "interceptionsThrown", label: "INT Thrown" },
+  { key: "rushAttempts", label: "Rush Att" },
   { key: "rushYards", label: "Rush Yds" },
   { key: "rushTd", label: "Rush TD" },
   { key: "receivingTargets", label: "Targets" },

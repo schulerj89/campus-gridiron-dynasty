@@ -103,6 +103,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await completedWeekOneRow.click();
   await expect(page.getByTestId("box-score-modal")).toBeVisible();
   await expect(page.getByTestId("box-score-modal")).toContainText("PaTD");
+  await expect(page.getByTestId("box-score-modal")).toContainText("passing");
+  await expect(page.getByTestId("box-score-modal")).toContainText("pancakes");
   await expect(page.getByTestId("box-score-modal")).toContainText("XP");
   await expect(page.getByTestId("play-by-play-panel")).toContainText("Play By Play");
   await expect(page.getByTestId("play-by-play-panel")).toContainText(/1st & \d+/);
@@ -122,6 +124,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("conference-player-of-week-panel")).toBeVisible();
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Pass Yds");
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("Pass Att");
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("Rush Att");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Rush TD");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Targets");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("XP");
