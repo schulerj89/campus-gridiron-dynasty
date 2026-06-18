@@ -57,7 +57,7 @@ import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
 import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
-import { POSITIONS, type AttributeKey, type BlueprintCategory, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
+import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
 import { PaginationControls } from "./components/PaginationControls";
 import { Rankings } from "./components/RankingsView";
@@ -502,7 +502,7 @@ function OffseasonRecap({
         {stage === "recruiting" && <OffseasonRecruitingFocus state={state} />}
         {stage === "signing" && (
           <>
-            <ClassSigneesPanel reports={report.teams} />
+            <ClassSigneesPanel reports={report.teams} recruits={state.recruits} teams={state.teams} />
             <RecruitingRankingPanel topClasses={topClasses} />
           </>
         )}
@@ -575,17 +575,27 @@ function RecruitingRankingPanel({ topClasses }: { topClasses: NonNullable<Dynast
   );
 }
 
-function ClassSigneesPanel({ reports }: { reports: NonNullable<DynastyState["offseasonReport"]>["teams"] }) {
+function ClassSigneesPanel({ reports, recruits, teams }: { reports: NonNullable<DynastyState["offseasonReport"]>["teams"]; recruits: Recruit[]; teams: Team[] }) {
   const sortedReports = [...reports].sort((a, b) => (a.recruitingRank ?? 999) - (b.recruitingRank ?? 999) || a.teamName.localeCompare(b.teamName));
   const [selectedTeamId, setSelectedTeamId] = useState(sortedReports[0]?.teamId ?? "");
+  const [selectedSigneeId, setSelectedSigneeId] = useState<string>();
   const selected = sortedReports.find((report) => report.teamId === selectedTeamId) ?? sortedReports[0];
   const signees = selected?.signees ?? [];
+  const selectedSignee = selectedSigneeId ? signees.find((signee) => signee.recruitId === selectedSigneeId) : undefined;
+  const selectedRecruit = selectedSignee ? recruits.find((recruit) => recruit.id === selectedSignee.recruitId) : undefined;
   return (
     <section className="offseason-column" data-testid="offseason-all-classes-panel">
       <h3>All Team Classes</h3>
       <label>
         Team
-        <select value={selected?.teamId ?? ""} onChange={(event) => setSelectedTeamId(event.target.value)} data-testid="offseason-class-team-select">
+        <select
+          value={selected?.teamId ?? ""}
+          onChange={(event) => {
+            setSelectedTeamId(event.target.value);
+            setSelectedSigneeId(undefined);
+          }}
+          data-testid="offseason-class-team-select"
+        >
           {sortedReports.map((report) => (
             <option key={report.teamId} value={report.teamId}>
               #{report.recruitingRank ?? "-"} {report.teamName}
@@ -596,12 +606,13 @@ function ClassSigneesPanel({ reports }: { reports: NonNullable<DynastyState["off
       {signees.length ? (
         <div className="table-list signee-list">
           {signees.slice(0, 14).map((signee) => (
-            <SigneeRow key={signee.recruitId} signee={signee} />
+            <SigneeRow key={signee.recruitId} signee={signee} onOpen={() => setSelectedSigneeId(signee.recruitId)} />
           ))}
         </div>
       ) : (
         <p className="muted">Signing day has not posted yet.</p>
       )}
+      {selectedSignee && <SignedRecruitModal signee={selectedSignee} recruit={selectedRecruit} teamName={selected?.teamName ?? "Signed program"} teams={teams} onClose={() => setSelectedSigneeId(undefined)} />}
     </section>
   );
 }
@@ -628,14 +639,99 @@ function WalkOnGroup({ walkOns }: { walkOns: NonNullable<DynastyState["offseason
   );
 }
 
-function SigneeRow({ signee }: { signee: RecruitSigning }) {
+function SigneeRow({ signee, onOpen }: { signee: RecruitSigning; onOpen: () => void }) {
   return (
-    <div className="table-row signee-row">
+    <button className="table-row signee-row clickable" onClick={onOpen} data-testid="signee-row">
       <Stars count={signee.stars} />
       <strong>{signee.playerName}</strong>
       <span>{signee.position}</span>
       <span>#{signee.nationalRank}</span>
       <span>OVR/POT {signee.overall}/{signee.potential}</span>
+    </button>
+  );
+}
+
+function SignedRecruitModal({ signee, recruit, teamName, teams, onClose }: { signee: RecruitSigning; recruit?: Recruit; teamName: string; teams: Team[]; onClose: () => void }) {
+  const teamById = new Map(teams.map((team) => [team.id, team.name]));
+  const topSchools = recruit
+    ? Object.entries(recruit.interest)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+    : [];
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="player-modal recruit-modal" role="dialog" aria-modal="true" aria-label={`${signee.playerName} signed recruit detail`} onMouseDown={(event) => event.stopPropagation()} data-testid="signed-recruit-modal">
+        <div className="modal-head">
+          <div className="card-title">
+            <Portrait index={recruit?.profileIndex ?? signee.nationalRank % 14} />
+            <div>
+              <p className="eyebrow">Signed Prospect</p>
+              <h2>{signee.playerName}</h2>
+              <p>
+                {signee.position} - <Stars count={signee.stars} /> - #{signee.nationalRank} - {teamName}
+              </p>
+            </div>
+          </div>
+          <button className="icon-btn" onClick={onClose} aria-label="Close signed recruit detail">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="recruit-modal-grid">
+          <section className="modal-panel">
+            <div className="panel-head compact">
+              <h3>Signing Summary</h3>
+              <Handshake size={18} />
+            </div>
+            <div className="metric-grid compact-metrics">
+              <Metric label="Overall" value={signee.overall} />
+              <Metric label="Potential" value={signee.potential} />
+              <Metric label="Trait" value={title(signee.trait)} />
+              <Metric label="Rank" value={`#${signee.nationalRank}`} />
+            </div>
+            <p className="muted">{recruit ? `${recruit.hometown} - ${recruit.stage}` : "Signed recruit summary from the offseason report."}</p>
+          </section>
+          <section className="modal-panel" data-testid="signed-recruit-attributes">
+            <div className="panel-head compact">
+              <h3>Attributes</h3>
+              <LineChart size={18} />
+            </div>
+            {recruit ? (
+              <div className="attribute-grid mini-attributes">
+                {ATTRIBUTE_KEYS.map((key) => (
+                  <span key={key}>
+                    {shortAttr(key)} <strong>{recruit.attributes[key]}</strong>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">Detailed attributes are unavailable for this saved signee.</p>
+            )}
+          </section>
+          <section className="modal-panel">
+            <div className="panel-head compact">
+              <h3>School Interest</h3>
+              <TrendingUp size={18} />
+            </div>
+            {topSchools.length ? (
+              <div className="school-interest-list">
+                {topSchools.map(([teamId, interest], index) => (
+                  <div key={teamId} className={clsx("school-interest-row", teamId === recruit?.committedTeamId && "user-school")}>
+                    <span>#{index + 1}</span>
+                    <strong>{teamById.get(teamId) ?? teamId}</strong>
+                    <em>{recruit?.offers.includes(teamId) ? "Offer" : "-"}</em>
+                    <div className="interest-meter">
+                      <i style={{ width: `${Math.min(100, Math.round((interest / 150) * 100))}%` }} />
+                    </div>
+                    <span>{interest}%</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted">Interest history is unavailable for this signee.</p>
+            )}
+          </section>
+        </div>
+      </section>
     </div>
   );
 }

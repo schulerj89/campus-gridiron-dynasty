@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.10.0 - 2026-06-17
+
+- Added signing-day signee drill-in from the all-team class table.
+- Added a read-only signed prospect modal with stars, rank, trait, overall, potential, attributes, and school-interest history.
+- Added smoke screenshot coverage for the signing-day recruit modal.
+
 ## 1.9.0 - 2026-06-17
 
 - Added a Roster Room program selector so any team roster can be inspected.

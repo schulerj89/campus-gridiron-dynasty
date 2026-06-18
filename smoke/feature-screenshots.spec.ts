@@ -194,6 +194,11 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("recruiting-ranking-panel")).toContainText("Recruiting Class Leaderboard");
   await page.getByTestId("recruiting-ranking-panel").screenshot({ path: path.join(screenshotDir, "offseason-recruiting-rankings-desktop.png") });
   await page.getByTestId("offseason-all-classes-panel").screenshot({ path: path.join(screenshotDir, "offseason-all-classes-desktop.png") });
+  await page.getByTestId("signee-row").first().click();
+  await expect(page.getByTestId("signed-recruit-modal")).toContainText("Signed Prospect");
+  await expect(page.getByTestId("signed-recruit-attributes")).toBeVisible();
+  await page.getByTestId("signed-recruit-modal").screenshot({ path: path.join(screenshotDir, "signing-day-recruit-modal-desktop.png") });
+  await page.getByRole("button", { name: "Close signed recruit detail" }).click();
 
   await page.getByTestId("advance-week").click();
   await expect(page.getByText(/preseason week - player development/)).toBeVisible({ timeout: 90_000 });
