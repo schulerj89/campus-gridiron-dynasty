@@ -74,13 +74,12 @@ export function advanceWeek(input: DynastyState): DynastyState {
 
 export function simulateSeasons(input: DynastyState, seasons: number): DynastyState {
   let state = input;
-  let completed = 0;
-  const targetYear = Math.min(state.maxYears, state.year + seasons);
+  const targetHistoryLength = Math.min(state.maxYears, state.history.length + Math.max(0, seasons));
   let guard = 0;
-  while (state.phase !== "complete" && (state.year < targetYear || state.phase !== "regular") && guard < seasons * 44 + 100) {
-    const beforeYear = state.year;
+  while (state.phase !== "complete" && guard < Math.max(1, seasons) * 44 + 100) {
+    const reachedTargetHistory = state.history.length >= targetHistoryLength;
+    if (targetHistoryLength < state.maxYears && reachedTargetHistory && state.phase === "regular") break;
     state = advanceWeek(state);
-    if (state.year > beforeYear) completed += 1;
     guard += 1;
   }
   return state;

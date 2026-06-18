@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.7 - 2026-06-17
+
+- Fixed Debug Sim To End so it completes the full 20-year dynasty instead of stopping at Year 20 kickoff.
+- Kept shorter fast-sim requests returning at the next regular-season kickoff.
+- Added regression coverage for full-dynasty completion with 20 history entries.
+
 ## 1.4.6 - 2026-06-17
 
 - Fixed the Schedule tab so postseason playoff games appear alongside regular-season games.

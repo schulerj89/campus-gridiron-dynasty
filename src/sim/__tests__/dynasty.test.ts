@@ -309,6 +309,14 @@ describe("dynasty flow", () => {
     expect(advanced.teams.every((team) => team.roster.length >= ROSTER_FLOOR)).toBe(true);
   }, 20_000);
 
+  it("can fast-sim through the full 20-year dynasty", () => {
+    const state = createDynasty(9124);
+    const advanced = simulateSeasons(state, 20);
+    expect(advanced.phase).toBe("complete");
+    expect(advanced.history).toHaveLength(20);
+    expect(advanced.year).toBe(20);
+  }, 120_000);
+
   it("keeps signed recruit player ids unique across multiple recruiting classes", () => {
     const state = createDynasty(9123);
     const advanced = simulateSeasons(state, 5);

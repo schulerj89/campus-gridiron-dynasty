@@ -121,6 +121,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Program Blueprint changes must reconcile recruiting `pointsRemaining + pointsSpent` to the current season budget.
 - Program Blueprint rebuilds must preserve already-spent recruiting points as sunk costs when the budget changes.
 - The game should stay playable on WebKit and on mobile-width screens.
+- Debug Sim To End should complete all 20 dynasty seasons and reach the complete phase.
 
 ## Research Notes
 

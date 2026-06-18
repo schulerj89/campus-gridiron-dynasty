@@ -28,6 +28,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Signing-day recruits are incoming freshmen and must be excluded from preseason development/year progression until kickoff clears the marker.
 - Player hot/cold streaks should be rare, temporary, and applied through effective ratings rather than permanent base ratings.
 - Dynasty length is 20 years.
+- Debug Sim To End should finish the 20th season and reach the `complete` phase.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
