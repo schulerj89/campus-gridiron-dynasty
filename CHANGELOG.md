@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.11 - 2026-06-18
+
+- Added an offseason championship recap so the Crown Bowl winner remains visible immediately after the final playoff round advances.
+- Updated the playoff bracket to show an explicit Crown Bowl Champion banner when a champion is known.
+- Added unit and smoke coverage for retaining and displaying the completed playoff champion before offseason development archives the season.
+
 ## 1.12.10 - 2026-06-18
 
 - Expanded completed game play-by-play from scoring-only summaries to down-by-down logs with rushes, passes, sacks, punts, scoring kicks, turnovers, yards, down, distance, and field position.

@@ -844,6 +844,17 @@ select {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.championship-recap-panel {
+  border-color: rgba(240, 184, 74, 0.42);
+}
+
+.champion-scoreline {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
 .blueprint-grid,
 .goal-grid {
   display: grid;
@@ -1683,6 +1694,25 @@ select {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.playoff-champion-banner {
+  align-items: center;
+  background: rgba(240, 184, 74, 0.12);
+  border: 1px solid rgba(240, 184, 74, 0.34);
+  border-radius: 8px;
+  color: var(--gold);
+  display: flex;
+  gap: 10px;
+  grid-column: 1 / -1;
+  padding: 10px 12px;
+}
+
+.playoff-champion-banner span {
+  color: var(--muted);
+  font-weight: 800;
+  margin-left: auto;
+  text-transform: uppercase;
+}
+
 .playoff-bracket.field-only {
   grid-template-columns: 1fr;
 }
@@ -1902,6 +1932,7 @@ select {
   .matchup-head-to-head,
   .matchup-edge-grid,
   .record-book-split,
+  .champion-scoreline,
   .offseason-grid,
   .offseason-steps {
     grid-template-columns: 1fr;

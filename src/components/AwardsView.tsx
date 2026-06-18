@@ -58,6 +58,8 @@ export function Awards({ state }: { state: DynastyState }) {
   const latestConferenceWeeklyAwards = userConference ? state.weeklyAwards[0]?.conference[userConference.id] ?? [] : [];
   const seasonAwardWatch = !state.seasonAwards && state.phase === "regular" && state.week >= 8 ? createSeasonAwards(state.teams, state.conferences, state.calendarYear).nationalAwards : undefined;
   const awardSource = state.seasonAwards?.nationalAwards ?? seasonAwardWatch ?? (state.phase === "regular" ? [] : latestHistory?.awardWinners ?? []);
+  const currentChampionName = state.playoff?.championTeamId ? state.teams.find((team) => team.id === state.playoff?.championTeamId)?.name : undefined;
+  const bracketChampionName = state.playoff ? currentChampionName : latestHistory?.championName;
   const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
   const recordBook = buildProgramRecordBook(state);
   return (
@@ -104,7 +106,7 @@ export function Awards({ state }: { state: DynastyState }) {
           <h2>{state.playoff ? "Summit Four Playoff" : "Latest Playoff Field"}</h2>
           <Trophy size={20} />
         </div>
-        <PlayoffBracket games={playoffGames} teams={state.teams} priorPlayoffTeams={priorPlayoffTeams} championName={latestHistory?.championName} />
+        <PlayoffBracket games={playoffGames} teams={state.teams} priorPlayoffTeams={priorPlayoffTeams} championName={bracketChampionName} />
       </section>
       <section className="panel span-2">
         <div className="panel-head compact">
@@ -358,6 +360,13 @@ export function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }
 
   return (
     <div className="playoff-bracket">
+      {championName && (
+        <div className="playoff-champion-banner" data-testid="playoff-champion-banner">
+          <Trophy size={18} />
+          <strong>{championName}</strong>
+          <span>Crown Bowl Champion</span>
+        </div>
+      )}
       {rounds.map((round) => (
         <div key={round.label} className="bracket-round">
           <h3>{round.label}</h3>

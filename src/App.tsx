@@ -427,10 +427,13 @@ function Overview({
   const offseasonTeamReport = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === userTeam.id);
   const offseasonFocus = Boolean(offseasonTeamReport && state.phase !== "regular" && state.phase !== "postseason");
   const postseasonFocus = state.phase === "postseason" && Boolean(state.playoff);
+  const championshipFocus = state.phase === "offseason" && Boolean(playoffChampion(state));
   const matchupPreview = buildMatchupPreview(state);
 
   return (
     <>
+      {championshipFocus && <ChampionshipRecap state={state} onNavigate={onNavigate} />}
+
       {offseasonFocus && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
 
       {postseasonFocus && state.playoff && (
@@ -532,6 +535,51 @@ function Overview({
       {!offseasonFocus && state.phase !== "regular" && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
     </>
   );
+}
+
+function ChampionshipRecap({ state, onNavigate }: { state: DynastyState; onNavigate: (tab: Tab) => void }) {
+  const champion = playoffChampion(state);
+  const finalGame = state.playoff?.games.find((game) => game.playoffRound === "final");
+  if (!champion || !state.playoff) return null;
+  const home = finalGame ? state.teams.find((team) => team.id === finalGame.homeTeamId) : undefined;
+  const away = finalGame ? state.teams.find((team) => team.id === finalGame.awayTeamId) : undefined;
+  const runnerUp = finalGame?.homeTeamId === champion.id ? away : home;
+  const finalScore = finalGame?.result ? `${away?.abbreviation ?? "AWY"} ${finalGame.result.awayScore} - ${home?.abbreviation ?? "HME"} ${finalGame.result.homeScore}` : "Final score pending";
+  return (
+    <section className="panel span-2 championship-recap-panel" data-testid="championship-recap-panel">
+      <div className="panel-head">
+        <div className="dashboard-identity">
+          <TeamHelmet team={champion} size="lg" />
+          <div>
+            <p className="eyebrow">Crown Bowl Champion</p>
+            <h2>{champion.name} won the national title</h2>
+            <p className="muted">{runnerUp ? `${finalScore} over ${runnerUp.name}` : finalScore}</p>
+          </div>
+        </div>
+        <div className="button-row compact-row">
+          <button className="secondary" onClick={() => onNavigate("awards")}>
+            <Trophy size={16} />
+            Playoff Center
+          </button>
+          <button className="secondary" onClick={() => onNavigate("schedule")}>
+            <CalendarDays size={16} />
+            Final Box Score
+          </button>
+        </div>
+      </div>
+      <div className="champion-scoreline">
+        <Metric label="Champion Record" value={`${champion.season.wins}-${champion.season.losses}`} />
+        <Metric label="Runner-up" value={runnerUp?.abbreviation ?? "-"} />
+        <Metric label="Crown Bowl" value={finalGame?.bowlName ?? "Crown Bowl"} />
+      </div>
+      <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={champion.name} />
+    </section>
+  );
+}
+
+function playoffChampion(state: DynastyState): Team | undefined {
+  const championId = state.playoff?.championTeamId;
+  return championId ? state.teams.find((team) => team.id === championId) : undefined;
 }
 
 function OffseasonRecap({

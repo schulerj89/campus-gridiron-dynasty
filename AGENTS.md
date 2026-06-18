@@ -48,6 +48,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - The Schedule tab should display regular-season games and postseason playoff games with box-score access.
 - Regular-season schedules should give every team 12 games without duplicate opponent pairings when possible.
 - During postseason, the Overview dashboard should prioritize the playoff bracket and hide regular-season summary panels.
+- After the Crown Bowl final advances into offseason, the Overview dashboard should show a championship recap before the active offseason stage panels.
 - Program record book summaries should be calculated from completed user-team history, not stored as separate mutable dynasty state.
 - Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.

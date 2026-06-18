@@ -58,6 +58,23 @@ describe("dynasty flow", () => {
     expect(userTeam.roster.some((player) => player.awards.length > 0)).toBe(true);
   });
 
+  it("keeps the Crown Bowl champion available when the final round advances to offseason", () => {
+    let state = forceUserPlayoff(createDynasty(8913));
+    for (let week = 1; week <= 12; week += 1) {
+      state = advanceWeek(state);
+    }
+    for (let round = 0; round < 3; round += 1) {
+      state = advanceWeek(state);
+    }
+
+    const finalGame = state.playoff?.games.find((game) => game.playoffRound === "final");
+    expect(state.phase).toBe("offseason");
+    expect(state.offseasonReport).toBeDefined();
+    expect(state.playoff?.championTeamId).toBeDefined();
+    expect(finalGame?.played).toBe(true);
+    expect(finalGame?.result?.winnerTeamId).toBe(state.playoff?.championTeamId);
+  });
+
   it("allocates the annual program blueprint before kickoff and locks it after games begin", () => {
     let state = createDynasty(8921);
     const beforeBudget = state.recruiting.seasonBudget;
