@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.11.4 - 2026-06-17
+
+- Expanded fictional city, first-name, and last-name pools to reduce repeated generated names.
+- Updated team generation to avoid duplicate team cities while enough fictional cities remain available.
+- Added generation regression coverage for unique team cities and improved player/recruit name diversity.
+
 ## 1.11.3 - 2026-06-17
 
 - Hardened legacy offseason report loading when older saves are missing `topClasses` or report arrays.

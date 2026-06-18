@@ -117,10 +117,12 @@ export function createConferences(): Conference[] {
 function createTeams(rng: Rng, conferences: Conference[], coachPool: Coach[]): Team[] {
   const teams: Team[] = [];
   const usedNames = new Set<string>();
+  const availableCities = [...CITIES];
 
   for (let index = 0; index < 70; index += 1) {
     const conference = conferences[index % conferences.length]!;
-    const city = `${rng.pick(CITIES)}`;
+    const cityIndex = availableCities.length ? rng.nextInt(0, availableCities.length - 1) : -1;
+    const city = `${cityIndex >= 0 ? availableCities.splice(cityIndex, 1)[0] : rng.pick(CITIES)}`;
     const state = `${rng.pick(STATES)}`;
     let mascot = `${rng.pick(MASCOTS)}`;
     let name = `${city} ${mascot}`;

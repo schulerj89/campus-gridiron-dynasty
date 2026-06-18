@@ -92,6 +92,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 ## Design Rules
 
 - Do not use real college names, real awards, real athletes, real coaches, real conferences, or real logos.
+- Fictional team generation should use non-repeating team cities and broad first/last name pools to reduce duplicate player and recruit names.
 - Initial generated players must not exceed 93 in any rating.
 - Generated players and recruits also use position-specific off-skill caps so non-role attributes stay plausible.
 - Team helmets use generated fictional 16-bit PNG assets with no logos, letters, mascots, or licensed marks.

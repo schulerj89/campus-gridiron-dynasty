@@ -7,6 +7,8 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 ## Core Invariants
 
 - The world has 70 teams across 7 conferences.
+- Generated team cities should not repeat while the fictional city pool has enough unused names.
+- First and last name pools should stay broad enough to reduce duplicate player and recruit names.
 - Standard generated rosters are 85 players per team.
 - Player ratings use the 13 keys in `src/sim/types.ts`.
 - Initial player ratings and attributes are capped at 93.
