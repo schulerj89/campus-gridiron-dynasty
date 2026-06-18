@@ -195,6 +195,10 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("recruiting-ranking-panel")).toContainText("Recruiting Class Leaderboard");
   await page.getByTestId("recruiting-ranking-panel").screenshot({ path: path.join(screenshotDir, "offseason-recruiting-rankings-desktop.png") });
   await page.getByTestId("offseason-all-classes-panel").screenshot({ path: path.join(screenshotDir, "offseason-all-classes-desktop.png") });
+  await expect(page.getByTestId("signees-pagination")).toContainText("signees:");
+  await page.getByRole("button", { name: "Next signees page" }).click();
+  await expect(page.getByTestId("signees-pagination")).toContainText("Page 2");
+  await page.getByTestId("offseason-all-classes-panel").screenshot({ path: path.join(screenshotDir, "offseason-all-classes-page-2-desktop.png") });
   await page.getByTestId("signee-row").first().click();
   await expect(page.getByTestId("signed-recruit-modal")).toContainText("Signed Prospect");
   await expect(page.getByTestId("signed-recruit-attributes")).toBeVisible();

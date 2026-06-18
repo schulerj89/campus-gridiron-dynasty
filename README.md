@@ -70,6 +70,7 @@ QA screenshots are written to:
 - `artifacts/screenshots/offseason-departures-desktop.png`
 - `artifacts/screenshots/offseason-extra-recruiting-desktop.png`
 - `artifacts/screenshots/offseason-all-classes-desktop.png`
+- `artifacts/screenshots/offseason-all-classes-page-2-desktop.png`
 - `artifacts/screenshots/signing-day-recruit-modal-desktop.png`
 - `artifacts/screenshots/offseason-recruiting-rankings-desktop.png`
 - `artifacts/screenshots/preseason-progression-desktop.png`
@@ -112,7 +113,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Offseason advancement should expose departures, four late recruiting weeks, signing day, preseason player development, and kickoff as distinct steps.
 - The Overview offseason report should focus on only the active stage: departures, recruiting, signing day, or development.
 - The Overview offseason dashboard should hide regular-season command, awards, and current-poll panels.
-- Signing day all-team class rows should open read-only recruit detail so signed prospects remain inspectable.
+- Signing day all-team class rows should paginate and open read-only recruit detail so every signed prospect remains inspectable.
 - Signing day should not remove returning players before the offseason departure report is applied.
 - Teams should stay at or above the 85-player roster floor after offseason turnover; add labeled walk-ons capped around 60 overall only when recruiting cannot fill the roster.
 - Player offseason development must never regress attributes or overall.

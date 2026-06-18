@@ -85,6 +85,7 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
 ];
 
 const RECRUIT_PAGE_SIZE = 25;
+const SIGNEE_PAGE_SIZE = 14;
 
 const ATTRIBUTE_KEYS_FOR_UI: AttributeKey[] = [
   "throwPower",
@@ -579,8 +580,12 @@ function ClassSigneesPanel({ reports, recruits, teams }: { reports: NonNullable<
   const sortedReports = [...reports].sort((a, b) => (a.recruitingRank ?? 999) - (b.recruitingRank ?? 999) || a.teamName.localeCompare(b.teamName));
   const [selectedTeamId, setSelectedTeamId] = useState(sortedReports[0]?.teamId ?? "");
   const [selectedSigneeId, setSelectedSigneeId] = useState<string>();
+  const [signeePage, setSigneePage] = useState(1);
   const selected = sortedReports.find((report) => report.teamId === selectedTeamId) ?? sortedReports[0];
   const signees = selected?.signees ?? [];
+  const signeePageCount = Math.max(1, Math.ceil(signees.length / SIGNEE_PAGE_SIZE));
+  const currentSigneePage = Math.min(signeePage, signeePageCount);
+  const visibleSignees = signees.slice((currentSigneePage - 1) * SIGNEE_PAGE_SIZE, currentSigneePage * SIGNEE_PAGE_SIZE);
   const selectedSignee = selectedSigneeId ? signees.find((signee) => signee.recruitId === selectedSigneeId) : undefined;
   const selectedRecruit = selectedSignee ? recruits.find((recruit) => recruit.id === selectedSignee.recruitId) : undefined;
   return (
@@ -593,6 +598,7 @@ function ClassSigneesPanel({ reports, recruits, teams }: { reports: NonNullable<
           onChange={(event) => {
             setSelectedTeamId(event.target.value);
             setSelectedSigneeId(undefined);
+            setSigneePage(1);
           }}
           data-testid="offseason-class-team-select"
         >
@@ -604,11 +610,14 @@ function ClassSigneesPanel({ reports, recruits, teams }: { reports: NonNullable<
         </select>
       </label>
       {signees.length ? (
-        <div className="table-list signee-list">
-          {signees.slice(0, 14).map((signee) => (
-            <SigneeRow key={signee.recruitId} signee={signee} onOpen={() => setSelectedSigneeId(signee.recruitId)} />
-          ))}
-        </div>
+        <>
+          <div className="table-list signee-list">
+            {visibleSignees.map((signee) => (
+              <SigneeRow key={signee.recruitId} signee={signee} onOpen={() => setSelectedSigneeId(signee.recruitId)} />
+            ))}
+          </div>
+          <PaginationControls page={currentSigneePage} pageCount={signeePageCount} total={signees.length} pageSize={SIGNEE_PAGE_SIZE} label="signees" onPageChange={setSigneePage} />
+        </>
       ) : (
         <p className="muted">Signing day has not posted yet.</p>
       )}

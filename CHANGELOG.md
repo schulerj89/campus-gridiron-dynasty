@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.11.1 - 2026-06-17
+
+- Added pagination to signing-day class lists so every signee can be opened from large classes.
+- Reset the signee page when changing teams to avoid stale page selections.
+- Added smoke coverage and a screenshot for page-two signing-day recruits.
+
 ## 1.11.0 - 2026-06-17
 
 - Hid the Current Poll panel from the offseason Overview dashboard.
