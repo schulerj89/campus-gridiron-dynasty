@@ -47,11 +47,13 @@ QA screenshots are written to:
 - `artifacts/screenshots/recruiting-needs-desktop.png`
 - `artifacts/screenshots/recruiting-filters-desktop.png`
 - `artifacts/screenshots/recruiting-scholarship-modal-desktop.png`
+- `artifacts/screenshots/offensive-strategy-desktop.png`
 - `artifacts/screenshots/program-blueprint-desktop.png`
 - `artifacts/screenshots/program-blueprint-review-desktop.png`
 - `artifacts/screenshots/program-staff-desktop.png`
 - `artifacts/screenshots/coach-pool-postseason-desktop.png`
 - `artifacts/screenshots/box-score-desktop.png`
+- `artifacts/screenshots/play-by-play-desktop.png`
 - `artifacts/screenshots/schedule-matchup-preview-desktop.png`
 - `artifacts/screenshots/schedule-postseason-desktop.png`
 - `artifacts/screenshots/player-of-week-desktop.png`
@@ -103,6 +105,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
 - Annual Program Blueprint allocations must persist, lock after kickoff, and affect recruiting, scouting, development, retention, program review, and coach movement.
+- Program Blueprint focus presets can auto-fill the annual plan before kickoff; Custom preserves manual allocation.
 - Any unspent user Program Blueprint points auto-fill at Week 1 kickoff without replacing manual allocations.
 - Director Goals should be visible before Week 1 and the previous season's resolved review should remain inspectable during the next preseason.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
@@ -124,6 +127,8 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Signing-day recruits are incoming freshmen: they do not advance class year or gain offseason development until after kickoff clears the incoming marker.
 - Player hot/cold streaks are rare, temporary, and affect effective ratings without overwriting base attributes.
 - Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.
+- Offensive strategies should affect pass/run volume while still adjusting toward roster strength and game state.
+- Game box scores should show strategy, play count, pass/rush attempts, targets, separate FG/XP stats, and scoring play-by-play.
 - Weekly matchup previews should be derived from pending user games and existing team/unit ratings; do not hand-author matchup outcomes.
 - The Schedule tab should include postseason playoff games and keep box-score drill-in available.
 - Regular-season schedules should give every team 12 games without duplicate opponent pairings when possible.

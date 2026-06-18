@@ -24,6 +24,7 @@ import {
   type AttributeKey,
   type Attributes,
   type BlueprintCategory,
+  type BlueprintFocus,
   type Coach,
   type CollegeYear,
   type DynastyState,
@@ -36,6 +37,7 @@ import {
   type Position,
   type ProgramChange,
   type ProgramRatings,
+  type OffensiveStrategy,
   type Recruit,
   type RecruitSigning,
   type SeasonAwards,
@@ -161,6 +163,22 @@ export function investProgramPoint(state: DynastyState, key: keyof ProgramRating
   };
 }
 
+export function setUserOffensiveStrategy(state: DynastyState, strategy: OffensiveStrategy): DynastyState {
+  const teams = state.teams.map((team) =>
+    team.id === state.userTeamId
+      ? {
+          ...team,
+          offensiveStrategy: strategy,
+        }
+      : team,
+  );
+  return {
+    ...state,
+    teams,
+    debugLog: [`Set offensive strategy to ${strategy}.`, ...state.debugLog].slice(0, 20),
+  };
+}
+
 export function canEditProgramBlueprint(state: DynastyState): boolean {
   if (state.phase === "preseason") return true;
   if (state.phase !== "regular" || state.week !== 1) return false;
@@ -183,6 +201,7 @@ export function allocateBlueprintPoint(state: DynastyState, key: BlueprintCatego
       ...team,
       blueprint: {
         ...blueprint,
+        focus: "custom" as BlueprintFocus,
         allocations,
         resolved: false,
       },
@@ -202,12 +221,14 @@ export function autoAllocateProgramBlueprint(state: DynastyState): DynastyState 
   const teams = state.teams.map((team) => {
     if (team.id !== state.userTeamId) return team;
     const blueprint = ensureProgramBlueprint(team, state.calendarYear);
+    const focus: BlueprintFocus = blueprint.focus === "custom" ? "balanced" : blueprint.focus;
     changed = true;
     return {
       ...team,
       blueprint: {
         ...blueprint,
-        allocations: autoBlueprintAllocations(team, blueprint.totalPoints),
+        focus,
+        allocations: autoBlueprintAllocations(team, blueprint.totalPoints, focus),
         resolved: false,
       },
     };
@@ -217,6 +238,31 @@ export function autoAllocateProgramBlueprint(state: DynastyState): DynastyState 
     ...state,
     teams,
     debugLog: [`Auto-built the annual Program Blueprint.`, ...state.debugLog].slice(0, 20),
+  });
+}
+
+export function setProgramBlueprintFocus(state: DynastyState, focus: BlueprintFocus): DynastyState {
+  if (!canEditProgramBlueprint(state)) return state;
+  let changed = false;
+  const teams = state.teams.map((team) => {
+    if (team.id !== state.userTeamId) return team;
+    const blueprint = ensureProgramBlueprint(team, state.calendarYear);
+    changed = true;
+    return {
+      ...team,
+      blueprint: {
+        ...blueprint,
+        focus,
+        allocations: focus === "custom" ? blueprint.allocations : autoBlueprintAllocations(team, blueprint.totalPoints, focus),
+        resolved: false,
+      },
+    };
+  });
+  if (!changed) return state;
+  return refreshRecruitingBudget({
+    ...state,
+    teams,
+    debugLog: [`Set Program Blueprint focus to ${focus}.`, ...state.debugLog].slice(0, 20),
   });
 }
 

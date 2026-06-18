@@ -191,10 +191,11 @@ function playerValue(entry: { player: Player }): number {
     stats.rushYards * 0.08 +
     stats.rushTd * 18 +
     stats.receivingYards * 0.08 +
+    stats.receivingTargets * 0.35 +
     stats.receivingTd * 18 +
     stats.pancakes * 4;
   const defense = stats.tackles * 3 + stats.sacks * 18 + stats.interceptions * 34;
-  const special = stats.fieldGoals * 9 + stats.fieldGoalAttempts * 0.5;
+  const special = stats.fieldGoals * 9 + stats.fieldGoalAttempts * 0.5 + stats.extraPoints * 0.8;
   return entry.player.overall * 2.2 + offense + defense + special;
 }
 
@@ -207,6 +208,7 @@ function weeklyOffenseValue(entry: AwardEntry): number {
     stats.rushYards * 0.16 +
     stats.rushTd * 24 +
     stats.receivingYards * 0.17 +
+    stats.receivingTargets * 0.45 +
     stats.receivingTd * 26
   );
 }
@@ -228,8 +230,8 @@ function noteFor(player: AwardEntry["player"]): string {
   const stats = player.stats;
   if (player.position === "QB") return `${stats.passYards.toLocaleString()} pass yards, ${stats.passTd} TD`;
   if (player.position === "HB") return `${stats.rushYards.toLocaleString()} rush yards, ${stats.rushTd} TD`;
-  if (player.position === "WR" || player.position === "TE") return `${stats.receivingYards.toLocaleString()} receiving yards, ${stats.receivingTd} TD`;
+  if (player.position === "WR" || player.position === "TE") return `${stats.receivingYards.toLocaleString()} receiving yards, ${stats.receivingTargets} targets, ${stats.receivingTd} TD`;
   if (player.position === "OL") return `${stats.pancakes} pancakes`;
-  if (player.position === "K" || player.position === "P") return `${stats.fieldGoals}/${stats.fieldGoalAttempts} field goals`;
+  if (player.position === "K" || player.position === "P") return `${stats.fieldGoals}/${stats.fieldGoalAttempts} FG, ${stats.extraPoints}/${stats.extraPointAttempts} XP`;
   return `${stats.tackles} tackles, ${stats.sacks} sacks, ${stats.interceptions} INT`;
 }

@@ -4,6 +4,7 @@ import {
   ATTRIBUTE_KEYS,
   emptyStats,
   type Attributes,
+  type OffensiveStrategy,
   type Coach,
   type CollegeYear,
   type Conference,
@@ -163,6 +164,7 @@ function createTeams(rng: Rng, conferences: Conference[], coachPool: Coach[]): T
       roster,
       coaches,
       program,
+      offensiveStrategy: chooseOffensiveStrategy(rng, coaches.offense.scheme, program),
       coachPoints: rng.nextInt(3, 9),
       programPoints: rng.nextInt(4, 10),
       expectations: clamp(Math.round((prestige + program.facilities + program.fanSupport) / 3), 45, 92),
@@ -175,6 +177,15 @@ function createTeams(rng: Rng, conferences: Conference[], coachPool: Coach[]): T
   }
 
   return teams.sort((a, b) => teamPower(b.roster) + b.program.prestige * 0.08 - (teamPower(a.roster) + a.program.prestige * 0.08));
+}
+
+function chooseOffensiveStrategy(rng: Rng, scheme: string, program: { prestige: number; training: number; facilities: number }): OffensiveStrategy {
+  if (scheme === "Air Raid" || scheme === "Tempo Spread") return rng.chance(0.72) ? "airRaid" : "spreadTempo";
+  if (scheme === "Power Option") return "runHeavy";
+  if (scheme === "Balanced Pro") return rng.chance(0.6) ? "balanced" : "proStyle";
+  const strength = (program.prestige + program.training + program.facilities) / 3;
+  if (strength >= 74 && rng.chance(0.35)) return "spreadTempo";
+  return rng.pick(["balanced", "proStyle", "runHeavy", "airRaid"] as const);
 }
 
 export function createRoster(rng: Rng, teamId: string, prestige: number): Player[] {

@@ -1,4 +1,4 @@
-import type { DynastyState, PollSnapshot } from "./types";
+import { emptyStats, type DynastyState, type Game, type GameBoxScore, type OffensiveStrategy, type PlayerStats, type PollSnapshot, type TeamBoxScore } from "./types";
 import { createPollSnapshot } from "./polls";
 import { ensureProgramBlueprint } from "./blueprint";
 import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints } from "./generate";
@@ -72,11 +72,17 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
   const teams = raw.teams.map((team, index) => ({
     ...team,
     helmetIndex: Number.isFinite((team as typeof team & { helmetIndex?: number }).helmetIndex) ? team.helmetIndex : fallbackHelmetIndex(team.id, index),
+    offensiveStrategy: normalizeOffensiveStrategy((team as typeof team & { offensiveStrategy?: unknown }).offensiveStrategy, team.coaches.offense.scheme),
     depthChart: team.depthChart ?? {},
     history: team.history ?? [],
     blueprint: ensureProgramBlueprint(team, raw.calendarYear, team.id !== userTeamId),
     roster: team.roster.map((player) => ({
       ...player,
+      stats: normalizeStats(player.stats),
+      careerStats: (player.careerStats ?? []).map((entry) => ({
+        ...entry,
+        stats: normalizeStats(entry.stats),
+      })),
       streak: player.streak && player.streak.weeks > 0 ? player.streak : undefined,
       incomingFreshman: raw.phase !== "regular" && Boolean(player.incomingFreshman) ? true : undefined,
       walkOn: Boolean(player.walkOn) ? true : undefined,
@@ -103,7 +109,70 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     debugLog: raw.debugLog ?? [],
     offseasonReport: raw.phase === "regular" ? undefined : normalizeOffseasonReport(raw.offseasonReport),
     recruiting,
+    schedule: normalizeGames(raw.schedule ?? []),
+    playoff: raw.playoff
+      ? {
+          ...raw.playoff,
+          games: normalizeGames(raw.playoff.games ?? []),
+        }
+      : undefined,
   };
+}
+
+function normalizeGames(games: Game[]): Game[] {
+  return games.map((game) => {
+    if (!game.result?.boxScore) return game;
+    return {
+      ...game,
+      result: {
+        ...game.result,
+        boxScore: normalizeGameBoxScore(game.result.boxScore),
+        playByPlay: game.result.playByPlay ?? [],
+      },
+    };
+  });
+}
+
+function normalizeGameBoxScore(boxScore: GameBoxScore): GameBoxScore {
+  return {
+    home: normalizeTeamBoxScore(boxScore.home),
+    away: normalizeTeamBoxScore(boxScore.away),
+  };
+}
+
+function normalizeTeamBoxScore(box: TeamBoxScore): TeamBoxScore {
+  const players = (box.players ?? []).map((line) => ({
+    ...line,
+    stats: normalizeStats(line.stats),
+  }));
+  const totals = normalizeStats(box.totals);
+  const passAttempts = Number.isFinite(box.passAttempts) ? box.passAttempts : totals.passYards > 0 ? Math.max(1, Math.round(totals.passYards / 7)) : 0;
+  const rushAttempts = Number.isFinite(box.rushAttempts) ? box.rushAttempts : totals.rushYards > 0 ? Math.max(1, Math.round(totals.rushYards / 4)) : 0;
+  return {
+    ...box,
+    strategy: box.strategy ?? "balanced",
+    plays: Number.isFinite(box.plays) ? box.plays : passAttempts + rushAttempts,
+    passAttempts,
+    rushAttempts,
+    totals,
+    players,
+  };
+}
+
+function normalizeStats(stats: Partial<PlayerStats> | undefined): PlayerStats {
+  return {
+    ...emptyStats(),
+    ...(stats ?? {}),
+  };
+}
+
+function normalizeOffensiveStrategy(value: unknown, scheme?: string): OffensiveStrategy {
+  if (value === "balanced" || value === "airRaid" || value === "runHeavy" || value === "proStyle" || value === "spreadTempo") return value;
+  if (scheme === "Air Raid") return "airRaid";
+  if (scheme === "Tempo Spread") return "spreadTempo";
+  if (scheme === "Power Option") return "runHeavy";
+  if (scheme === "Balanced Pro") return "proStyle";
+  return "balanced";
 }
 
 function normalizeRecruits(recruits: DynastyState["recruits"], teamIds: Set<string>): DynastyState["recruits"] {

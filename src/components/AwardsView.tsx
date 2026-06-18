@@ -16,13 +16,15 @@ const leaderboardStats: { key: LeaderboardStatKey; label: string }[] = [
   { key: "interceptionsThrown", label: "INT Thrown" },
   { key: "rushYards", label: "Rushing Yards" },
   { key: "rushTd", label: "Rushing TD" },
+  { key: "receivingTargets", label: "Receiving Targets" },
   { key: "receivingYards", label: "Receiving Yards" },
   { key: "receivingTd", label: "Receiving TD" },
   { key: "tackles", label: "Tackles" },
   { key: "sacks", label: "Sacks" },
   { key: "interceptions", label: "Interceptions" },
-  { key: "pancakes", label: "Pancakes" },
+  { key: "pancakes", label: "Pan" },
   { key: "fieldGoals", label: "Field Goals" },
+  { key: "extraPoints", label: "Extra Points" },
 ];
 
 const leaderboardColumns: { key: LeaderboardStatKey; label: string }[] = [
@@ -31,6 +33,7 @@ const leaderboardColumns: { key: LeaderboardStatKey; label: string }[] = [
   { key: "interceptionsThrown", label: "INT Thrown" },
   { key: "rushYards", label: "Rush Yds" },
   { key: "rushTd", label: "Rush TD" },
+  { key: "receivingTargets", label: "Targets" },
   { key: "receivingYards", label: "Rec Yds" },
   { key: "receivingTd", label: "Rec TD" },
   { key: "tackles", label: "Tackles" },
@@ -38,6 +41,9 @@ const leaderboardColumns: { key: LeaderboardStatKey; label: string }[] = [
   { key: "interceptions", label: "INT" },
   { key: "pancakes", label: "Pancakes" },
   { key: "fieldGoals", label: "FG" },
+  { key: "fieldGoalAttempts", label: "FGA" },
+  { key: "extraPoints", label: "XP" },
+  { key: "extraPointAttempts", label: "XPA" },
 ];
 
 const LEADERBOARD_PAGE_SIZE = 10;

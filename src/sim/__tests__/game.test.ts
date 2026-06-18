@@ -16,13 +16,59 @@ describe("game simulation stat pacing", () => {
     const receivingLines = updatedUserTeam.roster.filter((player) => ["WR", "TE"].includes(player.position) && player.stats.receivingYards > 0);
     const eliteReceiver = receivingLines.find((player) => player.id === eliteReceiverId);
     const eliteShare = (eliteReceiver?.stats.receivingYards ?? 0) / teamBox!.totals.receivingYards;
+    const eliteTargetShare = (eliteReceiver?.stats.receivingTargets ?? 0) / teamBox!.totals.receivingTargets;
 
     expect(teamBox!.totals.receivingYards).toBe(teamBox!.totals.passYards);
     expect(teamBox!.totals.receivingTd).toBe(teamBox!.totals.passTd);
+    expect(teamBox!.totals.receivingTargets).toBeGreaterThanOrEqual(5);
+    expect(teamBox!.totals.receivingTargets).toBeLessThanOrEqual(teamBox!.passAttempts);
     expect(receivingLines.length).toBeGreaterThanOrEqual(5);
     expect(eliteReceiver?.stats.receivingYards).toBe(Math.max(...receivingLines.map((player) => player.stats.receivingYards)));
     expect(eliteShare).toBeGreaterThanOrEqual(0.28);
     expect(eliteShare).toBeLessThanOrEqual(0.46);
+    expect(eliteTargetShare).toBeGreaterThanOrEqual(0.25);
+    expect(eliteTargetShare).toBeLessThanOrEqual(0.4);
+  });
+
+  it("separates scoring kicks and records play-by-play totals", () => {
+    const { teams, game } = controlledReceivingSetup(7104);
+    const result = simulateGame(new Rng(7105), game, teams);
+    const box = result.game.result!.boxScore!;
+
+    for (const teamBox of [box.home, box.away]) {
+      const offensiveTd = teamBox.totals.passTd + teamBox.totals.rushTd;
+      expect(teamBox.totals.extraPointAttempts).toBe(offensiveTd);
+      expect(teamBox.totals.extraPoints).toBeLessThanOrEqual(teamBox.totals.extraPointAttempts);
+      expect(teamBox.totals.fieldGoals).toBeLessThanOrEqual(teamBox.totals.fieldGoalAttempts);
+      expect(offensiveTd * 6 + teamBox.totals.extraPoints + teamBox.totals.fieldGoals * 3).toBe(teamBox.score);
+    }
+
+    const finalEvent = result.game.result!.playByPlay?.at(-1);
+    expect(result.game.result!.playByPlay?.length).toBeGreaterThan(0);
+    expect(finalEvent?.homeScore).toBe(result.game.result!.homeScore);
+    expect(finalEvent?.awayScore).toBe(result.game.result!.awayScore);
+    const events = result.game.result!.playByPlay ?? [];
+    for (let index = 0; index < events.length; index += 1) {
+      const event = events[index]!;
+      if (event.type !== "extraPoint" && event.type !== "missedExtraPoint") continue;
+      expect(events[index - 1]?.type === "passTd" || events[index - 1]?.type === "rushTd").toBe(true);
+    }
+  });
+
+  it("uses offensive strategy to shift pass and run volume", () => {
+    const setup = controlledReceivingSetup(7106);
+    const airTeams = withUserStrategy(setup.teams, setup.userTeamId, "airRaid");
+    const runTeams = withUserStrategy(setup.teams, setup.userTeamId, "runHeavy");
+
+    const airResult = simulateGame(new Rng(7107), setup.game, airTeams);
+    const runResult = simulateGame(new Rng(7107), setup.game, runTeams);
+    const airBox = teamBoxFor(airResult.game, setup.userTeamId)!;
+    const runBox = teamBoxFor(runResult.game, setup.userTeamId)!;
+
+    expect(airBox.strategy).toBe("airRaid");
+    expect(runBox.strategy).toBe("runHeavy");
+    expect(airBox.passAttempts).toBeGreaterThan(runBox.passAttempts);
+    expect(runBox.rushAttempts).toBeGreaterThan(airBox.rushAttempts);
   });
 
   it("lets an elite receiver produce a realistic 12-game season without changing team passing totals", () => {
@@ -42,6 +88,7 @@ describe("game simulation stat pacing", () => {
     expect(eliteReceiver.stats.receivingYards).toBeGreaterThanOrEqual(950);
     expect(eliteReceiver.stats.receivingYards).toBeLessThanOrEqual(1650);
     expect(eliteReceiver.stats.receivingYards / quarterback.stats.passYards).toBeGreaterThanOrEqual(0.28);
+    expect(eliteReceiver.stats.receivingTargets / userTeam.roster.reduce((sum, player) => sum + player.stats.receivingTargets, 0)).toBeGreaterThanOrEqual(0.25);
     expect(quarterback.stats.passYards / setup.userGames.length).toBeGreaterThanOrEqual(180);
     expect(quarterback.stats.passYards / setup.userGames.length).toBeLessThanOrEqual(420);
   });
@@ -72,6 +119,16 @@ function controlledReceivingSetup(seed: number): { teams: Team[]; game: Game; us
   });
 
   return { teams, game: userGames[0]!, userGames, userTeamId, eliteReceiverId };
+}
+
+function withUserStrategy(teams: Team[], userTeamId: string, offensiveStrategy: Team["offensiveStrategy"]): Team[] {
+  return teams.map((team) => (team.id === userTeamId ? { ...team, offensiveStrategy } : team));
+}
+
+function teamBoxFor(game: Game, teamId: string) {
+  const box = game.result?.boxScore;
+  if (!box) return undefined;
+  return box.home.teamId === teamId ? box.home : box.away.teamId === teamId ? box.away : undefined;
 }
 
 function tuneUserPlayer(player: Player, eliteReceiverId: string): Player {

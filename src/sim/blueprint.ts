@@ -1,5 +1,5 @@
 import { clamp } from "./rng";
-import type { BlueprintCategory, DirectorGoal, ProgramBlueprint, Team } from "./types";
+import type { BlueprintCategory, BlueprintFocus, DirectorGoal, ProgramBlueprint, Team } from "./types";
 
 export const BLUEPRINT_CATEGORY_META: { key: BlueprintCategory; label: string; effect: string }[] = [
   { key: "scoutingNetwork", label: "Scouting Network", effect: "Reveals recruit attributes faster and slightly expands recruiting budget." },
@@ -20,6 +20,7 @@ export function createProgramBlueprint(team: Team, year: number, autoAllocate = 
   const blueprint: ProgramBlueprint = {
     year,
     totalPoints,
+    focus: autoAllocate ? "balanced" : "custom",
     allocations: autoAllocate ? autoBlueprintAllocations(team, totalPoints) : emptyBlueprintAllocations(),
     goals: createDirectorGoals(team, year),
     resolved: false,
@@ -32,6 +33,7 @@ export function ensureProgramBlueprint(team: Team, year: number, autoAllocate = 
   const normalized: ProgramBlueprint = {
     ...team.blueprint,
     totalPoints: Number.isFinite(team.blueprint.totalPoints) ? team.blueprint.totalPoints : calculateBlueprintBudget(team),
+    focus: team.blueprint.focus ?? "custom",
     allocations: normalizeBlueprintAllocations(team.blueprint.allocations),
     goals: team.blueprint.goals?.length ? team.blueprint.goals : createDirectorGoals(team, year),
     resolved: Boolean(team.blueprint.resolved),
@@ -113,14 +115,16 @@ export function blueprintAllocation(team: Team, key: BlueprintCategory): number 
   return team.blueprint ? normalizeBlueprintAllocations(team.blueprint.allocations)[key] : 0;
 }
 
-export function autoBlueprintAllocations(team: Team, totalPoints: number): Record<BlueprintCategory, number> {
+export function autoBlueprintAllocations(team: Team, totalPoints: number, focus: BlueprintFocus = "balanced"): Record<BlueprintCategory, number> {
   const allocations = emptyBlueprintAllocations();
-  const priority: BlueprintCategory[] = [];
-  if (team.program.recruitingReach < 70) priority.push("recruitingReach", "scoutingNetwork");
-  if (team.program.training < 70) priority.push("trainingStaff");
-  if (team.program.facilities < 70) priority.push("facilities");
-  if (team.program.academics < 70) priority.push("academicSupport");
-  if (team.coaches.head.jobSecurity < 64) priority.push("coachRetention");
+  const priority: BlueprintCategory[] = focusPriority(focus);
+  if (focus === "balanced") {
+    if (team.program.recruitingReach < 70) priority.push("recruitingReach", "scoutingNetwork");
+    if (team.program.training < 70) priority.push("trainingStaff");
+    if (team.program.facilities < 70) priority.push("facilities");
+    if (team.program.academics < 70) priority.push("academicSupport");
+    if (team.coaches.head.jobSecurity < 64) priority.push("coachRetention");
+  }
   priority.push("recruitingReach", "trainingStaff", "scoutingNetwork", "facilities", "playerTrust", "coachRetention", "academicSupport");
 
   for (let point = 0; point < totalPoints; point += 1) {
@@ -132,12 +136,31 @@ export function autoBlueprintAllocations(team: Team, totalPoints: number): Recor
   return allocations;
 }
 
+export function focusPriority(focus: BlueprintFocus): BlueprintCategory[] {
+  if (focus === "recruiting") return ["recruitingReach", "scoutingNetwork", "recruitingReach", "facilities"];
+  if (focus === "development") return ["trainingStaff", "facilities", "trainingStaff", "academicSupport"];
+  if (focus === "academics") return ["academicSupport", "playerTrust", "scoutingNetwork", "coachRetention"];
+  if (focus === "facilities") return ["facilities", "trainingStaff", "recruitingReach", "coachRetention"];
+  if (focus === "retention") return ["playerTrust", "coachRetention", "academicSupport", "trainingStaff"];
+  return [];
+}
+
+export function blueprintFocusLabel(focus: BlueprintFocus): string {
+  if (focus === "recruiting") return "Recruiting";
+  if (focus === "development") return "Development";
+  if (focus === "academics") return "Academics";
+  if (focus === "facilities") return "Facilities";
+  if (focus === "retention") return "Retention";
+  if (focus === "balanced") return "Balanced";
+  return "Custom";
+}
+
 export function completeBlueprintAllocations(team: Team, blueprint: ProgramBlueprint): Record<BlueprintCategory, number> {
   const allocations = normalizeBlueprintAllocations(blueprint.allocations);
   let remaining = blueprintRemaining({ ...blueprint, allocations });
   if (remaining <= 0) return allocations;
 
-  const target = autoBlueprintAllocations(team, blueprint.totalPoints);
+  const target = autoBlueprintAllocations(team, blueprint.totalPoints, blueprint.focus === "custom" ? "balanced" : blueprint.focus);
   while (remaining > 0) {
     const preferred = CATEGORY_KEYS.filter((key) => allocations[key] < MAX_BLUEPRINT_CATEGORY_POINTS && allocations[key] < target[key]).sort((a, b) => target[b] - allocations[b] - (target[a] - allocations[a]))[0];
     const fallback = CATEGORY_KEYS.find((key) => allocations[key] < MAX_BLUEPRINT_CATEGORY_POINTS);

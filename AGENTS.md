@@ -34,6 +34,8 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Signing-day recruits are incoming freshmen and must be excluded from preseason development/year progression until kickoff clears the marker.
 - Player hot/cold streaks should be rare, temporary, and applied through effective ratings rather than permanent base ratings.
 - Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.
+- Offensive strategies should affect pass/run volume while still adjusting toward roster strength and game state.
+- Game box scores should expose strategy, play count, pass/rush attempts, targets, separate FG/XP stats, and scoring play-by-play.
 - Dynasty length is 20 years.
 - Debug Sim To End should finish the 20th season and reach the `complete` phase.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
@@ -55,6 +57,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Program Blueprint changes must reconcile recruiting `pointsRemaining + pointsSpent` to the current season budget.
 - Program Blueprint rebuilds must preserve already-spent recruiting points as sunk costs when the budget changes.
 - Annual Program Blueprint state lives on each team and must affect recruiting budget, scouting speed, recruiting pressure, player development, retention, program review, and coach carousel stability.
+- Program Blueprint focus presets should auto-fill the plan before kickoff while Custom preserves manual allocation.
 - Unspent user Program Blueprint points should auto-fill at Week 1 kickoff while preserving any manual allocations.
 - Director Goals should appear before Week 1 and the previous resolved blueprint review should remain visible during the next preseason.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
@@ -76,7 +79,7 @@ The smoke script chooses an available preview port and smoke specs use fixed see
 ## QA Expectations
 
 - Use the Debug tab for forced playoff, forced award, forced walk-on need, auto recruit, and multi-season checks.
-- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, other-team roster, player modal, recruiting needs, matchup previews, postseason schedule, program record book, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, signing-day pagination, signing-day recruit modal, walk-ons, preseason progression, program review, and mobile dashboard coverage.
+- Keep screenshots in `artifacts/screenshots`, including rankings movement, roster/depth chart, other-team roster, player modal, recruiting needs, matchup previews, box score/play-by-play, postseason schedule, program record book, offensive strategy, Program Blueprint, director review, awards, all-conference, dashboard/playoff bracket, offseason recruiting, offseason signing, signing-day pagination, signing-day recruit modal, walk-ons, preseason progression, program review, and mobile dashboard coverage.
 - Do not commit `test-results` or Playwright reports.
 
 ## UI Organization

@@ -81,9 +81,13 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.screenshot({ path: path.join(screenshotDir, "recruiting-filters-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Program" }).click();
+  await expect(page.getByTestId("strategy-panel")).toContainText("Offensive Identity");
+  await page.getByTestId("offensive-strategy-select").selectOption("airRaid");
   await expect(page.getByTestId("program-blueprint-panel")).toBeVisible();
   await expect(page.getByTestId("program-blueprint-panel")).toContainText("unused points auto-assign");
+  await page.getByTestId("blueprint-focus-select").selectOption("development");
   await expect(page.getByTestId("director-goals-panel")).toContainText("Director");
+  await page.getByTestId("strategy-panel").screenshot({ path: path.join(screenshotDir, "offensive-strategy-desktop.png") });
   await page.getByTestId("program-blueprint-panel").screenshot({ path: path.join(screenshotDir, "program-blueprint-desktop.png") });
   await expect(page.getByText("Program Investments")).toBeVisible();
   await expect(page.getByTestId("coach-pool-panel")).not.toBeVisible();
@@ -98,7 +102,10 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await completedWeekOneRow.click();
   await expect(page.getByTestId("box-score-modal")).toBeVisible();
   await expect(page.getByTestId("box-score-modal")).toContainText("PaTD");
+  await expect(page.getByTestId("box-score-modal")).toContainText("XP");
+  await expect(page.getByTestId("play-by-play-panel")).toContainText("Play By Play");
   await page.getByTestId("box-score-modal").screenshot({ path: path.join(screenshotDir, "box-score-desktop.png") });
+  await page.getByTestId("play-by-play-panel").screenshot({ path: path.join(screenshotDir, "play-by-play-desktop.png") });
   await page.getByRole("button", { name: "Close box score" }).click();
 
   await page.getByRole("button", { name: "Awards" }).click();
@@ -111,6 +118,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Pass Yds");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Rush TD");
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("Targets");
+  await expect(page.getByTestId("leaderboard-panel")).toContainText("XP");
   await page.getByTestId("leaderboard-panel").locator("select").first().selectOption("team");
   await expect(page.getByTestId("user-team-leaderboard-row").first()).toBeVisible();
   await page.getByTestId("leaderboard-panel").screenshot({ path: path.join(screenshotDir, "leaderboard-desktop.png") });

@@ -8,6 +8,11 @@ describe("storage migration", () => {
     delete oldSave.rankings;
     delete oldSave.teams[0].helmetIndex;
     delete oldSave.teams[0].depthChart;
+    delete oldSave.teams[0].offensiveStrategy;
+    delete oldSave.teams[0].blueprint.focus;
+    delete oldSave.teams[0].roster[0].stats.receivingTargets;
+    delete oldSave.teams[0].roster[0].stats.extraPoints;
+    delete oldSave.teams[0].roster[0].stats.extraPointAttempts;
     oldSave.teams[0].roster[0].incomingFreshman = true;
     delete oldSave.recruiting.investedByRecruit;
     delete oldSave.recruits[0].offers;
@@ -19,6 +24,11 @@ describe("storage migration", () => {
     expect(normalized.recruits[0]?.offers).toEqual([]);
     expect(normalized.recruiting.investedByRecruit).toEqual({});
     expect(normalized.teams[0]?.depthChart).toEqual({});
+    expect(normalized.teams[0]?.offensiveStrategy).toBeTruthy();
+    expect(normalized.teams[0]?.blueprint?.focus).toBe("custom");
+    expect(normalized.teams[0]?.roster[0]?.stats.receivingTargets).toBe(0);
+    expect(normalized.teams[0]?.roster[0]?.stats.extraPoints).toBe(0);
+    expect(normalized.teams[0]?.roster[0]?.stats.extraPointAttempts).toBe(0);
     expect(normalized.teams[0]?.roster[0]?.incomingFreshman).toBeUndefined();
     expect(normalized.teams[0]?.helmetIndex).toBeGreaterThanOrEqual(0);
     expect(normalized.teams[0]?.helmetIndex).toBeLessThan(14);
@@ -146,4 +156,78 @@ describe("storage migration", () => {
     expect(reportTeam?.progressions).toEqual([]);
     expect(reportTeam?.programChanges).toEqual([]);
   });
+
+  it("normalizes older completed box scores for new strategy, play, target, and XP fields", () => {
+    const oldSave = createDynasty(5656) as any;
+    const game = oldSave.schedule[0];
+    game.played = true;
+    game.result = {
+      homeScore: 24,
+      awayScore: 17,
+      winnerTeamId: game.homeTeamId,
+      summary: "Legacy result",
+      boxScore: {
+        home: legacyTeamBox(game.homeTeamId),
+        away: legacyTeamBox(game.awayTeamId),
+      },
+    };
+
+    const normalized = normalizeDynastyState(oldSave);
+    const box = normalized.schedule[0]?.result?.boxScore?.home;
+
+    expect(box?.strategy).toBe("balanced");
+    expect(box?.plays).toBeGreaterThan(0);
+    expect(box?.passAttempts).toBeGreaterThan(0);
+    expect(box?.totals.receivingTargets).toBe(0);
+    expect(box?.totals.extraPoints).toBe(0);
+    expect(box?.players[0]?.stats.extraPointAttempts).toBe(0);
+    expect(normalized.schedule[0]?.result?.playByPlay).toEqual([]);
+  });
 });
+
+function legacyTeamBox(teamId: string) {
+  return {
+    teamId,
+    teamName: teamId,
+    score: 24,
+    totals: {
+      games: 0,
+      passYards: 210,
+      passTd: 2,
+      interceptionsThrown: 1,
+      rushYards: 120,
+      rushTd: 1,
+      receivingYards: 210,
+      receivingTd: 2,
+      tackles: 66,
+      sacks: 2,
+      interceptions: 1,
+      pancakes: 3,
+      fieldGoals: 1,
+      fieldGoalAttempts: 1,
+    },
+    players: [
+      {
+        playerId: "legacy-qb",
+        playerName: "Legacy QB",
+        position: "QB",
+        stats: {
+          games: 0,
+          passYards: 210,
+          passTd: 2,
+          interceptionsThrown: 1,
+          rushYards: 12,
+          rushTd: 0,
+          receivingYards: 0,
+          receivingTd: 0,
+          tackles: 0,
+          sacks: 0,
+          interceptions: 0,
+          pancakes: 0,
+          fieldGoals: 0,
+          fieldGoalAttempts: 0,
+        },
+      },
+    ],
+  };
+}

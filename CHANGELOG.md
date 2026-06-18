@@ -2,6 +2,14 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.0 - 2026-06-18
+
+- Added offensive strategy controls for Balanced, Air Raid, Run Heavy, Pro Style, and Spread Tempo identities that affect pass/run volume.
+- Split kicker stats into field goals and extra points, including attempts, and added receiving targets to player stats, box scores, player cards, and leaderboards.
+- Added scoring play-by-play to completed game box scores for simulation diagnostics.
+- Added Program Blueprint focus presets for custom, balanced, recruiting, development, academics, facilities, and retention planning.
+- Added save normalization and regression coverage for the new strategy, Blueprint focus, target, FG, XP, and play-by-play fields.
+
 ## 1.11.5 - 2026-06-17
 
 - Added a shared user-team highlight treatment across rankings, awards, honor teams, and stat leaderboards.

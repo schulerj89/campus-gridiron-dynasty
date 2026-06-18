@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, simulateSeasons, spendCoachPoint } from "../dynasty";
+import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 import { TARGET_ROSTER } from "../ratings";
 import { blueprintRemaining, blueprintSpent, emptyBlueprintAllocations } from "../blueprint";
@@ -30,6 +30,10 @@ describe("dynasty flow", () => {
     expect(playedGame?.result?.boxScore?.away.totals.passYards).toBeGreaterThanOrEqual(0);
     expect(playedGame?.result?.boxScore?.home.totals.receivingTd).toBe(playedGame?.result?.boxScore?.home.totals.passTd);
     expect(playedGame?.result?.boxScore?.away.totals.receivingTd).toBe(playedGame?.result?.boxScore?.away.totals.passTd);
+    expect(playedGame?.result?.boxScore?.home.totals.receivingTargets).toBeGreaterThan(0);
+    expect(playedGame?.result?.boxScore?.home.totals.extraPointAttempts).toBe((playedGame?.result?.boxScore?.home.totals.passTd ?? 0) + (playedGame?.result?.boxScore?.home.totals.rushTd ?? 0));
+    expect(playedGame?.result?.playByPlay?.at(-1)?.homeScore).toBe(playedGame?.result?.homeScore);
+    expect(playedGame?.result?.playByPlay?.at(-1)?.awayScore).toBe(playedGame?.result?.awayScore);
     expect(playedGame?.result?.boxScore?.home.totals.interceptions).toBe(playedGame?.result?.boxScore?.away.totals.interceptionsThrown);
     expect(playedGame?.result?.boxScore?.away.totals.interceptions).toBe(playedGame?.result?.boxScore?.home.totals.interceptionsThrown);
     expect(playedGame?.result?.boxScore?.home.totals.tackles).toBeGreaterThanOrEqual(50);
@@ -114,6 +118,30 @@ describe("dynasty flow", () => {
 
     const autoBuilt = autoAllocateProgramBlueprint(state);
     expect(autoBuilt.recruiting.pointsRemaining + autoBuilt.recruiting.pointsSpent).toBe(autoBuilt.recruiting.seasonBudget);
+  });
+
+  it("applies blueprint focus presets and marks manual edits as custom", () => {
+    let state = createDynasty(8925);
+    state = setProgramBlueprintFocus(state, "development");
+    let userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+
+    expect(userTeam.blueprint?.focus).toBe("development");
+    expect(userTeam.blueprint?.allocations.trainingStaff).toBeGreaterThan(0);
+    expect(userTeam.blueprint?.allocations.facilities).toBeGreaterThan(0);
+
+    state = setProgramBlueprintFocus(state, "custom");
+    userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    expect(userTeam.blueprint?.focus).toBe("custom");
+
+    const manual = allocateBlueprintPoint(createDynasty(8927), "recruitingReach");
+    expect(manual.teams.find((team) => team.id === manual.userTeamId)?.blueprint?.focus).toBe("custom");
+  });
+
+  it("updates user offensive strategy without changing other teams", () => {
+    const state = createDynasty(8926);
+    const updated = setUserOffensiveStrategy(state, "airRaid");
+    expect(updated.teams.find((team) => team.id === state.userTeamId)?.offensiveStrategy).toBe("airRaid");
+    expect(updated.teams.filter((team) => team.id !== state.userTeamId).every((team, index) => team.offensiveStrategy === state.teams.filter((candidate) => candidate.id !== state.userTeamId)[index]?.offensiveStrategy)).toBe(true);
   });
 
   it("keeps spent recruiting points sunk when blueprint changes lower the budget", () => {

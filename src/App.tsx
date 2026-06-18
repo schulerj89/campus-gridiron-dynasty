@@ -52,12 +52,12 @@ import {
   scoutRecruit,
 } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
-import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
+import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
 import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
-import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type Coach, type Conference, type DynastyState, type Game, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
+import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type BlueprintFocus, type Coach, type Conference, type DynastyState, type Game, type OffensiveStrategy, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
 import { PaginationControls } from "./components/PaginationControls";
 import { Rankings } from "./components/RankingsView";
@@ -122,6 +122,24 @@ const blueprintIcons: Record<BlueprintCategory, typeof GraduationCap> = {
   playerTrust: Heart,
   coachRetention: UserRound,
 };
+
+const offensiveStrategyOptions: { value: OffensiveStrategy; label: string; description: string }[] = [
+  { value: "balanced", label: "Balanced", description: "Adjusts toward roster strength with no heavy bias." },
+  { value: "airRaid", label: "Air Raid", description: "Leans into QB and WR volume with the highest pass rate." },
+  { value: "runHeavy", label: "Run Heavy", description: "Protects the ball and feeds backs behind strong blocking." },
+  { value: "proStyle", label: "Pro Style", description: "Pass-first balance that still supports a lead back." },
+  { value: "spreadTempo", label: "Spread Tempo", description: "Adds pace and passing volume while keeping multiple targets involved." },
+];
+
+const blueprintFocusOptions: { value: BlueprintFocus; label: string }[] = [
+  { value: "custom", label: "Custom" },
+  { value: "balanced", label: "Balanced" },
+  { value: "recruiting", label: "Recruiting" },
+  { value: "development", label: "Development" },
+  { value: "academics", label: "Academics" },
+  { value: "facilities", label: "Facilities" },
+  { value: "retention", label: "Retention" },
+];
 
 export default function App() {
   const previewWorld = useMemo(() => createDynasty(20260616), []);
@@ -995,9 +1013,12 @@ function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Play
                 <span>{row.stats.games} GP</span>
                 <span>{row.stats.passYards} PYD</span>
                 <span>{row.stats.rushYards} RYD</span>
+                <span>{row.stats.receivingTargets} TGT</span>
                 <span>{row.stats.receivingYards} REC</span>
                 <span>{row.stats.tackles} TKL</span>
                 <span>{row.stats.interceptions} INT</span>
+                <span>{row.stats.fieldGoals}/{row.stats.fieldGoalAttempts} FG</span>
+                <span>{row.stats.extraPoints}/{row.stats.extraPointAttempts} XP</span>
               </div>
             ))}
           </div>
@@ -1599,10 +1620,28 @@ function GameModal({ game, teams, onClose }: { game: Game; teams: Team[]; onClos
           </button>
         </div>
         {boxScore ? (
-          <div className="box-score-grid">
-            <TeamBoxScorePanel box={boxScore.away} />
-            <TeamBoxScorePanel box={boxScore.home} />
-          </div>
+          <>
+            <div className="box-score-grid">
+              <TeamBoxScorePanel box={boxScore.away} />
+              <TeamBoxScorePanel box={boxScore.home} />
+            </div>
+            <section className="play-by-play-panel" data-testid="play-by-play-panel">
+              <div className="panel-head compact">
+                <h3>Play By Play</h3>
+                <ClipboardList size={18} />
+              </div>
+              <div className="play-by-play-list">
+                {(game.result?.playByPlay ?? []).map((event, index) => (
+                  <div key={`${event.teamId}-${event.quarter}-${event.clock}-${index}`} className="play-event">
+                    <span>Q{event.quarter} {event.clock}</span>
+                    <strong>{event.teamName}</strong>
+                    <em>{event.description}</em>
+                    <b>{event.awayScore}-{event.homeScore}</b>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
         ) : (
           <div className="metric-grid">
             <Metric label={away?.abbreviation ?? "Away"} value={away ? teamPower(away.roster) : "-"} />
@@ -1622,9 +1661,11 @@ function TeamBoxScorePanel({ box }: { box: TeamBoxScore }) {
         <strong>{box.score}</strong>
       </div>
       <div className="mini-metrics">
-        <span>{box.totals.passYards} pass, {box.totals.passTd} PaTD</span>
-        <span>{box.totals.rushYards} rush, {box.totals.rushTd} RuTD</span>
-        <span>{box.totals.receivingYards} rec, {box.totals.receivingTd} RecTD</span>
+        <span>{strategyLabel(box.strategy)} - {box.plays} plays</span>
+        <span>{box.passAttempts} dropbacks, {box.totals.passYards} pass, {box.totals.passTd} PaTD</span>
+        <span>{box.rushAttempts} rushes, {box.totals.rushYards} rush, {box.totals.rushTd} RuTD</span>
+        <span>{box.totals.receivingTargets} targets, {box.totals.receivingYards} rec, {box.totals.receivingTd} RecTD</span>
+        <span>{box.totals.fieldGoals}/{box.totals.fieldGoalAttempts} FG, {box.totals.extraPoints}/{box.totals.extraPointAttempts} XP</span>
         <span>{box.totals.tackles} tackles</span>
       </div>
       <div className="box-player-list">
@@ -1656,8 +1697,35 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
   const blueprint = evaluateProgramBlueprint(team, storedBlueprint, blueprintRecruitingRank, storedBlueprint.resolved);
   const remaining = blueprintRemaining(blueprint);
   const spent = blueprintSpent(blueprint);
+  const selectedStrategy = offensiveStrategyOptions.find((option) => option.value === team.offensiveStrategy) ?? offensiveStrategyOptions[0]!;
+  const strategyUnits = teamUnitRatings(team.roster);
   return (
     <>
+      <section className="panel span-2" data-testid="strategy-panel">
+        <div className="panel-head compact">
+          <div>
+            <p className="eyebrow">Team Strategy</p>
+            <h2>Offensive Identity</h2>
+            <p className="muted">{selectedStrategy.description}</p>
+          </div>
+          <LineChart size={20} />
+        </div>
+        <div className="program-control-grid">
+          <label>
+            Offensive Strategy
+            <select value={team.offensiveStrategy ?? "balanced"} onChange={(event) => onUpdate((current) => setUserOffensiveStrategy(current, event.target.value as OffensiveStrategy))} data-testid="offensive-strategy-select">
+              {offensiveStrategyOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="strategy-summary">
+            <Metric label="Pass Unit" value={strategyUnits.passing} />
+            <Metric label="Run Unit" value={strategyUnits.rushing} />
+            <Metric label="Blocking" value={strategyUnits.blocking} />
+          </div>
+        </div>
+      </section>
       <section className="panel span-2" data-testid="program-blueprint-panel">
         <div className="panel-head">
           <div>
@@ -1669,6 +1737,17 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
             <Wrench size={16} />
             Auto Build
           </button>
+        </div>
+        <div className="program-control-grid">
+          <label>
+            Blueprint Focus
+            <select value={blueprint.focus} onChange={(event) => onUpdate((current) => setProgramBlueprintFocus(current, event.target.value as BlueprintFocus))} disabled={!canEditBlueprint} data-testid="blueprint-focus-select">
+              {blueprintFocusOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <p className="muted">{blueprint.focus === "custom" ? "Manual allocation is active. Use the plus buttons to shape the plan." : "Preset focus fills the annual plan immediately and can still be changed before kickoff."}</p>
         </div>
         <div className="metric-grid blueprint-summary">
           <Metric label="Total Points" value={blueprint.totalPoints} />
@@ -1982,6 +2061,14 @@ function title(value: string): string {
   return value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
 }
 
+function strategyLabel(value?: OffensiveStrategy): string {
+  if (value === "airRaid") return "Air Raid";
+  if (value === "runHeavy") return "Run Heavy";
+  if (value === "proStyle") return "Pro Style";
+  if (value === "spreadTempo") return "Spread Tempo";
+  return "Balanced";
+}
+
 function playerStatRows(player: Player): { label: string; stats: PlayerStats }[] {
   const career = (player.careerStats ?? []).map((entry) => ({
     label: `${entry.year} ${entry.teamName} ${entry.collegeYear}`,
@@ -2000,9 +2087,10 @@ function gameLineSummary(stats: PlayerStats): string {
   const parts: string[] = [];
   if (stats.passYards || stats.passTd || stats.interceptionsThrown) parts.push(`${stats.passYards} PYD, ${stats.passTd} PaTD, ${stats.interceptionsThrown} INT`);
   if (stats.rushYards || stats.rushTd) parts.push(`${stats.rushYards} RYD, ${stats.rushTd} RuTD`);
-  if (stats.receivingYards || stats.receivingTd) parts.push(`${stats.receivingYards} REC, ${stats.receivingTd} RecTD`);
+  if (stats.receivingYards || stats.receivingTd || stats.receivingTargets) parts.push(`${stats.receivingTargets} TGT, ${stats.receivingYards} REC, ${stats.receivingTd} RecTD`);
   if (stats.tackles || stats.sacks || stats.interceptions) parts.push(`${stats.tackles} TKL, ${stats.sacks} SCK, ${stats.interceptions} INT`);
   if (stats.pancakes) parts.push(`${stats.pancakes} PAN`);
   if (stats.fieldGoalAttempts) parts.push(`${stats.fieldGoals}/${stats.fieldGoalAttempts} FG`);
+  if (stats.extraPointAttempts) parts.push(`${stats.extraPoints}/${stats.extraPointAttempts} XP`);
   return parts.join(" | ") || "Appeared";
 }

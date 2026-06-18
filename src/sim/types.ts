@@ -40,6 +40,8 @@ export type Phase = "preseason" | "regular" | "postseason" | "offseason" | "comp
 export type AutomationProfile = "balanced" | "recruitFirst" | "developYouth" | "retainStars";
 export type PlayerStreakStatus = "hot" | "cold";
 export type BlueprintCategory = "scoutingNetwork" | "recruitingReach" | "trainingStaff" | "facilities" | "academicSupport" | "playerTrust" | "coachRetention";
+export type BlueprintFocus = "custom" | "balanced" | "recruiting" | "development" | "academics" | "facilities" | "retention";
+export type OffensiveStrategy = "balanced" | "airRaid" | "runHeavy" | "proStyle" | "spreadTempo";
 export type DirectorGoalKind = "wins" | "recruitingClass" | "scoringDefense";
 export type DirectorGoalStatus = "active" | "met" | "missed";
 
@@ -50,6 +52,7 @@ export interface PlayerStats {
   interceptionsThrown: number;
   rushYards: number;
   rushTd: number;
+  receivingTargets: number;
   receivingYards: number;
   receivingTd: number;
   tackles: number;
@@ -58,6 +61,8 @@ export interface PlayerStats {
   pancakes: number;
   fieldGoals: number;
   fieldGoalAttempts: number;
+  extraPoints: number;
+  extraPointAttempts: number;
 }
 
 export interface PlayerSeasonStats {
@@ -85,6 +90,10 @@ export interface TeamBoxScore {
   teamId: string;
   teamName: string;
   score: number;
+  strategy: OffensiveStrategy;
+  plays: number;
+  passAttempts: number;
+  rushAttempts: number;
   totals: PlayerStats;
   players: PlayerGameStats[];
 }
@@ -92,6 +101,19 @@ export interface TeamBoxScore {
 export interface GameBoxScore {
   home: TeamBoxScore;
   away: TeamBoxScore;
+}
+
+export type PlayEventType = "passTd" | "rushTd" | "fieldGoal" | "extraPoint" | "missedFieldGoal" | "missedExtraPoint" | "turnover";
+
+export interface PlayByPlayEvent {
+  quarter: number;
+  clock: string;
+  teamId: string;
+  teamName: string;
+  type: PlayEventType;
+  description: string;
+  homeScore: number;
+  awayScore: number;
 }
 
 export interface Player {
@@ -154,6 +176,7 @@ export interface DirectorGoal {
 export interface ProgramBlueprint {
   year: number;
   totalPoints: number;
+  focus: BlueprintFocus;
   allocations: Record<BlueprintCategory, number>;
   goals: DirectorGoal[];
   resolved: boolean;
@@ -188,6 +211,7 @@ export interface Team {
     defense: Coach;
   };
   program: ProgramRatings;
+  offensiveStrategy: OffensiveStrategy;
   coachPoints: number;
   programPoints: number;
   blueprint?: ProgramBlueprint;
@@ -266,6 +290,7 @@ export interface GameResult {
   winnerTeamId: string;
   summary: string;
   boxScore?: GameBoxScore;
+  playByPlay?: PlayByPlayEvent[];
 }
 
 export interface Game {
@@ -470,6 +495,7 @@ export function emptyStats(): PlayerStats {
     interceptionsThrown: 0,
     rushYards: 0,
     rushTd: 0,
+    receivingTargets: 0,
     receivingYards: 0,
     receivingTd: 0,
     tackles: 0,
@@ -478,5 +504,7 @@ export function emptyStats(): PlayerStats {
     pancakes: 0,
     fieldGoals: 0,
     fieldGoalAttempts: 0,
+    extraPoints: 0,
+    extraPointAttempts: 0,
   };
 }
