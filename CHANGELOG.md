@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.9 - 2026-06-18
+
+- Guarded localStorage metadata reads, writes, and clears so browser metadata failures do not break IndexedDB saves.
+- Hid malformed or active-pointer-mismatched save summaries instead of showing stale Continue details.
+- Added storage and smoke coverage for malformed, blocked, and mismatched localStorage metadata.
+
 ## 1.12.8 - 2026-06-18
 
 - Cancelled pending save queue completions when local saves are cleared.

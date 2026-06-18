@@ -38,7 +38,7 @@ export async function saveDynasty(state: DynastyState): Promise<void> {
 
 export async function loadActiveDynasty(): Promise<DynastyState | undefined> {
   if (!hasIndexedDb()) return undefined;
-  const activeId = hasLocalStorage() ? localStorage.getItem(ACTIVE_KEY) : undefined;
+  const activeId = readLocalStorage(ACTIVE_KEY);
   const db = await openDb();
   try {
     const activeSave = activeId ? await requestToPromise<DynastyState | undefined>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(activeId)) : undefined;
@@ -61,12 +61,12 @@ export async function loadActiveDynasty(): Promise<DynastyState | undefined> {
 }
 
 export function loadActiveDynastySummary(): DynastySaveSummary | undefined {
-  if (!hasLocalStorage()) return undefined;
-  const raw = localStorage.getItem(ACTIVE_SUMMARY_KEY);
+  const activeId = readLocalStorage(ACTIVE_KEY);
+  const raw = readLocalStorage(ACTIVE_SUMMARY_KEY);
   if (!raw) return undefined;
   try {
     const parsed = JSON.parse(raw) as Partial<DynastySaveSummary>;
-    if (!isValidSummary(parsed)) {
+    if (!activeId || !isValidSummary(parsed) || parsed.id !== activeId) {
       clearActiveDynastySummary();
       return undefined;
     }
@@ -79,7 +79,7 @@ export function loadActiveDynastySummary(): DynastySaveSummary | undefined {
 
 export async function clearDynasty(): Promise<void> {
   if (!hasIndexedDb()) {
-    if (hasLocalStorage()) localStorage.removeItem(ACTIVE_KEY);
+    removeLocalStorage(ACTIVE_KEY);
     clearActiveDynastySummary();
     return;
   }
@@ -88,7 +88,7 @@ export async function clearDynasty(): Promise<void> {
     const transaction = db.transaction(STORE_NAME, "readwrite");
     transaction.objectStore(STORE_NAME).clear();
     await transactionToPromise(transaction);
-    if (hasLocalStorage()) localStorage.removeItem(ACTIVE_KEY);
+    removeLocalStorage(ACTIVE_KEY);
     clearActiveDynastySummary();
   } finally {
     db.close();
@@ -122,18 +122,43 @@ export function pickLatestDynastyState(states: DynastyState[]): DynastyState | u
 }
 
 function saveActiveDynastyMetadata(state: DynastyState): void {
-  if (hasLocalStorage()) localStorage.setItem(ACTIVE_KEY, state.id);
+  writeLocalStorage(ACTIVE_KEY, state.id);
   saveActiveDynastySummary(summarizeDynastyState(state));
 }
 
 function saveActiveDynastySummary(summary: DynastySaveSummary): void {
-  if (!hasLocalStorage()) return;
-  localStorage.setItem(ACTIVE_SUMMARY_KEY, JSON.stringify(summary));
+  writeLocalStorage(ACTIVE_SUMMARY_KEY, JSON.stringify(summary));
 }
 
 function clearActiveDynastySummary(): void {
+  removeLocalStorage(ACTIVE_SUMMARY_KEY);
+}
+
+function readLocalStorage(key: string): string | undefined {
+  if (!hasLocalStorage()) return undefined;
+  try {
+    return localStorage.getItem(key) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeLocalStorage(key: string, value: string): void {
   if (!hasLocalStorage()) return;
-  localStorage.removeItem(ACTIVE_SUMMARY_KEY);
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // IndexedDB remains the source of truth when browser metadata storage is blocked.
+  }
+}
+
+function removeLocalStorage(key: string): void {
+  if (!hasLocalStorage()) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Best effort cleanup; blocked localStorage must not break full-save operations.
+  }
 }
 
 function isValidSummary(value: Partial<DynastySaveSummary>): value is DynastySaveSummary {

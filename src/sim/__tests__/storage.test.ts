@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDynasty } from "../generate";
 import { loadActiveDynastySummary, normalizeDynastyState, pickLatestDynastyState, summarizeDynastyState } from "../storage";
 
 describe("storage migration", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("builds a compact active save summary for quick home-screen retrieval", () => {
     const state = createDynasty(4141);
     const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
@@ -39,6 +43,52 @@ describe("storage migration", () => {
     const second = { ...createDynasty(4146), id: "second-save", createdAt: "2026-03-01T12:00:00.000Z", updatedAt: "not-a-date" };
 
     expect(pickLatestDynastyState([first, second])?.id).toBe("second-save");
+  });
+
+  it("hides malformed or mismatched active save summaries", () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn((key: string) => values.get(key) ?? null),
+      setItem: vi.fn((key: string, value: string) => values.set(key, value)),
+      removeItem: vi.fn((key: string) => values.delete(key)),
+    });
+    values.set("campus-gridiron-active-save", "save-a");
+    values.set(
+      "campus-gridiron-active-save-summary",
+      JSON.stringify({
+        id: "save-b",
+        userTeamName: "Mismatch State",
+        year: 1,
+        calendarYear: 2026,
+        maxYears: 20,
+        phase: "regular",
+        week: 1,
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+
+    expect(loadActiveDynastySummary()).toBeUndefined();
+    expect(values.has("campus-gridiron-active-save-summary")).toBe(false);
+
+    values.set("campus-gridiron-active-save-summary", "{bad json");
+    expect(loadActiveDynastySummary()).toBeUndefined();
+    expect(values.has("campus-gridiron-active-save-summary")).toBe(false);
+  });
+
+  it("treats throwing localStorage metadata as unavailable", () => {
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn(() => {
+        throw new Error("blocked");
+      }),
+      setItem: vi.fn(() => {
+        throw new Error("blocked");
+      }),
+      removeItem: vi.fn(() => {
+        throw new Error("blocked");
+      }),
+    });
+
+    expect(loadActiveDynastySummary()).toBeUndefined();
   });
 
   it("fills rankings and helmet indexes for older saves", () => {

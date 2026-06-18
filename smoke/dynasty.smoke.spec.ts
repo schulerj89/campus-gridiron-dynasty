@@ -55,6 +55,21 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     if (testInfo.project.name === "chromium-desktop") {
       await page.screenshot({ path: path.join(screenshotDir, "home-continue-summary-desktop.png"), fullPage: true });
     }
+    await page.evaluate(() => {
+      localStorage.setItem("campus-gridiron-active-save-summary", JSON.stringify({
+        id: "wrong-save",
+        userTeamName: "Wrong Save",
+        year: 9,
+        calendarYear: 2034,
+        maxYears: 20,
+        phase: "regular",
+        week: 9,
+        updatedAt: "2034-01-01T00:00:00.000Z",
+      }));
+    });
+    await page.reload();
+    await expect(page.getByText("Wrong Save")).not.toBeVisible();
+    await expect(page.getByTestId("save-summary")).toContainText("Continue", { timeout: 20_000 });
     await page.getByRole("button", { name: "Clear local save" }).click();
     await expect(page.getByTestId("team-picker")).toBeVisible({ timeout: 20_000 });
     await expect(page.getByTestId("save-summary")).not.toBeVisible();
