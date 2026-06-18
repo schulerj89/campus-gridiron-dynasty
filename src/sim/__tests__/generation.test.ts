@@ -54,6 +54,25 @@ describe("world generation", () => {
     expect(fourStarRate).toBeLessThanOrEqual(0.2);
   });
 
+  it("creates regular-season schedules without duplicate opponent pairs", () => {
+    for (const seed of [6101, 6102, 6103]) {
+      const state = createDynasty(seed);
+      const gameCounts = new Map(state.teams.map((team) => [team.id, 0]));
+      const pairs = new Set<string>();
+
+      for (const game of state.schedule) {
+        gameCounts.set(game.homeTeamId, (gameCounts.get(game.homeTeamId) ?? 0) + 1);
+        gameCounts.set(game.awayTeamId, (gameCounts.get(game.awayTeamId) ?? 0) + 1);
+        const pair = [game.homeTeamId, game.awayTeamId].sort().join("-");
+        expect(pairs.has(pair)).toBe(false);
+        pairs.add(pair);
+      }
+
+      expect(state.schedule).toHaveLength(35 * 12);
+      expect([...gameCounts.values()].every((count) => count === 12)).toBe(true);
+    }
+  });
+
   it("applies position-specific caps to off-skill attributes", () => {
     const state = createDynasty(4567);
     const playersAndRecruits = [

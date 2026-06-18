@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.4.9 - 2026-06-17
+
+- Improved regular-season schedule generation to avoid duplicate opponent pairings.
+- Added a constrained weekly pairing matcher that prefers unused team pairs before falling back.
+- Added deterministic schedule regression coverage for 12 games per team with unique opponent pairs.
+
 ## 1.4.8 - 2026-06-17
 
 - Fixed scouting so a full recruiting board cannot create off-board sunk investments.

@@ -35,6 +35,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
 - The Schedule tab should display regular-season games and postseason playoff games with box-score access.
+- Regular-season schedules should give every team 12 games without duplicate opponent pairings when possible.
 - Program record book summaries should be calculated from completed user-team history, not stored as separate mutable dynasty state.
 - Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.
