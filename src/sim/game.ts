@@ -55,6 +55,7 @@ interface PlayContext {
   returners: Player[];
   defenders: Player[];
   pancakeBlockers: string[];
+  passProtectionEdge: number;
   passRemaining: number;
   rushRemaining: number;
   scoringEvents: ScoringEvent[];
@@ -226,7 +227,8 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   const plays = clamp(rng.nextInt(58, 74) + (strategy === "spreadTempo" ? rng.nextInt(2, 5) : strategy === "runHeavy" ? -rng.nextInt(0, 3) : 0), 56, 78);
   const passAttempts = Math.round(plays * passRate);
   const rushAttempts = Math.max(18, plays - passAttempts);
-  const passYards = clamp(Math.round(passAttempts * (5.7 + (units.passing + units.receiving - opponentUnits.coverage) / 70) + rng.nextInt(-30, 52)), 95, 450);
+  const passProtectionEdge = units.blocking - opponentUnits.defense;
+  const passYards = clamp(Math.round(passAttempts * (5.7 + (units.passing + units.receiving - opponentUnits.coverage) / 70 + passProtectionEdge / 85) + rng.nextInt(-30, 52)), 95, 450);
   const rushYards = clamp(Math.round(rushAttempts * (3.6 + (units.rushing + units.blocking - opponentUnits.defense) / 80) + rng.nextInt(-24, 42)), 40, 320);
   const offensiveTd = scoring.offensiveTd;
   const passTdShare = passingTouchdownShare(strategy, passRate, units, opponentUnits);
@@ -700,6 +702,8 @@ function buildPlayByPlay(rng: Rng, home: Team, away: Team, homeProfile: TeamGame
 }
 
 function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGameProfile, side: "home" | "away"): PlayContext {
+  const units = teamUnitRatings(team.roster);
+  const opponentUnits = teamUnitRatings(opponent.roster);
   return {
     team,
     opponent,
@@ -713,6 +717,7 @@ function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGa
     returners: uniquePlayers([...topAt(opponent.roster, ["WR"], 3), ...topAt(opponent.roster, ["CB"], 2), ...topAt(opponent.roster, ["HB"], 1)]),
     defenders: uniquePlayers([...topAt(opponent.roster, ["CB"], 3), ...topAt(opponent.roster, ["S"], 3), ...topAt(opponent.roster, ["LB"], 3), ...topAt(opponent.roster, ["DL"], 3)]),
     pancakeBlockers: [...profile.pancakeBlockers],
+    passProtectionEdge: units.blocking - opponentUnits.defense,
     passRemaining: profile.passAttempts,
     rushRemaining: profile.rushAttempts,
     scoringEvents: rng.shuffle(profile.scoringEvents),
@@ -859,8 +864,9 @@ function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
   const quarterback = context.qb?.name ?? "The quarterback";
   const target = selectTarget(rng, context)?.name ?? "the receiver";
   const qbAccuracy = context.qb ? effectiveAttributes(context.qb).accuracy : 70;
+  const pressurePenalty = -context.passProtectionEdge / 420;
 
-  if (rng.chance(clamp(0.08 - qbAccuracy / 1600, 0.035, 0.085))) {
+  if (rng.chance(clamp(0.058 - qbAccuracy / 1800 + pressurePenalty, 0.015, 0.13))) {
     const defender = selectDefender(rng, context)?.name ?? "the pass rush";
     const loss = rng.nextInt(3, 10);
     return {
@@ -869,7 +875,7 @@ function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
     };
   }
 
-  const completionChance = clamp(0.58 + (qbAccuracy - 70) / 180 - (state.distance >= 10 ? 0.04 : 0), 0.48, 0.74);
+  const completionChance = clamp(0.58 + (qbAccuracy - 70) / 180 + context.passProtectionEdge / 560 - (state.distance >= 10 ? 0.04 : 0), 0.44, 0.78);
   if (!rng.chance(completionChance)) {
     return {
       ...basePlay(context, "pass", 0, state, 0),

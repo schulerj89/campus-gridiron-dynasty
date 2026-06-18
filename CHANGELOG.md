@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.18.0 - 2026-06-18
+
+- Made offensive line quality directly influence pass yards per attempt, play-by-play sack chance, and passing completion windows.
+- Added controlled simulation coverage proving strong lines produce better rushing output, better pass efficiency, and fewer sacks than weak lines.
+- Kept the change isolated to game simulation so existing roster, strategy, and box-score flows remain compatible.
+
 ## 1.17.0 - 2026-06-18
 
 - Program Investments now refresh active recruiting budgets immediately while preserving sunk spent points.
