@@ -68,6 +68,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Annual Program Blueprint state lives on each team and must affect recruiting budget, scouting speed, recruiting pressure, player development, retention, program review, and coach carousel stability.
 - Program Blueprint focus presets should auto-fill the plan before kickoff while Custom preserves manual allocation.
 - Unspent user Program Blueprint points should auto-fill at Week 1 kickoff while preserving any manual allocations.
+- Spending Program Investment points must immediately reconcile active recruiting budgets while preserving sunk spent points; training and facilities investment must materially affect preseason development.
 - Director Goals should appear before Week 1 and the previous resolved blueprint review should remain visible during the next preseason.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
 - Roster Room can inspect any team roster, but depth-chart movement should remain user-team only.

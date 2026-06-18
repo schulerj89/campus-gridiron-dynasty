@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.17.0 - 2026-06-18
+
+- Program Investments now refresh active recruiting budgets immediately while preserving sunk spent points.
+- Strengthened training and facilities development bonuses so infrastructure investments produce visible preseason progression changes.
+- Added regression coverage for recruiting budget reconciliation and high-vs-low training/facilities development outcomes.
+
 ## 1.16.0 - 2026-06-18
 
 - Added trait-specific development profiles with stronger elite and high-potential breakout chances.

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createDynasty } from "../generate";
-import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "../dynasty";
+import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, createDynasty } from "../generate";
+import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 import { TARGET_ROSTER } from "../ratings";
 import { blueprintRemaining, blueprintSpent, emptyBlueprintAllocations } from "../blueprint";
@@ -144,6 +144,81 @@ describe("dynasty flow", () => {
     const autoBuilt = autoAllocateProgramBlueprint(state);
     expect(autoBuilt.recruiting.pointsRemaining + autoBuilt.recruiting.pointsSpent).toBe(autoBuilt.recruiting.seasonBudget);
   });
+
+  it("refreshes active recruiting budget when program investments change recruiting strength", () => {
+    const state = createDynasty(8928);
+    const preparedTeams = state.teams.map((team) =>
+      team.id === state.userTeamId
+        ? {
+            ...team,
+            programPoints: 2,
+            program: {
+              ...team.program,
+              prestige: 55,
+              recruitingReach: 55,
+              facilities: 55,
+              academics: 55,
+              fanSupport: 55,
+              NIL: 55,
+            },
+          }
+        : team,
+    );
+    const preparedUserTeam = preparedTeams.find((team) => team.id === state.userTeamId)!;
+    const seasonBudget = calculateSeasonRecruitingBudget(preparedUserTeam);
+    const prepared = {
+      ...state,
+      teams: preparedTeams,
+      recruiting: {
+        ...state.recruiting,
+        seasonBudget,
+        weeklyPoints: calculateWeeklyRecruitingPoints(preparedUserTeam),
+        pointsRemaining: seasonBudget - 120,
+        pointsSpent: 120,
+      },
+    };
+
+    const invested = investProgramPoint(prepared, "recruitingReach");
+    const investedTeam = invested.teams.find((team) => team.id === state.userTeamId)!;
+
+    expect(investedTeam.program.recruitingReach).toBe(57);
+    expect(investedTeam.programPoints).toBe(1);
+    expect(invested.recruiting.seasonBudget).toBeGreaterThan(seasonBudget);
+    expect(invested.recruiting.weeklyPoints).toBe(calculateWeeklyRecruitingPoints(investedTeam));
+    expect(invested.recruiting.pointsSpent).toBe(120);
+    expect(invested.recruiting.pointsRemaining + invested.recruiting.pointsSpent).toBe(invested.recruiting.seasonBudget);
+  });
+
+  it("lets training and facilities investments improve preseason development outcomes", () => {
+    const base = createDynasty(8955);
+    const userTeam = base.teams.find((team) => team.id === base.userTeamId)!;
+    const breakoutIds = userTeam.roster
+      .filter((player) => player.year !== "SR")
+      .slice(0, 8)
+      .map((player) => player.id);
+    const lowTeams = base.teams.map((team) => (team.id === base.userTeamId ? tuneDevelopmentTeam(team, new Set(breakoutIds), 45, 45, 72) : team));
+    const highTeams = base.teams.map((team) => (team.id === base.userTeamId ? tuneDevelopmentTeam(team, new Set(breakoutIds), 95, 95, 72) : team));
+    const lowState: DynastyState = {
+      ...base,
+      rngState: 77,
+      phase: "offseason",
+      week: 21,
+      teams: lowTeams,
+      offseasonReport: developmentReadyReport(base, lowTeams),
+    };
+    const highState: DynastyState = {
+      ...lowState,
+      teams: highTeams,
+      offseasonReport: developmentReadyReport(base, highTeams),
+    };
+
+    const lowReport = advanceWeek(lowState).offseasonReport?.teams.find((teamReport) => teamReport.teamId === base.userTeamId)!;
+    const highReport = advanceWeek(highState).offseasonReport?.teams.find((teamReport) => teamReport.teamId === base.userTeamId)!;
+    const lowGain = totalProgressionGain(lowReport.progressions, new Set(breakoutIds));
+    const highGain = totalProgressionGain(highReport.progressions, new Set(breakoutIds));
+
+    expect(highGain).toBeGreaterThan(lowGain);
+  }, 20_000);
 
   it("applies blueprint focus presets and marks manual edits as custom", () => {
     let state = createDynasty(8925);
@@ -470,18 +545,18 @@ describe("dynasty flow", () => {
   });
 });
 
-function tuneDevelopmentTeam(team: Team, breakoutIds: Set<string>): Team {
+function tuneDevelopmentTeam(team: Team, breakoutIds: Set<string>, training = 95, facilities = 95, coachDevelopment = 95): Team {
   return {
     ...team,
     program: {
       ...team.program,
-      training: 95,
-      facilities: 95,
+      training,
+      facilities,
     },
     coaches: {
-      head: { ...team.coaches.head, development: 95 },
-      offense: { ...team.coaches.offense, development: 95 },
-      defense: { ...team.coaches.defense, development: 95 },
+      head: { ...team.coaches.head, development: coachDevelopment },
+      offense: { ...team.coaches.offense, development: coachDevelopment },
+      defense: { ...team.coaches.defense, development: coachDevelopment },
     },
     roster: team.roster.map((player) =>
       breakoutIds.has(player.id)
@@ -497,6 +572,10 @@ function tuneDevelopmentTeam(team: Team, breakoutIds: Set<string>): Team {
         : player,
     ),
   };
+}
+
+function totalProgressionGain(progressions: { playerId: string; beforeOverall: number; afterOverall: number }[], playerIds: Set<string>): number {
+  return progressions.filter((progression) => playerIds.has(progression.playerId)).reduce((sum, progression) => sum + progression.afterOverall - progression.beforeOverall, 0);
 }
 
 function eliteDevelopmentAttributes(): Attributes {

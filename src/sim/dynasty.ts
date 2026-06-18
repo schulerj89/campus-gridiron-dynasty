@@ -154,8 +154,10 @@ export function forceUserWalkOnNeed(state: DynastyState): DynastyState {
 }
 
 export function investProgramPoint(state: DynastyState, key: keyof ProgramRatings): DynastyState {
+  let changed = false;
   const teams = state.teams.map((team) => {
     if (team.id !== state.userTeamId || team.programPoints <= 0) return team;
+    changed = true;
     return {
       ...team,
       programPoints: team.programPoints - 1,
@@ -165,11 +167,12 @@ export function investProgramPoint(state: DynastyState, key: keyof ProgramRating
       },
     };
   });
-  return {
+  if (!changed) return state;
+  return refreshRecruitingBudget({
     ...state,
     teams,
     debugLog: [`Invested a program point into ${String(key)}.`, ...state.debugLog].slice(0, 20),
-  };
+  });
 }
 
 export function setUserOffensiveStrategy(state: DynastyState, strategy: OffensiveStrategy): DynastyState {
@@ -823,7 +826,9 @@ function developPlayer(rng: Rng, team: Team, player: Player, year: number): { pl
   }
   const developmentProfile = DEVELOPMENT_PROFILES[player.development];
   const potentialGap = Math.max(0, player.potential - player.overall);
-  const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 185 + blueprintDevelopmentBonus(team);
+  const staffDevelopment = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development) / 3;
+  const infrastructureBoost = (team.program.training - 60) / 18 + (team.program.facilities - 60) / 20;
+  const coachBoost = clamp(staffDevelopment / 55 + infrastructureBoost + blueprintDevelopmentBonus(team), -1.5, 7);
   const breakoutChance = clamp(developmentProfile.breakoutChance + potentialGap / 160 + coachBoost / 80, developmentProfile.breakoutChance, 0.46);
   const breakout = potentialGap >= 3 && rng.chance(breakoutChance) ? rng.nextInt(developmentProfile.breakoutMin, developmentProfile.breakoutMax) : 0;
   const highPotentialBonus = player.potential >= 92 ? 1.2 : player.potential >= 88 ? 0.6 : 0;
