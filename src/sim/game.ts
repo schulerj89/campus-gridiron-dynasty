@@ -41,6 +41,43 @@ interface ScoringPlan {
   extraPointAttempts: number;
 }
 
+interface PlayContext {
+  team: Team;
+  opponent: Team;
+  side: "home" | "away";
+  profile: TeamGameProfile;
+  qb?: Player;
+  backs: Player[];
+  targets: Player[];
+  punter?: Player;
+  kicker?: Player;
+  returners: Player[];
+  defenders: Player[];
+  passRemaining: number;
+  rushRemaining: number;
+  scoringEvents: ScoringEvent[];
+  xpEvents: ScoringEvent[];
+}
+
+interface DriveState {
+  down: 1 | 2 | 3 | 4;
+  distance: number;
+  yardLine: number;
+}
+
+interface ScriptedPlay {
+  teamId: string;
+  teamName: string;
+  side: "home" | "away";
+  type: PlayEventType;
+  description: string;
+  points: number;
+  down?: 1 | 2 | 3 | 4;
+  distance?: number;
+  yardLine?: string;
+  yards?: number;
+}
+
 const STREAK_FOCUS: Record<Position, AttributeKey[]> = {
   QB: ["throwPower", "accuracy", "awareness"],
   HB: ["speed", "awareness", "catching"],
@@ -581,58 +618,372 @@ function kickingLine(rng: Rng, kicker: Player | undefined, scoring: ScoringPlan)
 }
 
 function buildPlayByPlay(rng: Rng, home: Team, away: Team, homeProfile: TeamGameProfile, awayProfile: TeamGameProfile): PlayByPlayEvent[] {
-  const events = [
-    ...sequencedTeamEvents(homeProfile, "home").map((event) => ({ event, team: home, side: "home" as const })),
-    ...sequencedTeamEvents(awayProfile, "away").map((event) => ({ event, team: away, side: "away" as const })),
-  ];
-  const driveTimes = new Map<string, { quarter: number; tick: number }>();
-  const weighted = events.map((entry, index) => {
-    const sequence = entry.event.sequence ?? `fallback-${index}`;
-    const driveTime =
-      driveTimes.get(sequence) ??
-      {
-        quarter: rng.nextInt(1, 4),
-        tick: rng.nextInt(1, 900),
-      };
-    driveTimes.set(sequence, driveTime);
-    return {
-      ...entry,
-      quarter: driveTime.quarter,
-      tick: Math.max(1, driveTime.tick - (entry.event.type === "extraPoint" || entry.event.type === "missedExtraPoint" ? 1 : 0)),
-      sequence,
-    };
+  const homeContext = createPlayContext(rng, home, away, homeProfile, "home");
+  const awayContext = createPlayContext(rng, away, home, awayProfile, "away");
+  const scripted: ScriptedPlay[] = [];
+  let offense = rng.chance(0.5) ? homeContext : awayContext;
+  let driveGuard = 0;
+
+  while ((hasPlayableEvents(homeContext) || hasPlayableEvents(awayContext)) && driveGuard < 420) {
+    if (!hasPlayableEvents(offense)) offense = offense.side === "home" ? awayContext : homeContext;
+    if (!hasPlayableEvents(offense)) break;
+    scripted.push(...buildDrive(rng, offense));
+    offense = offense.side === "home" ? awayContext : homeContext;
+    driveGuard += 1;
+  }
+
+  return stampScriptedPlays(scripted);
+}
+
+function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGameProfile, side: "home" | "away"): PlayContext {
+  return {
+    team,
+    opponent,
+    side,
+    profile,
+    qb: topAt(team.roster, ["QB"], 1)[0],
+    backs: rotationAt(rng, team.roster, ["HB"], 3),
+    targets: rotationAt(rng, team.roster, ["WR", "TE"], 7),
+    punter: topAt(team.roster, ["P"], 1)[0],
+    kicker: topAt(team.roster, ["K"], 1)[0],
+    returners: uniquePlayers([...topAt(opponent.roster, ["WR"], 3), ...topAt(opponent.roster, ["CB"], 2), ...topAt(opponent.roster, ["HB"], 1)]),
+    defenders: uniquePlayers([...topAt(opponent.roster, ["CB"], 3), ...topAt(opponent.roster, ["S"], 3), ...topAt(opponent.roster, ["LB"], 3), ...topAt(opponent.roster, ["DL"], 3)]),
+    passRemaining: profile.passAttempts,
+    rushRemaining: profile.rushAttempts,
+    scoringEvents: rng.shuffle(profile.scoringEvents),
+    xpEvents: [...profile.extraPointEvents, ...profile.missedExtraPointEvents],
+  };
+}
+
+function hasPlayableEvents(context: PlayContext): boolean {
+  return context.passRemaining + context.rushRemaining + context.scoringEvents.length > 0;
+}
+
+function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
+  const events: ScriptedPlay[] = [];
+  let state: DriveState = {
+    down: 1,
+    distance: 10,
+    yardLine: rng.nextInt(18, 35),
+  };
+  let snaps = 0;
+  const minimumDriveSnaps = rng.nextInt(2, 5);
+
+  while (hasPlayableEvents(context) && snaps < 16) {
+    const openAttempts = openPassAttempts(context) + openRushAttempts(context);
+    const shouldUseScoringEvent =
+      context.scoringEvents.length > 0 &&
+      (snaps >= minimumDriveSnaps || openAttempts === 0 || state.yardLine >= rng.nextInt(62, 82) || attemptsRemaining(context) <= context.scoringEvents.length + 1);
+
+    if (shouldUseScoringEvent) {
+      events.push(...consumeScoringPlay(rng, context, state));
+      break;
+    }
+
+    if (state.down === 4) {
+      const nextScore = context.scoringEvents[0];
+      if (nextScore?.type === "fieldGoal" || nextScore?.type === "missedFieldGoal") {
+        events.push(...consumeScoringPlay(rng, context, state));
+      } else {
+        events.push(buildPuntPlay(rng, context, state));
+      }
+      break;
+    }
+
+    const normalPlay = buildNormalPlay(rng, context, state);
+    if (!normalPlay) {
+      if (context.scoringEvents.length) events.push(...consumeScoringPlay(rng, context, state));
+      break;
+    }
+    events.push(normalPlay);
+    state = advanceDriveState(state, normalPlay.yards ?? 0);
+    snaps += 1;
+  }
+
+  if (!events.length && context.scoringEvents.length) return consumeScoringPlay(rng, context, state);
+  return events;
+}
+
+function consumeScoringPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay[] {
+  const event = context.scoringEvents.shift();
+  if (!event) return [];
+  const plays: ScriptedPlay[] = [];
+
+  if (event.type === "passTd") {
+    const yards = Math.max(1, 100 - state.yardLine);
+    const { passer, receiver } = passTouchdownNames(event.description, context);
+    context.passRemaining = Math.max(0, context.passRemaining - 1);
+    plays.push({
+      ...basePlay(context, "passTd", event.points, state, yards),
+      description: `${passer} found ${receiver} for a ${yards}-yard touchdown.`,
+    });
+    plays.push(...consumeExtraPoint(context));
+    return plays;
+  }
+
+  if (event.type === "rushTd") {
+    const yards = Math.max(1, 100 - state.yardLine);
+    const runner = nameBeforeAny(event.description, [" kept", " punched"], selectRunner(rng, context)?.name ?? "The runner");
+    context.rushRemaining = Math.max(0, context.rushRemaining - 1);
+    plays.push({
+      ...basePlay(context, "rushTd", event.points, state, yards),
+      description: `${runner} ran for a ${yards}-yard touchdown.`,
+    });
+    plays.push(...consumeExtraPoint(context));
+    return plays;
+  }
+
+  if (event.type === "fieldGoal" || event.type === "missedFieldGoal") {
+    const kickDistance = fieldGoalDistance(state);
+    const kicker = nameBeforeAny(event.description, [" made", " missed"], context.kicker?.name ?? "The kicker");
+    plays.push({
+      ...basePlay(context, event.type, event.points, { ...state, down: 4 }, kickDistance),
+      description: event.type === "fieldGoal" ? `${kicker} made a ${kickDistance}-yard field goal.` : `${kicker} missed a ${kickDistance}-yard field goal.`,
+    });
+    return plays;
+  }
+
+  if (event.type === "turnover") {
+    const passer = nameBeforeAny(event.description, [" threw"], context.qb?.name ?? "The quarterback");
+    const defender = selectDefender(rng, context)?.name ?? "the defender";
+    const returnYards = rng.nextInt(0, 38);
+    context.passRemaining = Math.max(0, context.passRemaining - 1);
+    plays.push({
+      ...basePlay(context, "turnover", event.points, state, returnYards),
+      description: `${passer} was intercepted by ${defender}, returned ${returnYards} yards.`,
+    });
+    return plays;
+  }
+
+  plays.push({
+    ...basePlay(context, event.type, event.points, state, 0),
+    description: event.description,
   });
-  weighted.sort((a, b) => a.quarter - b.quarter || b.tick - a.tick || a.sequence.localeCompare(b.sequence));
+  return plays;
+}
+
+function consumeExtraPoint(context: PlayContext): ScriptedPlay[] {
+  const event = context.xpEvents.shift();
+  if (!event) return [];
+  const kicker = nameBeforeAny(event.description, [" added", " missed"], context.kicker?.name ?? "The kicker");
+  return [
+    {
+      teamId: context.team.id,
+      teamName: context.team.name,
+      side: context.side,
+      type: event.type,
+      description: event.type === "extraPoint" ? `${kicker} made the extra point.` : `${kicker} missed the extra point.`,
+      points: event.points,
+      yards: 0,
+    },
+  ];
+}
+
+function buildNormalPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay | undefined {
+  const openPasses = openPassAttempts(context);
+  const openRushes = openRushAttempts(context);
+  if (openPasses + openRushes <= 0) return undefined;
+  const passBias = state.down === 3 || state.distance >= 8 ? 0.14 : state.down === 1 && state.distance <= 10 ? -0.06 : 0;
+  const passRate = openPasses / (openPasses + openRushes);
+  const shouldPass = openPasses > 0 && (openRushes === 0 || rng.chance(clamp(passRate + passBias, 0.28, 0.76)));
+  return shouldPass ? buildPassPlay(rng, context, state) : buildRushPlay(rng, context, state);
+}
+
+function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay {
+  context.passRemaining = Math.max(0, context.passRemaining - 1);
+  const quarterback = context.qb?.name ?? "The quarterback";
+  const target = selectTarget(rng, context)?.name ?? "the receiver";
+  const qbAccuracy = context.qb ? effectiveAttributes(context.qb).accuracy : 70;
+
+  if (rng.chance(clamp(0.08 - qbAccuracy / 1600, 0.035, 0.085))) {
+    const defender = selectDefender(rng, context)?.name ?? "the pass rush";
+    const loss = rng.nextInt(3, 10);
+    return {
+      ...basePlay(context, "sack", 0, state, -loss),
+      description: `${defender} sacked ${quarterback} for a loss of ${loss} ${loss === 1 ? "yard" : "yards"}.`,
+    };
+  }
+
+  const completionChance = clamp(0.58 + (qbAccuracy - 70) / 180 - (state.distance >= 10 ? 0.04 : 0), 0.48, 0.74);
+  if (!rng.chance(completionChance)) {
+    return {
+      ...basePlay(context, "pass", 0, state, 0),
+      description: `${quarterback} threw incomplete for ${target}.`,
+    };
+  }
+
+  const maxGain = Math.max(1, Math.min(46, 99 - state.yardLine));
+  const baseGain = state.distance <= 3 ? rng.nextInt(2, 9) : rng.nextInt(4, 18);
+  const explosive = rng.chance(0.14) ? rng.nextInt(10, 28) : 0;
+  const conversionBoost = state.down === 3 && baseGain < state.distance && rng.chance(0.42) ? state.distance - baseGain + rng.nextInt(0, 7) : 0;
+  const yards = clamp(baseGain + explosive + conversionBoost, 0, maxGain);
+  return {
+    ...basePlay(context, "pass", 0, state, yards),
+    description: `${quarterback} completed to ${target} for ${yardPhrase(yards)}.`,
+  };
+}
+
+function buildRushPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay {
+  context.rushRemaining = Math.max(0, context.rushRemaining - 1);
+  const runner = selectRunner(rng, context)?.name ?? context.qb?.name ?? "The runner";
+  const maxGain = Math.max(1, Math.min(34, 99 - state.yardLine));
+  const shortYardageBoost = state.distance <= 2 ? 1 : 0;
+  const explosive = rng.chance(0.09) ? rng.nextInt(8, 21) : 0;
+  const yards = clamp(rng.nextInt(-3, 8) + shortYardageBoost + explosive, -5, maxGain);
+  return {
+    ...basePlay(context, "rush", 0, state, yards),
+    description: `${runner} rushed for ${yardPhrase(yards)}.`,
+  };
+}
+
+function buildPuntPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay {
+  const punter = context.punter?.name ?? "The punter";
+  const returner = rng.chance(0.82) ? selectReturner(rng, context)?.name : undefined;
+  const kickPower = context.punter ? effectiveAttributes(context.punter).kickPower : 70;
+  const puntYards = clamp(rng.nextInt(38, 52) + Math.round((kickPower - 70) / 5), 32, 62);
+  const returnYards = returner ? rng.nextInt(0, 19) : 0;
+  return {
+    ...basePlay(context, "punt", 0, state, puntYards),
+    description: returner ? `${punter} punted ${puntYards} yards to ${returner}, returned ${returnYards} yards.` : `${punter} punted ${puntYards} yards with no return.`,
+  };
+}
+
+function basePlay(context: PlayContext, type: PlayEventType, points: number, state: DriveState, yards: number): ScriptedPlay {
+  return {
+    teamId: context.team.id,
+    teamName: context.team.name,
+    side: context.side,
+    type,
+    description: "",
+    points,
+    down: state.down,
+    distance: state.distance,
+    yardLine: formatYardLine(context, state.yardLine),
+    yards,
+  };
+}
+
+function stampScriptedPlays(scripted: ScriptedPlay[]): PlayByPlayEvent[] {
   let homeScore = 0;
   let awayScore = 0;
-  return weighted.map((entry) => {
-    if (entry.side === "home") homeScore += entry.event.points;
-    else awayScore += entry.event.points;
+  const total = Math.max(1, scripted.length);
+  return scripted.map((play, index) => {
+    if (play.side === "home") homeScore += play.points;
+    else awayScore += play.points;
+    const quarter = Math.min(4, Math.floor((index / total) * 4) + 1);
+    const quarterStart = Math.floor(((quarter - 1) * total) / 4);
+    const quarterEnd = Math.max(quarterStart + 1, Math.floor((quarter * total) / 4));
+    const quarterCount = Math.max(1, quarterEnd - quarterStart);
+    const quarterIndex = index - quarterStart;
+    const tick = clamp(895 - Math.floor((quarterIndex / quarterCount) * 850), 5, 895);
     return {
-      quarter: entry.quarter,
-      clock: formatClock(entry.tick),
-      teamId: entry.team.id,
-      teamName: entry.team.name,
-      type: entry.event.type,
-      description: entry.event.description,
+      quarter,
+      clock: formatClock(tick),
+      teamId: play.teamId,
+      teamName: play.teamName,
+      type: play.type,
+      description: play.description,
+      playNumber: index + 1,
+      down: play.down,
+      distance: play.distance,
+      yardLine: play.yardLine,
+      yards: play.yards,
       homeScore,
       awayScore,
     };
   });
 }
 
-function sequencedTeamEvents(profile: TeamGameProfile, prefix: string): ScoringEvent[] {
-  const xpQueue = [...profile.extraPointEvents, ...profile.missedExtraPointEvents];
-  const events: ScoringEvent[] = [];
-  let sequence = 0;
-  for (const event of profile.scoringEvents) {
-    const tag = `${prefix}-${sequence}`;
-    const tagged = { ...event, sequence: tag };
-    events.push(tagged);
-    if ((event.type === "passTd" || event.type === "rushTd") && xpQueue.length) events.push({ ...xpQueue.shift()!, sequence: tag });
-    sequence += 1;
+function advanceDriveState(state: DriveState, yards: number): DriveState {
+  const yardLine = clamp(state.yardLine + yards, 1, 99);
+  if (yards >= state.distance) {
+    return {
+      down: 1,
+      distance: firstDownDistance(yardLine),
+      yardLine,
+    };
   }
-  return [...events, ...xpQueue];
+  return {
+    down: Math.min(4, state.down + 1) as 1 | 2 | 3 | 4,
+    distance: clamp(state.distance - yards, 1, 32),
+    yardLine,
+  };
+}
+
+function firstDownDistance(yardLine: number): number {
+  return clamp(100 - yardLine, 1, 10);
+}
+
+function fieldGoalDistance(state: DriveState): number {
+  return clamp(100 - state.yardLine + 17, 24, 58);
+}
+
+function attemptsRemaining(context: PlayContext): number {
+  return context.passRemaining + context.rushRemaining;
+}
+
+function openPassAttempts(context: PlayContext): number {
+  const reserved = context.scoringEvents.filter((event) => event.type === "passTd" || event.type === "turnover").length;
+  return Math.max(0, context.passRemaining - reserved);
+}
+
+function openRushAttempts(context: PlayContext): number {
+  const reserved = context.scoringEvents.filter((event) => event.type === "rushTd").length;
+  return Math.max(0, context.rushRemaining - reserved);
+}
+
+function selectRunner(rng: Rng, context: PlayContext): Player | undefined {
+  const options = context.qb && rng.chance(0.12) ? [...context.backs, context.qb] : context.backs;
+  return weightedPlayer(rng, options, (player) => effectiveOverall(player) + effectiveAttributes(player).speed * 0.45 + effectiveAttributes(player).awareness * 0.2);
+}
+
+function selectTarget(rng: Rng, context: PlayContext): Player | undefined {
+  return weightedPlayer(rng, context.targets, (player) => receivingSkill(player));
+}
+
+function selectDefender(rng: Rng, context: PlayContext): Player | undefined {
+  return weightedPlayer(rng, context.defenders, (player) => effectiveOverall(player) + effectiveAttributes(player).defAwareness * 0.45 + effectiveAttributes(player).interception * 0.3 + effectiveAttributes(player).tackle * 0.2);
+}
+
+function selectReturner(rng: Rng, context: PlayContext): Player | undefined {
+  return weightedPlayer(rng, context.returners, (player) => effectiveOverall(player) + effectiveAttributes(player).speed * 0.65 + effectiveAttributes(player).awareness * 0.2);
+}
+
+function weightedPlayer(rng: Rng, players: Player[], weightFor: (player: Player) => number): Player | undefined {
+  if (!players.length) return undefined;
+  return rng.weighted(players.map((player) => ({ value: player, weight: Math.max(1, weightFor(player)) })));
+}
+
+function passTouchdownNames(description: string, context: PlayContext): { passer: string; receiver: string } {
+  const match = description.match(/^(.+?) found (.+?) for/);
+  return {
+    passer: match?.[1]?.trim() || context.qb?.name || "The quarterback",
+    receiver: match?.[2]?.trim() || selectFallbackName(context.targets, "the receiver"),
+  };
+}
+
+function nameBeforeAny(description: string, markers: string[], fallback: string): string {
+  for (const marker of markers) {
+    const index = description.indexOf(marker);
+    if (index > 0) return description.slice(0, index).trim();
+  }
+  return fallback;
+}
+
+function selectFallbackName(players: Player[], fallback: string): string {
+  return players[0]?.name ?? fallback;
+}
+
+function formatYardLine(context: PlayContext, yardLine: number): string {
+  if (yardLine === 50) return "50";
+  if (yardLine < 50) return `${context.team.abbreviation} ${yardLine}`;
+  return `${context.opponent.abbreviation} ${100 - yardLine}`;
+}
+
+function yardPhrase(yards: number): string {
+  if (yards === 0) return "no gain";
+  if (yards < 0) return `a loss of ${Math.abs(yards)} ${Math.abs(yards) === 1 ? "yard" : "yards"}`;
+  return `${yards} ${yards === 1 ? "yard" : "yards"}`;
 }
 
 function formatClock(tick: number): string {

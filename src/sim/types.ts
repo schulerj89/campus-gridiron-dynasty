@@ -103,7 +103,7 @@ export interface GameBoxScore {
   away: TeamBoxScore;
 }
 
-export type PlayEventType = "passTd" | "rushTd" | "fieldGoal" | "extraPoint" | "missedFieldGoal" | "missedExtraPoint" | "turnover";
+export type PlayEventType = "pass" | "rush" | "sack" | "punt" | "passTd" | "rushTd" | "fieldGoal" | "extraPoint" | "missedFieldGoal" | "missedExtraPoint" | "turnover";
 
 export interface PlayByPlayEvent {
   quarter: number;
@@ -112,6 +112,11 @@ export interface PlayByPlayEvent {
   teamName: string;
   type: PlayEventType;
   description: string;
+  playNumber?: number;
+  down?: 1 | 2 | 3 | 4;
+  distance?: number;
+  yardLine?: string;
+  yards?: number;
   homeScore: number;
   awayScore: number;
 }

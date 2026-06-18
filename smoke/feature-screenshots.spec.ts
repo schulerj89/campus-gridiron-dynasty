@@ -105,8 +105,12 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("box-score-modal")).toContainText("PaTD");
   await expect(page.getByTestId("box-score-modal")).toContainText("XP");
   await expect(page.getByTestId("play-by-play-panel")).toContainText("Play By Play");
+  await expect(page.getByTestId("play-by-play-panel")).toContainText(/1st & \d+/);
+  await expect(page.getByTestId("play-by-play-panel")).toContainText(/punted \d+ yards/);
   await page.getByTestId("box-score-modal").screenshot({ path: path.join(screenshotDir, "box-score-desktop.png") });
   await page.getByTestId("play-by-play-panel").screenshot({ path: path.join(screenshotDir, "play-by-play-desktop.png") });
+  await page.locator(".play-event").filter({ hasText: "punted" }).first().scrollIntoViewIfNeeded();
+  await page.getByTestId("play-by-play-panel").screenshot({ path: path.join(screenshotDir, "play-by-play-punt-desktop.png") });
   await page.getByRole("button", { name: "Close box score" }).click();
 
   await page.getByRole("button", { name: "Awards" }).click();

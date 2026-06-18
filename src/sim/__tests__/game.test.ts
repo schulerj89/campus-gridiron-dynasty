@@ -30,9 +30,12 @@ describe("game simulation stat pacing", () => {
     expect(eliteTargetShare).toBeLessThanOrEqual(0.4);
   });
 
-  it("separates scoring kicks and records play-by-play totals", () => {
+  it("separates scoring kicks and records full down-by-down play-by-play totals", () => {
     const { teams, game } = controlledReceivingSetup(7104);
-    const result = simulateGame(new Rng(7105), game, teams);
+    let result = simulateGame(new Rng(7105), game, teams);
+    for (let seed = 7106; seed < 7130 && !result.game.result?.playByPlay?.some((event) => event.type === "turnover"); seed += 1) {
+      result = simulateGame(new Rng(seed), game, teams);
+    }
     const box = result.game.result!.boxScore!;
 
     for (const teamBox of [box.home, box.away]) {
@@ -48,6 +51,12 @@ describe("game simulation stat pacing", () => {
     expect(finalEvent?.homeScore).toBe(result.game.result!.homeScore);
     expect(finalEvent?.awayScore).toBe(result.game.result!.awayScore);
     const events = result.game.result!.playByPlay ?? [];
+    const offensiveSnaps = box.home.passAttempts + box.home.rushAttempts + box.away.passAttempts + box.away.rushAttempts;
+    expect(events.length).toBeGreaterThanOrEqual(offensiveSnaps);
+    expect(events.some((event) => event.type === "pass" || event.type === "rush" || event.type === "sack")).toBe(true);
+    expect(events.some((event) => event.down && event.distance !== undefined && event.yardLine)).toBe(true);
+    expect(events.some((event) => event.type === "punt" && /punted \d+ yards (to .+, returned \d+ yards|with no return)/.test(event.description))).toBe(true);
+    expect(events.some((event) => event.type === "turnover" && /intercepted by .+, returned \d+ yards/.test(event.description))).toBe(true);
     for (let index = 0; index < events.length; index += 1) {
       const event = events[index]!;
       if (event.type !== "extraPoint" && event.type !== "missedExtraPoint") continue;

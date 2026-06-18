@@ -1835,7 +1835,7 @@ select {
   border-radius: 8px;
   display: grid;
   gap: 8px;
-  grid-template-columns: 72px minmax(140px, 0.8fr) minmax(220px, 1.6fr) 58px;
+  grid-template-columns: 112px minmax(140px, 0.8fr) minmax(220px, 1.6fr) 58px;
   padding: 8px 10px;
 }
 
@@ -1845,9 +1845,17 @@ select {
   font-style: normal;
 }
 
-.play-event b {
+.play-event > b {
   color: var(--gold);
   justify-self: end;
+}
+
+.play-event em b {
+  color: var(--gold);
+  display: block;
+  font-size: 0.74rem;
+  font-style: normal;
+  margin-bottom: 2px;
 }
 
 .log {

@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.10 - 2026-06-18
+
+- Expanded completed game play-by-play from scoring-only summaries to down-by-down logs with rushes, passes, sacks, punts, scoring kicks, turnovers, yards, down, distance, and field position.
+- Added punt and interception descriptions that identify the punter, returner or no-return result, interceptor, and return yardage.
+- Updated box score play-by-play rows to show play number, down-distance, yard line, and yardage metadata, with regression coverage for full play logs.
+
 ## 1.12.9 - 2026-06-18
 
 - Guarded localStorage metadata reads, writes, and clears so browser metadata failures do not break IndexedDB saves.

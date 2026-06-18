@@ -58,7 +58,7 @@ import { createDynastySaveQueue } from "./sim/saveQueue";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
 import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
-import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type BlueprintFocus, type Coach, type Conference, type DynastyState, type Game, type OffensiveStrategy, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
+import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type BlueprintFocus, type Coach, type Conference, type DynastyState, type Game, type OffensiveStrategy, type PlayByPlayEvent, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
 import { PaginationControls } from "./components/PaginationControls";
 import { Rankings } from "./components/RankingsView";
@@ -1689,9 +1689,12 @@ function GameModal({ game, teams, onClose }: { game: Game; teams: Team[]; onClos
               <div className="play-by-play-list">
                 {(game.result?.playByPlay ?? []).map((event, index) => (
                   <div key={`${event.teamId}-${event.quarter}-${event.clock}-${index}`} className="play-event">
-                    <span>Q{event.quarter} {event.clock}</span>
+                    <span>#{event.playNumber ?? index + 1} Q{event.quarter} {event.clock}</span>
                     <strong>{event.teamName}</strong>
-                    <em>{event.description}</em>
+                    <em>
+                      <b>{playMeta(event)}</b>
+                      {event.description}
+                    </em>
                     <b>{event.awayScore}-{event.homeScore}</b>
                   </div>
                 ))}
@@ -2149,4 +2152,19 @@ function gameLineSummary(stats: PlayerStats): string {
   if (stats.fieldGoalAttempts) parts.push(`${stats.fieldGoals}/${stats.fieldGoalAttempts} FG`);
   if (stats.extraPointAttempts) parts.push(`${stats.extraPoints}/${stats.extraPointAttempts} XP`);
   return parts.join(" | ") || "Appeared";
+}
+
+function playMeta(event: PlayByPlayEvent): string {
+  const parts: string[] = [];
+  if (event.down && event.distance !== undefined) parts.push(`${ordinalDown(event.down)} & ${event.distance}`);
+  if (event.yardLine) parts.push(event.yardLine);
+  if (event.yards !== undefined) parts.push(`${event.yards > 0 ? "+" : ""}${event.yards} yd`);
+  return parts.join(" - ");
+}
+
+function ordinalDown(down: 1 | 2 | 3 | 4): string {
+  if (down === 1) return "1st";
+  if (down === 2) return "2nd";
+  if (down === 3) return "3rd";
+  return "4th";
 }
