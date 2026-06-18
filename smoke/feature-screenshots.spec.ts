@@ -64,6 +64,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
 
   await page.getByRole("button", { name: "Program" }).click();
   await expect(page.getByTestId("program-blueprint-panel")).toBeVisible();
+  await expect(page.getByTestId("program-blueprint-panel")).toContainText("unused points auto-assign");
   await expect(page.getByTestId("director-goals-panel")).toContainText("Director");
   await page.getByTestId("program-blueprint-panel").screenshot({ path: path.join(screenshotDir, "program-blueprint-desktop.png") });
   await expect(page.getByText("Program Investments")).toBeVisible();

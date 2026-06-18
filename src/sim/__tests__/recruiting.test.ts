@@ -203,6 +203,7 @@ describe("recruiting", () => {
     const invested = state.recruiting.investedByRecruit[recruit.id] ?? 0;
     state = {
       ...state,
+      week: 7,
       recruits: state.recruits.map((candidate) =>
         candidate.id === recruit.id
           ? {
@@ -229,6 +230,7 @@ describe("recruiting", () => {
     const invested = state.recruiting.investedByRecruit[recruit.id] ?? 0;
     state = {
       ...state,
+      week: 7,
       recruiting: {
         ...state.recruiting,
         pointsRemaining: 0,

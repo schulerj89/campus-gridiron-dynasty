@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.8.0 - 2026-06-17
+
+- Made Program Blueprint allocations persist through the season after Week 1 kickoff.
+- Auto-assigned only unused Program Blueprint points when Week 1 advances, preserving manual player choices.
+- Clarified Program Blueprint panel copy and added regression/smoke coverage for the kickoff lock behavior.
+
 ## 1.7.0 - 2026-06-17
 
 - Tuned receiving usage so elite WR1 targets are featured more realistically without changing team passing volume.

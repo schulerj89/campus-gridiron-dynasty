@@ -14,6 +14,7 @@ import {
   blueprintDevelopmentBonus,
   blueprintRetentionBonus,
   createProgramBlueprint,
+  completeBlueprintAllocations,
   ensureProgramBlueprint,
   resolveProgramBlueprint,
   blueprintRemaining,
@@ -63,7 +64,8 @@ const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + c
 
 export function advanceWeek(input: DynastyState): DynastyState {
   if (input.phase === "complete") return input;
-  const withAuto = input.phase === "regular" && input.recruiting.autoEnabled && input.recruiting.pointsRemaining > 0 ? autoRecruit(input) : input;
+  const kickoffReady = input.phase === "regular" && input.week === 1 ? finalizeProgramBlueprintForKickoff(input) : input;
+  const withAuto = kickoffReady.phase === "regular" && kickoffReady.recruiting.autoEnabled && kickoffReady.recruiting.pointsRemaining > 0 ? autoRecruit(kickoffReady) : kickoffReady;
   let state = { ...withAuto, updatedAt: new Date().toISOString() };
   if (state.phase === "regular") return advanceRegularWeek(state);
   if (state.phase === "postseason") return advancePostseasonWeek(state);
@@ -215,6 +217,32 @@ export function autoAllocateProgramBlueprint(state: DynastyState): DynastyState 
     ...state,
     teams,
     debugLog: [`Auto-built the annual Program Blueprint.`, ...state.debugLog].slice(0, 20),
+  });
+}
+
+function finalizeProgramBlueprintForKickoff(state: DynastyState): DynastyState {
+  if (!canEditProgramBlueprint(state)) return state;
+  let autoAssigned = 0;
+  const teams = state.teams.map((team) => {
+    if (team.id !== state.userTeamId) return team;
+    const blueprint = ensureProgramBlueprint(team, state.calendarYear);
+    const remaining = blueprintRemaining(blueprint);
+    if (remaining <= 0) return team;
+    autoAssigned = remaining;
+    return {
+      ...team,
+      blueprint: {
+        ...blueprint,
+        allocations: completeBlueprintAllocations(team, blueprint),
+        resolved: false,
+      },
+    };
+  });
+  if (autoAssigned <= 0) return state;
+  return refreshRecruitingBudget({
+    ...state,
+    teams,
+    debugLog: [`Auto-assigned ${autoAssigned} remaining Program Blueprint point${autoAssigned === 1 ? "" : "s"} at Week 1 kickoff.`, ...state.debugLog].slice(0, 20),
   });
 }
 

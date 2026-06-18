@@ -82,6 +82,29 @@ describe("dynasty flow", () => {
     expect(lockedTeam.blueprint?.allocations.scoutingNetwork).toBe(userTeam.blueprint?.allocations.scoutingNetwork);
   });
 
+  it("auto-fills unspent blueprint points at Week 1 kickoff without replacing manual choices", () => {
+    let state = createDynasty(8924);
+    state = allocateBlueprintPoint(state, "recruitingReach");
+    const beforeAdvanceTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    const manualRecruitingReach = beforeAdvanceTeam.blueprint?.allocations.recruitingReach ?? 0;
+    expect(beforeAdvanceTeam.blueprint ? blueprintRemaining(beforeAdvanceTeam.blueprint) : 0).toBeGreaterThan(0);
+
+    const advanced = advanceWeek({
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        autoEnabled: false,
+      },
+    });
+    const afterAdvanceTeam = advanced.teams.find((team) => team.id === state.userTeamId)!;
+
+    expect(canEditProgramBlueprint(advanced)).toBe(false);
+    expect(afterAdvanceTeam.blueprint?.allocations.recruitingReach).toBeGreaterThanOrEqual(manualRecruitingReach);
+    expect(afterAdvanceTeam.blueprint ? blueprintRemaining(afterAdvanceTeam.blueprint) : 1).toBe(0);
+    expect(afterAdvanceTeam.blueprint ? blueprintSpent(afterAdvanceTeam.blueprint) : 0).toBe(afterAdvanceTeam.blueprint?.totalPoints);
+    expect(advanced.debugLog[0]).toContain("Auto-assigned");
+  });
+
   it("keeps recruiting budget accounting balanced after blueprint changes", () => {
     let state = createDynasty(8922);
     state = scoutRecruit(state, state.recruits[0]!.id);

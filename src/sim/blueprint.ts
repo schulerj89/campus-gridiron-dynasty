@@ -132,6 +132,23 @@ export function autoBlueprintAllocations(team: Team, totalPoints: number): Recor
   return allocations;
 }
 
+export function completeBlueprintAllocations(team: Team, blueprint: ProgramBlueprint): Record<BlueprintCategory, number> {
+  const allocations = normalizeBlueprintAllocations(blueprint.allocations);
+  let remaining = blueprintRemaining({ ...blueprint, allocations });
+  if (remaining <= 0) return allocations;
+
+  const target = autoBlueprintAllocations(team, blueprint.totalPoints);
+  while (remaining > 0) {
+    const preferred = CATEGORY_KEYS.filter((key) => allocations[key] < MAX_BLUEPRINT_CATEGORY_POINTS && allocations[key] < target[key]).sort((a, b) => target[b] - allocations[b] - (target[a] - allocations[a]))[0];
+    const fallback = CATEGORY_KEYS.find((key) => allocations[key] < MAX_BLUEPRINT_CATEGORY_POINTS);
+    const key = preferred ?? fallback;
+    if (!key) break;
+    allocations[key] += 1;
+    remaining -= 1;
+  }
+  return allocations;
+}
+
 export function blueprintRecruitingBudgetBonus(team: Team): number {
   return blueprintAllocation(team, "recruitingReach") * 90 + blueprintAllocation(team, "scoutingNetwork") * 25;
 }

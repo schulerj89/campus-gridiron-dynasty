@@ -95,6 +95,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
 - Recruit generated ratings must stay within their hidden trait entry bands, with `elite` capped at 83.
 - Annual Program Blueprint allocations must persist, lock after kickoff, and affect recruiting, scouting, development, retention, program review, and coach movement.
+- Any unspent user Program Blueprint points auto-fill at Week 1 kickoff without replacing manual allocations.
 - Director Goals should be visible before Week 1 and the previous season's resolved review should remain inspectable during the next preseason.
 - Recruiting traits stay hidden until signing day unless scouting fully unlocks gem/bust information.
 - Recruiting scholarships are one-time offers that add prospects to the board, and pitches require an offer with a one-week cooldown per recruit.
