@@ -1702,14 +1702,22 @@ select {
   color: var(--gold);
   display: flex;
   gap: 10px;
-  grid-column: 1 / -1;
   padding: 10px 12px;
 }
 
+.playoff-champion-banner div {
+  display: grid;
+  gap: 2px;
+}
+
+.playoff-champion-banner strong {
+  color: var(--text);
+}
+
 .playoff-champion-banner span {
-  color: var(--muted);
+  color: var(--gold);
+  font-size: 0.72rem;
   font-weight: 800;
-  margin-left: auto;
   text-transform: uppercase;
 }
 

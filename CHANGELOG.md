@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.12 - 2026-06-18
+
+- Moved the Crown Bowl Champion trophy callout into the final bracket column so the champion team appears directly above the championship matchup.
+- Updated the champion callout styling to emphasize the team name while keeping the completed bracket compact.
+- Refreshed championship and playoff screenshots for the revised bracket placement.
+
 ## 1.12.11 - 2026-06-18
 
 - Added an offseason championship recap so the Crown Bowl winner remains visible immediately after the final playoff round advances.

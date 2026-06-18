@@ -360,16 +360,18 @@ export function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }
 
   return (
     <div className="playoff-bracket">
-      {championName && (
-        <div className="playoff-champion-banner" data-testid="playoff-champion-banner">
-          <Trophy size={18} />
-          <strong>{championName}</strong>
-          <span>Crown Bowl Champion</span>
-        </div>
-      )}
       {rounds.map((round) => (
         <div key={round.label} className="bracket-round">
           <h3>{round.label}</h3>
+          {championName && round.label === "Crown Bowl" && (
+            <div className="playoff-champion-banner" data-testid="playoff-champion-banner">
+              <Trophy size={18} />
+              <div>
+                <span>Crown Bowl Champion</span>
+                <strong>{championName}</strong>
+              </div>
+            </div>
+          )}
           {round.games.map((game) => {
             const home = teams.find((team) => team.id === game.homeTeamId);
             const away = teams.find((team) => team.id === game.awayTeamId);
