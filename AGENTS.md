@@ -31,6 +31,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Signing day must not remove returning players before the offseason departure report is applied.
 - Teams must be restored to the 85-player roster floor after offseason turnover; emergency walk-ons should be labeled and initially capped around 60 overall.
 - Player offseason progression must not regress attributes or overall.
+- Elite and high-potential returning players should have a real chance for breakout development above +4 OVR, capped by potential and driven by actual attribute gains.
 - Signing-day recruits are incoming freshmen and must be excluded from preseason development/year progression until kickoff clears the marker.
 - Player hot/cold streaks should be rare, temporary, and applied through effective ratings rather than permanent base ratings.
 - Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.

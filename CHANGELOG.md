@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.16.0 - 2026-06-18
+
+- Added trait-specific development profiles with stronger elite and high-potential breakout chances.
+- Converted large offseason attribute gains into visible overall catch-up, capped by player potential and trait profile.
+- Added dynasty regression coverage proving elite high-potential returners can jump into the 90s with +5 or better growth.
+
 ## 1.15.0 - 2026-06-18
 
 - Re-centered QB completion rate around accuracy, awareness, receiving support, blocking, coverage, and pass-heavy strategy so weaker passers can finish below 60%.

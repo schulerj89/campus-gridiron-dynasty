@@ -5,6 +5,7 @@ import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 import { TARGET_ROSTER } from "../ratings";
 import { blueprintRemaining, blueprintSpent, emptyBlueprintAllocations } from "../blueprint";
 import { scoutRecruit } from "../recruiting";
+import { ATTRIBUTE_KEYS, type Attributes, type DynastyState, type Team } from "../types";
 
 const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
 
@@ -272,6 +273,34 @@ describe("dynasty flow", () => {
     expect(returningIds.every((playerId) => preseasonRosterIds.has(playerId))).toBe(true);
   }, 30_000);
 
+  it("lets elite high-potential returners make breakout jumps into the 90s", () => {
+    const base = createDynasty(8952);
+    const userTeam = base.teams.find((team) => team.id === base.userTeamId)!;
+    const breakoutIds = userTeam.roster
+      .filter((player) => player.year !== "SR")
+      .slice(0, 8)
+      .map((player) => player.id);
+    const tunedTeams = base.teams.map((team) => (team.id === base.userTeamId ? tuneDevelopmentTeam(team, new Set(breakoutIds)) : team));
+    const state: DynastyState = {
+      ...base,
+      rngState: 42,
+      phase: "offseason",
+      week: 21,
+      teams: tunedTeams,
+      offseasonReport: developmentReadyReport(base, tunedTeams),
+    };
+
+    const advanced = advanceWeek(state);
+    const advancedTeam = advanced.teams.find((team) => team.id === base.userTeamId)!;
+    const report = advanced.offseasonReport?.teams.find((teamReport) => teamReport.teamId === base.userTeamId)!;
+    const breakoutProgressions = report.progressions.filter((progression) => breakoutIds.includes(progression.playerId));
+
+    expect(advanced.phase).toBe("preseason");
+    expect(advancedTeam.roster.some((player) => breakoutIds.includes(player.id) && player.overall >= 90)).toBe(true);
+    expect(breakoutProgressions.some((progression) => progression.afterOverall - progression.beforeOverall >= 5)).toBe(true);
+    expect(breakoutProgressions.every((progression) => progression.afterOverall <= progression.potential)).toBe(true);
+  }, 20_000);
+
   it("adds labeled walk-ons when the user roster drops below the floor", () => {
     let state = forceUserPlayoff(forceUserWalkOnNeed(createDynasty(8934)));
     expect(state.teams.find((team) => team.id === state.userTeamId)?.roster.length).toBeLessThan(ROSTER_FLOOR);
@@ -440,3 +469,55 @@ describe("dynasty flow", () => {
     expect(buildDepthChart(moved, 3).find((slot) => slot.position === "HB")?.players[0]?.id).toBe(secondBack.id);
   });
 });
+
+function tuneDevelopmentTeam(team: Team, breakoutIds: Set<string>): Team {
+  return {
+    ...team,
+    program: {
+      ...team.program,
+      training: 95,
+      facilities: 95,
+    },
+    coaches: {
+      head: { ...team.coaches.head, development: 95 },
+      offense: { ...team.coaches.offense, development: 95 },
+      defense: { ...team.coaches.defense, development: 95 },
+    },
+    roster: team.roster.map((player) =>
+      breakoutIds.has(player.id)
+        ? {
+            ...player,
+            year: "SO",
+            overall: 85,
+            potential: 96,
+            development: "elite",
+            incomingFreshman: false,
+            attributes: eliteDevelopmentAttributes(),
+          }
+        : player,
+    ),
+  };
+}
+
+function eliteDevelopmentAttributes(): Attributes {
+  return Object.fromEntries(ATTRIBUTE_KEYS.map((key) => [key, 85])) as Attributes;
+}
+
+function developmentReadyReport(base: DynastyState, teams: Team[]): DynastyState["offseasonReport"] {
+  return {
+    year: base.calendarYear,
+    teams: teams.map((team) => ({
+      teamId: team.id,
+      teamName: team.name,
+      departures: [],
+      signees: [],
+      walkOns: [],
+      progressions: [],
+      programChanges: [],
+    })),
+    topClasses: [],
+    userRecruitingRank: 1,
+    signingComplete: true,
+    developmentComplete: false,
+  };
+}

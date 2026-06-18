@@ -40,6 +40,7 @@ import {
   type OffensiveStrategy,
   type Recruit,
   type RecruitSigning,
+  type RecruitTrait,
   type SeasonAwards,
   type Team,
   type WalkOnAddition,
@@ -57,6 +58,14 @@ const PROGRESSION_FOCUS: Record<Position, AttributeKey[]> = {
   S: ["interception", "defAwareness", "tackle"],
   K: ["kickPower", "kickAccuracy", "awareness"],
   P: ["kickPower", "kickAccuracy", "awareness"],
+};
+
+const DEVELOPMENT_PROFILES: Record<RecruitTrait, { base: number; breakoutChance: number; breakoutMin: number; breakoutMax: number; maxBudget: number; focusGainCap: number; maxOverallGain: number }> = {
+  elite: { base: 5.2, breakoutChance: 0.24, breakoutMin: 2, breakoutMax: 5, maxBudget: 14, focusGainCap: 8, maxOverallGain: 7 },
+  starter: { base: 3.4, breakoutChance: 0.12, breakoutMin: 1, breakoutMax: 3, maxBudget: 11, focusGainCap: 6, maxOverallGain: 5 },
+  rotation: { base: 2.3, breakoutChance: 0.07, breakoutMin: 1, breakoutMax: 2, maxBudget: 9, focusGainCap: 5, maxOverallGain: 4 },
+  depth: { base: 1.4, breakoutChance: 0.04, breakoutMin: 1, breakoutMax: 2, maxBudget: 7, focusGainCap: 4, maxOverallGain: 3 },
+  project: { base: 0.9, breakoutChance: 0.05, breakoutMin: 1, breakoutMax: 3, maxBudget: 8, focusGainCap: 5, maxOverallGain: 4 },
 };
 
 const OFFSEASON_RECRUITING_START_WEEK = 16;
@@ -812,30 +821,49 @@ function developPlayer(rng: Rng, team: Team, player: Player, year: number): { pl
       player: resetPlayerStats(player),
     };
   }
-  const traitBoost = player.development === "elite" ? 4 : player.development === "starter" ? 3 : player.development === "rotation" ? 2 : player.development === "depth" ? 1 : 0;
+  const developmentProfile = DEVELOPMENT_PROFILES[player.development];
   const potentialGap = Math.max(0, player.potential - player.overall);
   const coachBoost = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development + team.program.training + team.program.facilities) / 185 + blueprintDevelopmentBonus(team);
-  const growthBudget = clamp(Math.round(rng.nextInt(0, 2) + traitBoost * 0.7 + coachBoost + potentialGap / 18), 0, Math.min(8, Math.max(0, potentialGap + 2)));
+  const breakoutChance = clamp(developmentProfile.breakoutChance + potentialGap / 160 + coachBoost / 80, developmentProfile.breakoutChance, 0.46);
+  const breakout = potentialGap >= 3 && rng.chance(breakoutChance) ? rng.nextInt(developmentProfile.breakoutMin, developmentProfile.breakoutMax) : 0;
+  const highPotentialBonus = player.potential >= 92 ? 1.2 : player.potential >= 88 ? 0.6 : 0;
+  const growthBudget = clamp(
+    Math.round(rng.nextInt(0, 2) + developmentProfile.base + coachBoost * 0.9 + potentialGap / 13 + highPotentialBonus + breakout),
+    0,
+    Math.min(developmentProfile.maxBudget, Math.max(0, potentialGap + 3)),
+  );
   const focus = PROGRESSION_FOCUS[player.position];
-  const orderedKeys = [...rng.shuffle(focus), ...rng.shuffle(ATTRIBUTE_KEYS.filter((key) => !focus.includes(key)))].slice(0, 7);
+  const orderedKeys = [...rng.shuffle(focus), ...rng.shuffle(ATTRIBUTE_KEYS.filter((key) => !focus.includes(key)))].slice(0, player.development === "elite" ? 9 : 7);
   let attributes: Attributes = { ...player.attributes };
   const attributeGains: Partial<Record<AttributeKey, number>> = {};
+  const applyAttributeGain = (key: AttributeKey, gain: number) => {
+    if (gain <= 0) return;
+    const nextAttributes = applyPositionCaps(player.position, { ...attributes, [key]: clamp(attributes[key] + gain, 20, 99) }, 99);
+    const actualGain = nextAttributes[key] - attributes[key];
+    if (actualGain <= 0) return;
+    attributes = nextAttributes;
+    attributeGains[key] = (attributeGains[key] ?? 0) + actualGain;
+  };
+
+  if (breakout > 0) {
+    for (const key of rng.shuffle(focus).slice(0, 2)) {
+      applyAttributeGain(key, rng.nextInt(1, Math.min(developmentProfile.focusGainCap, breakout + 2)));
+    }
+  }
 
   for (const key of orderedKeys) {
     const isFocus = focus.includes(key);
-    const maxGain = isFocus ? Math.max(1, growthBudget) : Math.ceil(growthBudget / 2);
-    const gain = growthBudget > 0 ? rng.nextInt(0, Math.min(5, maxGain)) : 0;
-    if (gain <= 0) continue;
-    const nextAttributes = applyPositionCaps(player.position, { ...attributes, [key]: clamp(attributes[key] + gain, 20, 99) }, 99);
-    const actualGain = nextAttributes[key] - attributes[key];
-    if (actualGain <= 0) continue;
-    attributes = nextAttributes;
-    attributeGains[key] = (attributeGains[key] ?? 0) + actualGain;
+    const maxGain = isFocus ? Math.max(1, Math.ceil(growthBudget * 0.9)) : Math.ceil(growthBudget / 2);
+    const gain = growthBudget > 0 ? rng.nextInt(0, Math.min(isFocus ? developmentProfile.focusGainCap : 4, maxGain)) : 0;
+    applyAttributeGain(key, gain);
   }
 
   const nextYear: CollegeYear = player.year === "FR" ? "SO" : player.year === "SO" ? "JR" : "SR";
   const recalculatedOverall = calculateOverall(player.position, attributes);
-  const afterOverall = clamp(Math.max(player.overall, recalculatedOverall), 35, player.potential);
+  const focusGainTotal = focus.reduce((sum, key) => sum + (attributeGains[key] ?? 0), 0);
+  const supportGainTotal = Object.entries(attributeGains).reduce((sum, [key, value]) => sum + (focus.includes(key as AttributeKey) ? 0 : value ?? 0), 0);
+  const attributeDrivenOverallGain = clamp(Math.round(focusGainTotal / 6 + supportGainTotal / 16 + breakout * 0.45), 0, developmentProfile.maxOverallGain);
+  const afterOverall = clamp(Math.max(player.overall, recalculatedOverall, player.overall + attributeDrivenOverallGain), 35, player.potential);
   const nextPlayer = {
     ...resetPlayerStats({
       ...player,
