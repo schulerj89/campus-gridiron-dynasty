@@ -61,36 +61,36 @@ export function Awards({ state }: { state: DynastyState }) {
           <h2>National Players of the Week</h2>
           <Award size={20} />
         </div>
-        <AwardGrid awards={latestWeeklyAwards.slice(0, 2)} />
+        <AwardGrid awards={latestWeeklyAwards.slice(0, 2)} userTeamId={state.userTeamId} />
       </section>
       <section className="panel span-2" data-testid="conference-player-of-week-panel">
         <div className="panel-head compact">
           <h2>{userConference?.name ?? "Conference"} Players of the Week</h2>
           <Medal size={20} />
         </div>
-        <AwardGrid awards={latestConferenceWeeklyAwards.slice(0, 2)} />
+        <AwardGrid awards={latestConferenceWeeklyAwards.slice(0, 2)} userTeamId={state.userTeamId} />
       </section>
       <section className="panel span-2" data-testid="awards-panel">
         <div className="panel-head compact">
           <h2>{state.seasonAwards ? "Season Awards" : state.week >= 8 ? "Season Award Watch" : "Season Award Watch Opens Week 8"}</h2>
           <Award size={20} />
         </div>
-        {state.week >= 8 || state.seasonAwards || state.phase !== "regular" ? <AwardGrid awards={awardSource} /> : <p className="muted">Season award tracking unlocks after Week 8.</p>}
+        {state.week >= 8 || state.seasonAwards || state.phase !== "regular" ? <AwardGrid awards={awardSource} userTeamId={state.userTeamId} /> : <p className="muted">Season award tracking unlocks after Week 8.</p>}
       </section>
       <ProgramRecordBookPanel recordBook={recordBook} />
       <StatLeaderboard state={state} />
       {state.seasonAwards && (
         <>
-          <AwardTeamPanel title="All-American First Team" awards={state.seasonAwards.allAmericans.first} testId="all-american-first-panel" />
-          <AwardTeamPanel title="All-American Second Team" awards={state.seasonAwards.allAmericans.second} testId="all-american-second-panel" />
-          <AwardTeamPanel title="Freshman All-American" awards={state.seasonAwards.allAmericans.freshman} testId="all-american-freshman-panel" />
+          <AwardTeamPanel title="All-American First Team" awards={state.seasonAwards.allAmericans.first} testId="all-american-first-panel" userTeamId={state.userTeamId} />
+          <AwardTeamPanel title="All-American Second Team" awards={state.seasonAwards.allAmericans.second} testId="all-american-second-panel" userTeamId={state.userTeamId} />
+          <AwardTeamPanel title="Freshman All-American" awards={state.seasonAwards.allAmericans.freshman} testId="all-american-freshman-panel" userTeamId={state.userTeamId} />
         </>
       )}
       {conferenceAwards && (
         <>
-          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} First Team`} awards={conferenceAwards.first} testId="all-conference-first-panel" />
-          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} Second Team`} awards={conferenceAwards.second} testId="all-conference-second-panel" />
-          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} Freshman Team`} awards={conferenceAwards.freshman} testId="all-conference-freshman-panel" />
+          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} First Team`} awards={conferenceAwards.first} testId="all-conference-first-panel" userTeamId={state.userTeamId} />
+          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} Second Team`} awards={conferenceAwards.second} testId="all-conference-second-panel" userTeamId={state.userTeamId} />
+          <AwardTeamPanel title={`${userConference?.name ?? "Conference"} Freshman Team`} awards={conferenceAwards.freshman} testId="all-conference-freshman-panel" userTeamId={state.userTeamId} />
         </>
       )}
       <section className="panel span-2" data-testid="playoff-panel">
@@ -207,13 +207,13 @@ function ProgramRecordBookPanel({ recordBook }: { recordBook?: ProgramRecordBook
   );
 }
 
-export function AwardGrid({ awards, limit = 12 }: { awards: AwardWinner[]; limit?: number }) {
+export function AwardGrid({ awards, limit = 12, userTeamId }: { awards: AwardWinner[]; limit?: number; userTeamId?: string }) {
   const list = awards.slice(0, limit);
   if (!list.length) return <p className="muted">Awards appear once games are simulated.</p>;
   return (
     <div className="award-grid">
       {list.map((award) => (
-        <article key={`${award.awardName}-${award.playerId}`} className="card">
+        <article key={`${award.awardName}-${award.playerId}`} className={clsx("card", award.teamId === userTeamId && "user-team-highlight")} data-testid={award.teamId === userTeamId ? "user-team-award-card" : undefined}>
           <p className="eyebrow">{award.awardName}</p>
           <h3>{award.playerName}</h3>
           <p>
@@ -226,14 +226,14 @@ export function AwardGrid({ awards, limit = 12 }: { awards: AwardWinner[]; limit
   );
 }
 
-function AwardTeamPanel({ title: panelTitle, awards, testId }: { title: string; awards: AwardWinner[]; testId: string }) {
+function AwardTeamPanel({ title: panelTitle, awards, testId, userTeamId }: { title: string; awards: AwardWinner[]; testId: string; userTeamId: string }) {
   return (
     <section className="panel span-2" data-testid={testId}>
       <div className="panel-head compact">
         <h2>{panelTitle}</h2>
         <Medal size={20} />
       </div>
-      <HonorGrid awards={awards} limit={16} />
+      <HonorGrid awards={awards} limit={16} userTeamId={userTeamId} />
     </section>
   );
 }
@@ -305,7 +305,7 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
         </div>
         {visibleRows.length ? (
           visibleRows.map((row, index) => (
-            <div key={`${row.player.id}-${statKey}`} className="table-row leaderboard-row">
+            <div key={`${row.player.id}-${statKey}`} className={clsx("table-row leaderboard-row", row.team.id === userTeam.id && "user-team-highlight")} data-testid={row.team.id === userTeam.id ? "user-team-leaderboard-row" : undefined}>
               <span>{(page - 1) * LEADERBOARD_PAGE_SIZE + index + 1}</span>
               <strong>{row.player.name}</strong>
               <span>{row.player.position}</span>
@@ -385,13 +385,13 @@ export function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }
   );
 }
 
-function HonorGrid({ awards, limit = 16 }: { awards: AwardWinner[]; limit?: number }) {
+function HonorGrid({ awards, limit = 16, userTeamId }: { awards: AwardWinner[]; limit?: number; userTeamId?: string }) {
   const list = awards.slice(0, limit);
   if (!list.length) return <p className="muted">Honor teams appear once season awards are available.</p>;
   return (
     <div className="award-grid honor-grid">
       {list.map((award) => (
-        <article key={`${award.playerId}-${award.position}`} className="card">
+        <article key={`${award.playerId}-${award.position}`} className={clsx("card", award.teamId === userTeamId && "user-team-highlight")} data-testid={award.teamId === userTeamId ? "user-team-honor-card" : undefined}>
           <p className="eyebrow">{award.position}</p>
           <h3>{award.playerName}</h3>
           <p>{award.teamName}</p>

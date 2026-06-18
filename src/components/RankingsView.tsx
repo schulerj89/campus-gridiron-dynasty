@@ -1,4 +1,5 @@
 import { useState } from "react";
+import clsx from "clsx";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import { PaginationControls } from "./PaginationControls";
 import { TeamHelmet } from "./TeamHelmet";
@@ -14,6 +15,7 @@ export function Rankings({ state }: { state: DynastyState }) {
   const currentPage = Math.min(page, pageCount);
   const visibleEntries = entries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const teamById = new Map(state.teams.map((team) => [team.id, team]));
+  const userEntry = entries.find((entry) => entry.teamId === state.userTeamId);
 
   if (!latest) {
     return (
@@ -40,6 +42,12 @@ export function Rankings({ state }: { state: DynastyState }) {
           </div>
           <TrendingUp size={20} />
         </div>
+        {userEntry && (
+          <div className="user-rank-callout user-team-highlight" data-testid="user-team-ranking-callout">
+            <strong>Your Program: #{userEntry.rank} {userEntry.teamName}</strong>
+            <span>{userEntry.wins}-{userEntry.losses} - {userEntry.votes.toLocaleString()} votes - {userEntry.firstPlaceVotes} first-place</span>
+          </div>
+        )}
         <div className="table-list rankings-table">
           <div className="table-row rankings-header">
             <span>Rank</span>
@@ -52,7 +60,7 @@ export function Rankings({ state }: { state: DynastyState }) {
           {visibleEntries.map((entry) => {
             const team = teamById.get(entry.teamId);
             return (
-              <div key={entry.teamId} className="table-row rankings-row">
+              <div key={entry.teamId} className={clsx("table-row rankings-row", entry.teamId === state.userTeamId && "user-team-highlight")} data-testid={entry.teamId === state.userTeamId ? "user-team-ranking-row" : undefined}>
                 <span>#{entry.rank}</span>
                 <strong>
                   {team && <TeamHelmet team={team} size="sm" />}
@@ -76,7 +84,7 @@ export function Rankings({ state }: { state: DynastyState }) {
           <h2>Moved In</h2>
           <TrendingUp size={20} />
         </div>
-        <MovementList entries={latest.movedIn} empty="No new teams entered this poll." mode="in" />
+        <MovementList entries={latest.movedIn} empty="No new teams entered this poll." mode="in" userTeamId={state.userTeamId} />
       </section>
 
       <section className="panel" data-testid="rankings-moved-out-panel">
@@ -84,7 +92,7 @@ export function Rankings({ state }: { state: DynastyState }) {
           <h2>Moved Out</h2>
           <TrendingDown size={20} />
         </div>
-        <MovementList entries={latest.movedOut} empty="No teams dropped out this poll." mode="out" />
+        <MovementList entries={latest.movedOut} empty="No teams dropped out this poll." mode="out" userTeamId={state.userTeamId} />
       </section>
     </>
   );
@@ -97,12 +105,12 @@ function Movement({ entry }: { entry: PollEntry }) {
   return <span className="movement-chip neutral">0</span>;
 }
 
-function MovementList({ entries, empty, mode }: { entries: PollEntry[]; empty: string; mode: "in" | "out" }) {
+function MovementList({ entries, empty, mode, userTeamId }: { entries: PollEntry[]; empty: string; mode: "in" | "out"; userTeamId: string }) {
   if (!entries.length) return <p className="muted">{empty}</p>;
   return (
     <div className="table-list movement-list">
       {entries.slice(0, 8).map((entry) => (
-        <div key={entry.teamId} className="table-row movement-row" data-testid="ranking-movement-row">
+        <div key={entry.teamId} className={clsx("table-row movement-row", entry.teamId === userTeamId && "user-team-highlight")} data-testid="ranking-movement-row">
           <span>{mode === "out" ? `Now #${entry.rank}` : `#${entry.rank}`}</span>
           <strong>{entry.teamName}</strong>
           <span>{entry.previousRank ? `From #${entry.previousRank}` : "New"}</span>

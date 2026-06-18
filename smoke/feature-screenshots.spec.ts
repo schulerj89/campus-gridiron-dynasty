@@ -46,6 +46,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
 
   await page.getByRole("button", { name: "Rankings" }).click();
   await expect(page.getByTestId("rankings-panel")).toContainText("Full 70-Team Board");
+  await expect(page.getByTestId("user-team-ranking-callout")).toContainText("Your Program");
   await expect(page.getByTestId("rankings-panel")).toContainText("1st");
   await expect(page.getByTestId("rankings-pagination")).toContainText("1-10 of 70");
   await page.screenshot({ path: path.join(screenshotDir, "rankings-desktop.png"), fullPage: true });
@@ -110,6 +111,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Pass Yds");
   await expect(page.getByTestId("leaderboard-panel")).toContainText("Rush TD");
+  await page.getByTestId("leaderboard-panel").locator("select").first().selectOption("team");
+  await expect(page.getByTestId("user-team-leaderboard-row").first()).toBeVisible();
   await page.getByTestId("leaderboard-panel").screenshot({ path: path.join(screenshotDir, "leaderboard-desktop.png") });
 
   for (let week = 0; week < 7; week += 1) {
@@ -159,6 +162,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("coach-pool-panel").screenshot({ path: path.join(screenshotDir, "coach-pool-postseason-desktop.png") });
   await page.getByRole("button", { name: "Awards" }).click();
   await expect(page.getByText("Season Awards")).toBeVisible();
+  await expect(page.getByTestId("user-team-award-card").first()).toBeVisible();
   await page.getByTestId("awards-panel").screenshot({ path: path.join(screenshotDir, "awards-desktop.png") });
   await page.getByTestId("all-american-first-panel").screenshot({ path: path.join(screenshotDir, "all-american-desktop.png") });
   await page.getByTestId("all-american-second-panel").screenshot({ path: path.join(screenshotDir, "all-american-second-desktop.png") });

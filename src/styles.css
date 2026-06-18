@@ -1386,6 +1386,29 @@ select {
   color: var(--muted);
 }
 
+.user-team-highlight {
+  background: linear-gradient(90deg, rgba(240, 184, 74, 0.14), rgba(15, 23, 27, 0.96));
+  border-color: rgba(240, 184, 74, 0.64) !important;
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+
+.user-rank-callout {
+  align-items: center;
+  border: 1px solid rgba(240, 184, 74, 0.64);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+}
+
+.user-rank-callout span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
 .recruit-table .table-row {
   min-width: 970px;
   grid-template-columns: 92px minmax(160px, 1.1fr) 54px 78px minmax(170px, 1fr) 70px minmax(150px, 0.9fr);

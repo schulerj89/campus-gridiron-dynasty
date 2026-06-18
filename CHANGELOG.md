@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.11.5 - 2026-06-17
+
+- Added a shared user-team highlight treatment across rankings, awards, honor teams, and stat leaderboards.
+- Added a Rankings callout so the user's program remains visible even when the ranking row is on a later page.
+- Added smoke coverage for ranking, leaderboard, and awards user-team highlights.
+
 ## 1.11.4 - 2026-06-17
 
 - Expanded fictional city, first-name, and last-name pools to reduce repeated generated names.
