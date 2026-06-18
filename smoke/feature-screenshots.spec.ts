@@ -45,9 +45,15 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   }
 
   await page.getByRole("button", { name: "Rankings" }).click();
-  await expect(page.getByTestId("rankings-panel")).toContainText("Top 25");
+  await expect(page.getByTestId("rankings-panel")).toContainText("Full 70-Team Board");
   await expect(page.getByTestId("rankings-panel")).toContainText("1st");
+  await expect(page.getByTestId("rankings-pagination")).toContainText("1-10 of 70");
   await page.screenshot({ path: path.join(screenshotDir, "rankings-desktop.png"), fullPage: true });
+  for (let pageNumber = 0; pageNumber < 2; pageNumber += 1) {
+    await page.getByRole("button", { name: "Next rankings page" }).click();
+  }
+  await expect(page.getByTestId("rankings-pagination")).toContainText("Page 3");
+  await page.screenshot({ path: path.join(screenshotDir, "rankings-full-board-desktop.png"), fullPage: true });
 
   await page.getByRole("button", { name: "Recruiting", exact: true }).click();
   await expect(page.getByTestId("recruit-filter-panel")).toBeVisible();

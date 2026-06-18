@@ -36,6 +36,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Debug Sim To End should finish the 20th season and reach the `complete` phase.
 - Saves are local-only through IndexedDB via `src/sim/storage.ts`.
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
+- The Rankings tab should display the full 1-70 national board; Top 25 status still controls matchup ranked labels and moved-in/out panels.
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.
 - The Schedule tab should display regular-season games and postseason playoff games with box-score access.

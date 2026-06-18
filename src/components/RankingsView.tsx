@@ -9,9 +9,10 @@ const PAGE_SIZE = 10;
 export function Rankings({ state }: { state: DynastyState }) {
   const [page, setPage] = useState(1);
   const latest = state.rankings?.[0];
-  const entries = latest?.entries ?? [];
+  const entries = latest?.allEntries?.length ? latest.allEntries : latest?.entries ?? [];
   const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
-  const visibleEntries = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const currentPage = Math.min(page, pageCount);
+  const visibleEntries = entries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const teamById = new Map(state.teams.map((team) => [team.id, team]));
 
   if (!latest) {
@@ -33,7 +34,7 @@ export function Rankings({ state }: { state: DynastyState }) {
           <div>
             <p className="eyebrow">National Rankings</p>
             <h2>
-              {latest.year} {latest.week === 0 ? "Preseason" : `Week ${latest.week}`} Top 25
+              {latest.year} {latest.week === 0 ? "Preseason" : `Week ${latest.week}`} Full 70-Team Board
             </h2>
             <p className="muted">Votes and first-place votes are generated from record, roster power, point margin, and poll inertia.</p>
           </div>
@@ -67,7 +68,7 @@ export function Rankings({ state }: { state: DynastyState }) {
             );
           })}
         </div>
-        <PaginationControls page={page} pageCount={pageCount} total={entries.length} pageSize={PAGE_SIZE} label="rankings" onPageChange={setPage} />
+        <PaginationControls page={currentPage} pageCount={pageCount} total={entries.length} pageSize={PAGE_SIZE} label="rankings" onPageChange={setPage} />
       </section>
 
       <section className="panel" data-testid="rankings-moved-in-panel">

@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.11.2 - 2026-06-17
+
+- Updated the Rankings page to display the full 1-70 national board instead of only Top 25 entries.
+- Kept moved-in and moved-out panels tied to Top 25 movement while exposing all team ranks in the main table.
+- Added smoke coverage and a screenshot for deeper rankings pages outside the Top 25.
+
 ## 1.11.1 - 2026-06-17
 
 - Added pagination to signing-day class lists so every signee can be opened from large classes.
