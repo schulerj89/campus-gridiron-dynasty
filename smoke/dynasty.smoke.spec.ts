@@ -39,6 +39,18 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await page.screenshot({ path: path.join(screenshotDir, "mobile-dashboard.png"), fullPage: true });
   }
 
+  if (testInfo.project.name !== "webkit-iphone-15-pro-max") {
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByTestId("save-status")).toContainText("Saved", { timeout: 20_000 });
+    await page.reload();
+    await expect(page.getByTestId("save-summary")).toContainText("Continue", { timeout: 20_000 });
+    if (testInfo.project.name === "chromium-desktop") {
+      await page.screenshot({ path: path.join(screenshotDir, "home-continue-summary-desktop.png"), fullPage: true });
+    }
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByText(/Year 1 of 20/)).toBeVisible({ timeout: 40_000 });
+  }
+
   await page.getByRole("button", { name: /Recruiting/ }).click();
   await page.getByTestId("auto-recruit").click();
   await expect(page.getByTestId("recruiting-board")).toContainText(/Interest|Scout/);

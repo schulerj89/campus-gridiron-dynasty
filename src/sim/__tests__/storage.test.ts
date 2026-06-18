@@ -1,8 +1,25 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { normalizeDynastyState } from "../storage";
+import { loadActiveDynastySummary, normalizeDynastyState, summarizeDynastyState } from "../storage";
 
 describe("storage migration", () => {
+  it("builds a compact active save summary for quick home-screen retrieval", () => {
+    const state = createDynasty(4141);
+    const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+
+    expect(loadActiveDynastySummary()).toBeUndefined();
+    expect(summarizeDynastyState(state)).toEqual({
+      id: state.id,
+      userTeamName: userTeam.name,
+      year: state.year,
+      calendarYear: state.calendarYear,
+      maxYears: state.maxYears,
+      phase: state.phase,
+      week: state.week,
+      updatedAt: state.updatedAt,
+    });
+  });
+
   it("fills rankings and helmet indexes for older saves", () => {
     const oldSave = createDynasty(4242) as any;
     delete oldSave.rankings;

@@ -53,7 +53,7 @@ import {
 } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
-import { clearDynasty, loadActiveDynasty, saveDynasty } from "./sim/storage";
+import { clearDynasty, loadActiveDynasty, loadActiveDynastySummary, saveDynasty, summarizeDynastyState, type DynastySaveSummary } from "./sim/storage";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
 import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
@@ -146,13 +146,24 @@ export default function App() {
   const [selectedTeamId, setSelectedTeamId] = useState(previewWorld.userTeamId);
   const [state, setState] = useState<DynastyState>();
   const [savedState, setSavedState] = useState<DynastyState>();
+  const [savedSummary, setSavedSummary] = useState<DynastySaveSummary | undefined>(() => loadActiveDynastySummary());
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [saveStatus, setSaveStatus] = useState("Local DB ready");
 
   useEffect(() => {
-    loadActiveDynasty().then((loaded) => {
-      if (loaded) setSavedState(loaded);
-    });
+    loadActiveDynasty()
+      .then((loaded) => {
+        if (loaded) {
+          setSavedState(loaded);
+          setSavedSummary(summarizeDynastyState(loaded));
+        } else {
+          setSavedSummary(undefined);
+        }
+      })
+      .catch(() => {
+        setSavedSummary(undefined);
+        setSaveStatus("Local save unavailable");
+      });
   }, []);
 
   useEffect(() => {
@@ -175,14 +186,32 @@ export default function App() {
     if (savedState) {
       setState(savedState);
       setActiveTab("overview");
+      return;
     }
+    setSaveStatus("Loading local save...");
+    loadActiveDynasty().then((loaded) => {
+      if (!loaded) {
+        setSavedSummary(undefined);
+        setSaveStatus("Local save unavailable");
+        return;
+      }
+      setSavedState(loaded);
+      setSavedSummary(summarizeDynastyState(loaded));
+      setState(loaded);
+      setActiveTab("overview");
+    }).catch(() => setSaveStatus("Local save unavailable"));
   };
 
   const resetAll = async () => {
-    await clearDynasty();
-    setState(undefined);
-    setSavedState(undefined);
-    setSaveStatus("Local save cleared");
+    try {
+      await clearDynasty();
+      setState(undefined);
+      setSavedState(undefined);
+      setSavedSummary(undefined);
+      setSaveStatus("Local save cleared");
+    } catch {
+      setSaveStatus("Clear failed");
+    }
   };
 
   const update = (recipe: (current: DynastyState) => DynastyState) => {
@@ -196,6 +225,7 @@ export default function App() {
         conferences={previewWorld.conferences}
         selectedTeamId={selectedTeamId}
         savedState={savedState}
+        savedSummary={savedSummary}
         onSelectTeam={setSelectedTeamId}
         onStart={startDynasty}
         onContinue={continueDynasty}
@@ -217,10 +247,12 @@ export default function App() {
           <p className="muted">
             Year {state.year} of {state.maxYears} - {state.calendarYear} - {phaseWeekLabel(state)}
           </p>
-          <p className="save-status">{saveStatus}</p>
+          <p className="save-status" data-testid="save-status">
+            {saveStatus}
+          </p>
         </div>
         <div className="topbar-actions">
-          <button className="secondary" onClick={() => saveDynasty(state).then(() => setSaveStatus("Saved manually"))}>
+          <button className="secondary" onClick={() => saveDynasty(state).then(() => setSaveStatus("Saved manually")).catch(() => setSaveStatus("Save failed"))}>
             <Save size={18} />
             Save
           </button>
@@ -272,6 +304,7 @@ function HomeScreen({
   conferences,
   selectedTeamId,
   savedState,
+  savedSummary,
   onSelectTeam,
   onStart,
   onContinue,
@@ -281,6 +314,7 @@ function HomeScreen({
   conferences: Conference[];
   selectedTeamId: string;
   savedState?: DynastyState;
+  savedSummary?: DynastySaveSummary;
   onSelectTeam: (teamId: string) => void;
   onStart: () => void;
   onContinue: () => void;
@@ -340,7 +374,7 @@ function HomeScreen({
                 <Play size={18} />
                 New Dynasty
               </button>
-              <button className="secondary" onClick={onContinue} disabled={!savedState}>
+              <button className="secondary" onClick={onContinue} disabled={!savedState && !savedSummary}>
                 <ClipboardList size={18} />
                 Continue
               </button>
@@ -348,6 +382,11 @@ function HomeScreen({
                 <RotateCcw size={18} />
               </button>
             </div>
+            {savedSummary && (
+              <p className="muted" data-testid="save-summary">
+                Continue {savedSummary.userTeamName} - Year {savedSummary.year} of {savedSummary.maxYears}, Week {savedSummary.week}
+              </p>
+            )}
           </div>
         </div>
       </section>

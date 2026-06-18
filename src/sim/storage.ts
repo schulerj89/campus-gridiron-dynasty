@@ -6,35 +6,134 @@ import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints } from
 const DB_NAME = "campus-gridiron-dynasty";
 const STORE_NAME = "dynasties";
 const ACTIVE_KEY = "campus-gridiron-active-save";
+const ACTIVE_SUMMARY_KEY = "campus-gridiron-active-save-summary";
+
+export interface DynastySaveSummary {
+  id: string;
+  userTeamName: string;
+  year: number;
+  calendarYear: number;
+  maxYears: number;
+  phase: DynastyState["phase"];
+  week: number;
+  updatedAt: string;
+}
 
 export async function saveDynasty(state: DynastyState): Promise<void> {
   if (!hasIndexedDb()) return;
   const db = await openDb();
-  await requestToPromise(db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put({ ...state, updatedAt: new Date().toISOString() }));
-  localStorage.setItem(ACTIVE_KEY, state.id);
-  db.close();
+  try {
+    const savedAt = new Date().toISOString();
+    const savedState = { ...state, updatedAt: savedAt };
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    transaction.objectStore(STORE_NAME).put(savedState);
+    await transactionToPromise(transaction);
+    if (hasLocalStorage()) localStorage.setItem(ACTIVE_KEY, state.id);
+    saveActiveDynastySummary(summarizeDynastyState(savedState));
+  } finally {
+    db.close();
+  }
 }
 
 export async function loadActiveDynasty(): Promise<DynastyState | undefined> {
   if (!hasIndexedDb()) return undefined;
-  const activeId = localStorage.getItem(ACTIVE_KEY);
+  const activeId = hasLocalStorage() ? localStorage.getItem(ACTIVE_KEY) : undefined;
   if (!activeId) return undefined;
   const db = await openDb();
-  const result = await requestToPromise<DynastyState | undefined>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(activeId));
-  db.close();
-  return result ? normalizeDynastyState(result) : undefined;
+  try {
+    const result = await requestToPromise<DynastyState | undefined>(db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).get(activeId));
+    if (!result) {
+      clearActiveDynastySummary();
+      return undefined;
+    }
+    return normalizeDynastyState(result);
+  } finally {
+    db.close();
+  }
+}
+
+export function loadActiveDynastySummary(): DynastySaveSummary | undefined {
+  if (!hasLocalStorage()) return undefined;
+  const raw = localStorage.getItem(ACTIVE_SUMMARY_KEY);
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw) as Partial<DynastySaveSummary>;
+    if (!isValidSummary(parsed)) {
+      clearActiveDynastySummary();
+      return undefined;
+    }
+    return parsed;
+  } catch {
+    clearActiveDynastySummary();
+    return undefined;
+  }
 }
 
 export async function clearDynasty(): Promise<void> {
-  localStorage.removeItem(ACTIVE_KEY);
-  if (!hasIndexedDb()) return;
+  if (!hasIndexedDb()) {
+    if (hasLocalStorage()) localStorage.removeItem(ACTIVE_KEY);
+    clearActiveDynastySummary();
+    return;
+  }
   const db = await openDb();
-  await requestToPromise(db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).clear());
-  db.close();
+  try {
+    const transaction = db.transaction(STORE_NAME, "readwrite");
+    transaction.objectStore(STORE_NAME).clear();
+    await transactionToPromise(transaction);
+    if (hasLocalStorage()) localStorage.removeItem(ACTIVE_KEY);
+    clearActiveDynastySummary();
+  } finally {
+    db.close();
+  }
 }
 
 function hasIndexedDb(): boolean {
   return typeof indexedDB !== "undefined";
+}
+
+function hasLocalStorage(): boolean {
+  return typeof localStorage !== "undefined" && typeof localStorage.getItem === "function" && typeof localStorage.setItem === "function" && typeof localStorage.removeItem === "function";
+}
+
+export function summarizeDynastyState(state: DynastyState): DynastySaveSummary {
+  const userTeam = state.teams.find((team) => team.id === state.userTeamId) ?? state.teams[0];
+  return {
+    id: state.id,
+    userTeamName: userTeam?.name ?? "Saved Dynasty",
+    year: state.year,
+    calendarYear: state.calendarYear,
+    maxYears: state.maxYears,
+    phase: state.phase,
+    week: state.week,
+    updatedAt: state.updatedAt,
+  };
+}
+
+function saveActiveDynastySummary(summary: DynastySaveSummary): void {
+  if (!hasLocalStorage()) return;
+  localStorage.setItem(ACTIVE_SUMMARY_KEY, JSON.stringify(summary));
+}
+
+function clearActiveDynastySummary(): void {
+  if (!hasLocalStorage()) return;
+  localStorage.removeItem(ACTIVE_SUMMARY_KEY);
+}
+
+function isValidSummary(value: Partial<DynastySaveSummary>): value is DynastySaveSummary {
+  return (
+    typeof value.id === "string" &&
+    typeof value.userTeamName === "string" &&
+    typeof value.year === "number" &&
+    Number.isFinite(value.year) &&
+    typeof value.calendarYear === "number" &&
+    Number.isFinite(value.calendarYear) &&
+    typeof value.maxYears === "number" &&
+    Number.isFinite(value.maxYears) &&
+    typeof value.phase === "string" &&
+    typeof value.week === "number" &&
+    Number.isFinite(value.week) &&
+    typeof value.updatedAt === "string"
+  );
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -55,6 +154,14 @@ function requestToPromise<T = unknown>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
+  });
+}
+
+function transactionToPromise(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error ?? new Error("IndexedDB transaction aborted."));
+    transaction.onerror = () => reject(transaction.error ?? new Error("IndexedDB transaction failed."));
   });
 }
 

@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.12.4 - 2026-06-18
+
+- Made IndexedDB saves and clears resolve only after their transactions complete, preventing false-positive save status.
+- Added a compact localStorage active-save summary beside the IndexedDB dynasty record for quick home-screen retrieval.
+- Let Continue use the local summary immediately while loading the full local DB save on demand.
+- Added storage coverage for active save summary generation and smoke coverage for save, reload, and Continue.
+
 ## 1.12.3 - 2026-06-18
 
 - Reconciled legacy recruiting budgets on load so spent plus remaining points always equals the season budget.
