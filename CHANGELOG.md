@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.11.0 - 2026-06-17
+
+- Hid the Current Poll panel from the offseason Overview dashboard.
+- Kept the offseason dashboard focused on the active offseason stage instead of regular-season context.
+- Added smoke coverage that verifies departures focus hides command, awards, and poll panels.
+
 ## 1.10.0 - 2026-06-17
 
 - Added signing-day signee drill-in from the all-team class table.

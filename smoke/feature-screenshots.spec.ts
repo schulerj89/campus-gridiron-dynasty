@@ -169,6 +169,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("offseason-report-panel")).toBeVisible();
   await expect(page.getByTestId("dashboard-command-panel")).not.toBeVisible();
   await expect(page.getByTestId("latest-national-awards-panel")).not.toBeVisible();
+  await expect(page.getByTestId("dashboard-current-poll-panel")).not.toBeVisible();
   await expect(page.getByTestId("offseason-steps")).toContainText("Departures");
   await expect(page.getByTestId("graduated-panel")).toBeVisible();
   await expect(page.getByTestId("offseason-all-classes-panel")).not.toBeVisible();

@@ -111,6 +111,7 @@ The home hero, the 14-portrait 8-bit player sprite sheet, the 10-portrait coach 
 - Signed recruit player IDs should include the dynasty signing year so rosters stay unique across many classes.
 - Offseason advancement should expose departures, four late recruiting weeks, signing day, preseason player development, and kickoff as distinct steps.
 - The Overview offseason report should focus on only the active stage: departures, recruiting, signing day, or development.
+- The Overview offseason dashboard should hide regular-season command, awards, and current-poll panels.
 - Signing day all-team class rows should open read-only recruit detail so signed prospects remain inspectable.
 - Signing day should not remove returning players before the offseason departure report is applied.
 - Teams should stay at or above the 85-player roster floor after offseason turnover; add labeled walk-ons capped around 60 overall only when recruiting cannot fill the roster.

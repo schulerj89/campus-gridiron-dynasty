@@ -437,21 +437,21 @@ function Overview({
         </section>
       )}
 
-      {!postseasonFocus && (
-      <section className="panel ranking-snapshot-panel" data-testid="dashboard-current-poll-panel">
-        <div className="panel-head compact">
-          <h2>Current Poll</h2>
-          <TrendingUp size={20} />
-        </div>
-        {userPollEntry ? (
-          <div className="poll-snapshot-card">
-            <strong>#{userPollEntry.rank} {userTeam.name}</strong>
-            <span>{userPollEntry.votes.toLocaleString()} votes - {userPollEntry.firstPlaceVotes} first-place</span>
+      {!offseasonFocus && !postseasonFocus && (
+        <section className="panel ranking-snapshot-panel" data-testid="dashboard-current-poll-panel">
+          <div className="panel-head compact">
+            <h2>Current Poll</h2>
+            <TrendingUp size={20} />
           </div>
-        ) : (
-          <p className="muted">{userTeam.name} is outside the Top 25.</p>
-        )}
-      </section>
+          {userPollEntry ? (
+            <div className="poll-snapshot-card">
+              <strong>#{userPollEntry.rank} {userTeam.name}</strong>
+              <span>{userPollEntry.votes.toLocaleString()} votes - {userPollEntry.firstPlaceVotes} first-place</span>
+            </div>
+          ) : (
+            <p className="muted">{userTeam.name} is outside the Top 25.</p>
+          )}
+        </section>
       )}
 
       {!offseasonFocus && state.phase !== "regular" && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
