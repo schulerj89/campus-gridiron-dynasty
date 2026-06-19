@@ -18,6 +18,7 @@ import {
   signRecruitingClass,
   positionNeedsWithPledges,
   rankedRecruitSchoolInterests,
+  recruitingNeedCoveragePercent,
 } from "../recruiting";
 
 describe("recruiting", () => {
@@ -332,6 +333,12 @@ describe("recruiting", () => {
       ["team-b", 120],
       ["team-c", 95],
     ]);
+  });
+
+  it("calculates recruiting need meter coverage from open roster slots", () => {
+    expect(recruitingNeedCoveragePercent({ target: 6, current: 4, boardCount: 1, committedCount: 0 })).toBe(50);
+    expect(recruitingNeedCoveragePercent({ target: 6, current: 4, boardCount: 3, committedCount: 1 })).toBe(100);
+    expect(recruitingNeedCoveragePercent({ target: 6, current: 6, boardCount: 0, committedCount: 0 })).toBe(100);
   });
 
   it("requires an offer before pitching and blocks repeat pitches until the next week", () => {

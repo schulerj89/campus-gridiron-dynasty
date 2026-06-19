@@ -50,6 +50,7 @@ import {
   PITCH_COST,
   positionNeedsWithPledges,
   rankedRecruitSchoolInterests,
+  recruitingNeedCoveragePercent,
   removeRecruitFromBoard,
   rescindScholarship,
   SCOUT_COST,
@@ -1249,7 +1250,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
       boardCount,
       offerCount,
       committedCount,
-      coverage: boardCount + committedCount,
+      meterPercent: recruitingNeedCoveragePercent({ target: need.target, current: need.current, boardCount, committedCount }),
     };
   });
   const stateOptions = Array.from(new Set(state.recruits.map((recruit) => recruit.state))).sort();
@@ -1312,7 +1313,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
               <em>{row.need > 0 ? `Need ${row.need}` : "Covered"}</em>
               <small>Board {row.boardCount} - Offers {row.offerCount} - Pledges {row.committedCount}</small>
               <i>
-                <b style={{ width: `${Math.min(100, Math.round((row.coverage / Math.max(1, row.need || row.target)) * 100))}%` }} />
+                <b style={{ width: `${row.meterPercent}%` }} />
               </i>
             </button>
           ))}

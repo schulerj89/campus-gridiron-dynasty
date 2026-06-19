@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.12 - 2026-06-19
+
+- Corrected Recruiting Need Command meter math to measure covered open roster slots.
+- Added a shared coverage-percent helper for Need Command progress bars.
+- Added regression coverage for partial, full, and already-covered meter states.
+
 ## 1.20.11 - 2026-06-19
 
 - Replaced misleading recruit interest percentage labels with `/150` score labels.

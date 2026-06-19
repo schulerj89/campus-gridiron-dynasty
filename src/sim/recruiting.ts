@@ -452,6 +452,13 @@ export function rankedRecruitSchoolInterests(recruit: Recruit, fallbackLimit = 1
   return sortedInterest.slice(0, fallbackLimit);
 }
 
+export function recruitingNeedCoveragePercent({ target, current, boardCount, committedCount }: { target: number; current: number; boardCount: number; committedCount: number }): number {
+  const openSlots = Math.max(0, target - current);
+  if (openSlots === 0) return 100;
+  const coveredSlots = Math.min(openSlots, Math.max(0, boardCount) + Math.max(0, committedCount));
+  return Math.round((coveredSlots / openSlots) * 100);
+}
+
 export function userPledgeCountForPosition(recruits: Recruit[], teamId: string, position: Position): number {
   return recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && recruit.committedTeamId === teamId).length;
 }
