@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
-import { simulateGame } from "../game";
+import { scoringPlan, simulateGame } from "../game";
 import { Rng } from "../rng";
 import type { Game, PlayByPlayEvent, Player, Team } from "../types";
 
 describe("game simulation stat pacing", () => {
+  it("prefers conventional touchdown and extra-point scoring plans", () => {
+    expect(scoringPlan(24)).toMatchObject({ score: 24, offensiveTd: 3, fieldGoals: 1, extraPoints: 3, extraPointAttempts: 3 });
+    expect(scoringPlan(30)).toMatchObject({ score: 30, offensiveTd: 3, fieldGoals: 3, extraPoints: 3, extraPointAttempts: 3 });
+    expect(scoringPlan(31)).toMatchObject({ score: 31, offensiveTd: 4, fieldGoals: 1, extraPoints: 4, extraPointAttempts: 4 });
+    expect(scoringPlan(38)).toMatchObject({ score: 38, offensiveTd: 5, fieldGoals: 1, extraPoints: 5, extraPointAttempts: 5 });
+    expect(scoringPlan(45)).toMatchObject({ score: 45, offensiveTd: 6, fieldGoals: 1, extraPoints: 6, extraPointAttempts: 6 });
+  });
+
   it("features an elite receiver while preserving receiving totals and target participation", () => {
     const { teams, game, userTeamId, eliteReceiverId } = controlledReceivingSetup(7101);
     const result = simulateGame(new Rng(7102), game, teams);
@@ -138,6 +146,30 @@ describe("game simulation stat pacing", () => {
     expect(airBox.totals.passTd).toBeGreaterThanOrEqual(runBox.totals.passTd);
   });
 
+  it("prices interception risk by passing volume without runaway pick rates", () => {
+    const setup = controlledReceivingSetup(7126);
+    const airTeams = withUserStrategy(setup.teams, setup.userTeamId, "airRaid");
+    const runTeams = withUserStrategy(setup.teams, setup.userTeamId, "runHeavy");
+    let airAttempts = 0;
+    let runAttempts = 0;
+    let airInterceptions = 0;
+    let runInterceptions = 0;
+
+    for (let seed = 7127; seed < 7207; seed += 1) {
+      const airBox = teamBoxFor(simulateGame(new Rng(seed), setup.game, airTeams).game, setup.userTeamId)!;
+      const runBox = teamBoxFor(simulateGame(new Rng(seed), setup.game, runTeams).game, setup.userTeamId)!;
+      airAttempts += airBox.passAttempts;
+      runAttempts += runBox.passAttempts;
+      airInterceptions += airBox.totals.interceptionsThrown;
+      runInterceptions += runBox.totals.interceptionsThrown;
+    }
+
+    expect(airAttempts).toBeGreaterThan(runAttempts);
+    expect(airInterceptions).toBeGreaterThanOrEqual(runInterceptions);
+    expect(airInterceptions / airAttempts).toBeLessThan(0.09);
+    expect(runInterceptions / runAttempts).toBeLessThan(0.09);
+  });
+
   it("keeps air raid red-zone play-by-play pass first", () => {
     const setup = controlledReceivingSetup(7141);
     const teams = withUserStrategy(setup.teams, setup.userTeamId, "airRaid");
@@ -208,6 +240,18 @@ describe("game simulation stat pacing", () => {
     expect(strongTotals.passYards / strongTotals.passAttempts).toBeGreaterThan(weakTotals.passYards / weakTotals.passAttempts);
     expect(strongTotals.sacksAllowed).toBeLessThan(weakTotals.sacksAllowed);
     expect(strongTotals.playByPlaySacksAllowed).toBeLessThanOrEqual(weakTotals.playByPlaySacksAllowed);
+  });
+
+  it("keeps defensive sack stats synchronized with play-by-play sacks", () => {
+    const setup = controlledLineSetup(7121, "weak");
+
+    for (let seed = 7350; seed < 7362; seed += 1) {
+      const result = simulateGame(new Rng(seed), setup.games[0]!, setup.teams);
+      const box = result.game.result!.boxScore!;
+      const events = result.game.result!.playByPlay ?? [];
+      expect(box.home.totals.sacks).toBe(events.filter((event) => event.teamId === box.away.teamId && event.type === "sack").length);
+      expect(box.away.totals.sacks).toBe(events.filter((event) => event.teamId === box.home.teamId && event.type === "sack").length);
+    }
   });
 
   it("lets an elite receiver produce a realistic 12-game season without changing team passing totals", () => {

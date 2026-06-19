@@ -21,6 +21,7 @@ interface TeamGameProfile {
   extraPointEvents: ScoringEvent[];
   missedExtraPointEvents: ScoringEvent[];
   pancakeBlockers: string[];
+  sackDefenders: string[];
 }
 
 interface ScoringEvent {
@@ -57,6 +58,7 @@ interface PlayContext {
   defenders: Player[];
   receiverMatchups: Map<string, ReceiverMatchup>;
   pancakeBlockers: string[];
+  sackDefenders: string[];
   passProtectionEdge: number;
   passRemaining: number;
   rushRemaining: number;
@@ -135,8 +137,8 @@ export function simulateGame(rng: Rng, game: Game, teams: Team[]): { game: Game;
   }
 
   const homeWon = homeScore > awayScore;
-  const homeInterceptionsThrown = passingInterceptions(rng, homeUnits.passing, awayUnits.coverage);
-  const awayInterceptionsThrown = passingInterceptions(rng, awayUnits.passing, homeUnits.coverage);
+  const homeInterceptionsThrown = passingInterceptions(rng, homeUnits.passing, awayUnits.coverage, estimatedInterceptionPassAttempts(home, homeUnits, homeScore < awayScore));
+  const awayInterceptionsThrown = passingInterceptions(rng, awayUnits.passing, homeUnits.coverage, estimatedInterceptionPassAttempts(away, awayUnits, awayScore < homeScore));
   const homeUpdate = updateTeamAfterGame(rng, home, away, homePlan, awayScore, homeWon, game.conferenceGame, homeInterceptionsThrown, awayInterceptionsThrown);
   const awayUpdate = updateTeamAfterGame(rng, away, home, awayPlan, homeScore, !homeWon, game.conferenceGame, awayInterceptionsThrown, homeInterceptionsThrown);
   const updatedHome = homeUpdate.team;
@@ -265,6 +267,7 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   const minimumCompletions = Math.min(targetAttempts, Math.max(passTd, passYards > 0 ? 1 : 0));
   const passCompletions = clamp(Math.round(targetAttempts * completionRate), minimumCompletions, targetAttempts);
   const pancakeBlockers: string[] = [];
+  const sackDefenders: string[] = [];
 
   mutateActivePlayer(updated, appeared, qb?.id, (player) => {
     player.stats.passAttempts += passAttempts;
@@ -354,6 +357,7 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   for (const [playerId, value] of splitScores(rng, sackTargets, sackCount, (player) => effectiveOverall(player) + effectiveAttributes(player).tackle * 0.6)) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.sacks += value;
+      for (let index = 0; index < value; index += 1) sackDefenders.push(player.name);
     });
   }
   const interceptionTargets = defenders.filter((player) => player.position === "CB" || player.position === "S" || player.position === "LB");
@@ -433,6 +437,7 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
       extraPointEvents,
       missedExtraPointEvents,
       pancakeBlockers,
+      sackDefenders,
     },
   };
 }
@@ -586,11 +591,13 @@ function splitScores(rng: Rng, targets: Player[], count: number, weightFor: (pla
   return values;
 }
 
-function passingInterceptions(rng: Rng, offensePassing: number, defenseCoverage: number): number {
+function passingInterceptions(rng: Rng, offensePassing: number, defenseCoverage: number, passAttempts: number): number {
   const edge = defenseCoverage - offensePassing;
-  const firstPick = clamp(0.68 + edge / 110, 0.32, 0.92);
-  const secondPick = clamp(0.1 + edge / 180, 0.03, 0.3);
-  const thirdPick = clamp((edge - 18) / 220, 0, 0.12);
+  const volumeRisk = clamp((passAttempts - 28) / 95, -0.16, 0.18);
+  const highVolumeRisk = Math.max(0, passAttempts - 36);
+  const firstPick = clamp(0.58 + edge / 120 + volumeRisk, 0.22, 0.9);
+  const secondPick = clamp(0.08 + edge / 190 + highVolumeRisk / 180, 0.02, 0.34);
+  const thirdPick = clamp((edge - 18) / 230 + highVolumeRisk / 260, 0, 0.14);
   let picks = 0;
   if (rng.chance(firstPick)) picks += 1;
   if (rng.chance(secondPick)) picks += 1;
@@ -662,6 +669,18 @@ function coachTactics(team: Team): number {
   return (team.coaches.head.tactics + team.coaches.offense.tactics + team.coaches.defense.tactics) / 3;
 }
 
+function estimatedInterceptionPassAttempts(team: Team, units: ReturnType<typeof teamUnitRatings>, trailing: boolean): number {
+  const strategy = team.offensiveStrategy ?? "balanced";
+  const basePlays: Record<OffensiveStrategy, number> = {
+    balanced: 66,
+    airRaid: 67,
+    runHeavy: 63,
+    proStyle: 66,
+    spreadTempo: 70,
+  };
+  return Math.round(basePlays[strategy] * offensivePassRate(strategy, units.passing, units.rushing, trailing));
+}
+
 function offensivePassRate(strategy: OffensiveStrategy, passing: number, rushing: number, trailing: boolean): number {
   const bias: Record<OffensiveStrategy, number> = {
     balanced: 0,
@@ -724,7 +743,7 @@ function passingTouchdownShare(
   return clamp(passRate + strategyAdjustment[strategy] + rosterFit + matchupFit, minShare, maxShare);
 }
 
-function scoringPlan(rawScore: number): ScoringPlan {
+export function scoringPlan(rawScore: number): ScoringPlan {
   const target = clamp(rawScore, 3, 66);
   let best: ScoringPlan = { score: 3, offensiveTd: 0, fieldGoals: 1, extraPoints: 0, extraPointAttempts: 0 };
   let bestDistance = Number.POSITIVE_INFINITY;
@@ -734,20 +753,31 @@ function scoringPlan(rawScore: number): ScoringPlan {
         const score = touchdowns * 6 + extraPoints + fieldGoals * 3;
         if (score < 3 || score > 66) continue;
         const distance = Math.abs(score - target);
-        if (distance < bestDistance || (distance === bestDistance && score > best.score)) {
-          best = {
-            score,
-            offensiveTd: touchdowns,
-            fieldGoals,
-            extraPoints,
-            extraPointAttempts: touchdowns,
-          };
+        const candidate = {
+          score,
+          offensiveTd: touchdowns,
+          fieldGoals,
+          extraPoints,
+          extraPointAttempts: touchdowns,
+        };
+        if (distance < bestDistance || (distance === bestDistance && isBetterScoringPlan(candidate, best))) {
+          best = candidate;
           bestDistance = distance;
         }
       }
     }
   }
   return best;
+}
+
+function isBetterScoringPlan(candidate: ScoringPlan, current: ScoringPlan): boolean {
+  if (candidate.score !== current.score) return candidate.score > current.score;
+  const candidateMissedExtraPoints = candidate.extraPointAttempts - candidate.extraPoints;
+  const currentMissedExtraPoints = current.extraPointAttempts - current.extraPoints;
+  if (candidateMissedExtraPoints !== currentMissedExtraPoints) return candidateMissedExtraPoints < currentMissedExtraPoints;
+  if (candidate.offensiveTd !== current.offensiveTd) return candidate.offensiveTd > current.offensiveTd;
+  if (candidate.fieldGoals !== current.fieldGoals) return candidate.fieldGoals < current.fieldGoals;
+  return candidate.extraPoints > current.extraPoints;
 }
 
 function kickingLine(rng: Rng, kicker: Player | undefined, scoring: ScoringPlan): { fieldGoals: number; fieldGoalAttempts: number; extraPoints: number; extraPointAttempts: number; missedFieldGoals: number; missedExtraPoints: number } {
@@ -766,8 +796,8 @@ function kickingLine(rng: Rng, kicker: Player | undefined, scoring: ScoringPlan)
 }
 
 function buildPlayByPlay(rng: Rng, home: Team, away: Team, homeProfile: TeamGameProfile, awayProfile: TeamGameProfile): PlayByPlayEvent[] {
-  const homeContext = createPlayContext(rng, home, away, homeProfile, "home");
-  const awayContext = createPlayContext(rng, away, home, awayProfile, "away");
+  const homeContext = createPlayContext(rng, home, away, homeProfile, awayProfile, "home");
+  const awayContext = createPlayContext(rng, away, home, awayProfile, homeProfile, "away");
   const scripted: ScriptedPlay[] = [];
   const totalPlaysEstimate = estimatedPlayCount(homeProfile, awayProfile);
   let homeScore = 0;
@@ -791,7 +821,7 @@ function buildPlayByPlay(rng: Rng, home: Team, away: Team, homeProfile: TeamGame
   return stampScriptedPlays(scripted);
 }
 
-function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGameProfile, side: "home" | "away"): PlayContext {
+function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGameProfile, opponentProfile: TeamGameProfile, side: "home" | "away"): PlayContext {
   const units = teamUnitRatings(team.roster);
   const opponentUnits = teamUnitRatings(opponent.roster);
   const targets = rotationAt(rng, team, ["WR", "TE"], 7);
@@ -809,6 +839,7 @@ function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGa
     defenders: uniquePlayers([...topAt(opponent, ["CB"], 3), ...topAt(opponent, ["S"], 3), ...topAt(opponent, ["LB"], 3), ...topAt(opponent, ["DL"], 3)]),
     receiverMatchups: receiverCoverageMatchups(targets, opponent),
     pancakeBlockers: [...profile.pancakeBlockers],
+    sackDefenders: [...opponentProfile.sackDefenders],
     passProtectionEdge: units.blocking - opponentUnits.defense,
     passRemaining: profile.passAttempts,
     rushRemaining: profile.rushAttempts,
@@ -1102,16 +1133,17 @@ function normalPlayPassBounds(strategy: OffensiveStrategy): [number, number] {
 }
 
 function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay {
+  const openPassSlots = Math.max(1, openPassAttempts(context));
   context.passRemaining = Math.max(0, context.passRemaining - 1);
   const quarterback = context.qb?.name ?? "The quarterback";
   const targetPlayer = selectTarget(rng, context);
   const target = targetPlayer?.name ?? "the receiver";
   const matchup = targetPlayer ? context.receiverMatchups.get(targetPlayer.id) : undefined;
   const qbAccuracy = context.qb ? effectiveAttributes(context.qb).accuracy : 70;
-  const pressurePenalty = -context.passProtectionEdge / 420;
+  const queuedSackDefender = context.sackDefenders[0];
 
-  if (rng.chance(clamp(0.058 - qbAccuracy / 1800 + pressurePenalty, 0.015, 0.13))) {
-    const defender = selectDefender(rng, context)?.name ?? "the pass rush";
+  if (queuedSackDefender && (context.sackDefenders.length >= openPassSlots || rng.chance(clamp(context.sackDefenders.length / openPassSlots, 0, 1)))) {
+    const defender = context.sackDefenders.shift() ?? queuedSackDefender;
     const loss = rng.nextInt(3, 10);
     return {
       ...basePlay(context, "sack", 0, state, -loss),

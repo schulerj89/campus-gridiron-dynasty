@@ -34,6 +34,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Teams must be restored to the 85-player roster floor after offseason turnover; emergency walk-ons should be labeled and initially capped around 60 overall.
 - Preseason roster cutdown must cap teams at 105 players without cutting a position below its `TARGET_ROSTER` minimum, and cut players must be removed from manual depth-chart order.
 - Player offseason progression must not regress attributes or overall.
+- Players at or above their potential must not gain hidden attribute value during preseason development.
 - Elite and high-potential returning players should have a real chance for breakout development above +4 OVR, capped by potential and driven by actual attribute gains.
 - Signing-day recruits are incoming freshmen and must be excluded from preseason development/year progression until kickoff clears the marker.
 - Player hot/cold streaks should be rare, temporary, and applied through effective ratings rather than permanent base ratings.
@@ -45,6 +46,8 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Offensive line quality must materially affect rushing output, pass efficiency, and sack prevention in both box scores and down-by-down play-by-play.
 - Passing touchdown share should reflect offensive strategy and roster fit while preserving total scoring-plan touchdowns.
 - Game box scores should expose strategy, play count, passing attempts/completions, rushing attempts, targets, separate FG/XP stats, and down-by-down play-by-play with punts, turnovers, kicks, yards, down, distance, and field position.
+- Scoring plans should prefer conventional touchdown, field-goal, and made-extra-point compositions; missed XPs should come from kicker outcomes, not score-fitting artifacts.
+- Defensive sack totals must match opponent offensive sack events in play-by-play.
 - Completion percentage should be derived from completions and attempts, not stored as a separate stat.
 - Offensive line pancakes should be blocker-weighted, visible in player/leaderboard stats, and allowed to be zero in poor blocking games.
 - Dynasty length is 20 years.

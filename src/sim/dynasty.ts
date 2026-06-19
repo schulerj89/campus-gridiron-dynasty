@@ -963,10 +963,11 @@ function developPlayer(rng: Rng, team: Team, player: Player, year: number): { pl
   const breakoutChance = clamp(developmentProfile.breakoutChance + potentialGap / 160 + coachBoost / 80, developmentProfile.breakoutChance, 0.46);
   const breakout = potentialGap >= 3 && rng.chance(breakoutChance) ? rng.nextInt(developmentProfile.breakoutMin, developmentProfile.breakoutMax) : 0;
   const highPotentialBonus = player.potential >= 92 ? 1.2 : player.potential >= 88 ? 0.6 : 0;
+  const maxGrowthBudget = potentialGap <= 0 ? 0 : Math.min(developmentProfile.maxBudget, Math.max(0, potentialGap + 3));
   const growthBudget = clamp(
     Math.round(rng.nextInt(0, 2) + developmentProfile.base + coachBoost * 0.9 + potentialGap / 13 + highPotentialBonus + breakout),
     0,
-    Math.min(developmentProfile.maxBudget, Math.max(0, potentialGap + 3)),
+    maxGrowthBudget,
   );
   const focus = PROGRESSION_FOCUS[player.position];
   const orderedKeys = [...rng.shuffle(focus), ...rng.shuffle(ATTRIBUTE_KEYS.filter((key) => !focus.includes(key)))].slice(0, player.development === "elite" ? 9 : 7);

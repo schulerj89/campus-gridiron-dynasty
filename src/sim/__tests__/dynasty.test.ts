@@ -296,6 +296,48 @@ describe("dynasty flow", () => {
     expect(highGain).toBeGreaterThan(lowGain);
   }, 20_000);
 
+  it("does not keep improving attributes after a player reaches potential", () => {
+    const base = createDynasty(8956);
+    const userTeam = base.teams.find((team) => team.id === base.userTeamId)!;
+    const cappedPlayer = userTeam.roster.find((player) => player.year !== "SR")!;
+    const beforeAttributes = { ...cappedPlayer.attributes };
+    const teams = base.teams.map((team) =>
+      team.id === base.userTeamId
+        ? {
+            ...team,
+            roster: team.roster.map((player) =>
+              player.id === cappedPlayer.id
+                ? {
+                    ...player,
+                    year: "SO" as const,
+                    potential: player.overall,
+                    development: "elite" as const,
+                    incomingFreshman: false,
+                  }
+                : player,
+            ),
+          }
+        : team,
+    );
+    const state: DynastyState = {
+      ...base,
+      rngState: 84,
+      phase: "offseason",
+      week: 21,
+      teams,
+      offseasonReport: developmentReadyReport(base, teams),
+    };
+
+    const advanced = advanceWeek(state);
+    const advancedPlayer = advanced.teams.find((team) => team.id === base.userTeamId)!.roster.find((player) => player.id === cappedPlayer.id)!;
+    const report = advanced.offseasonReport?.teams.find((teamReport) => teamReport.teamId === base.userTeamId)!;
+
+    expect(advancedPlayer.overall).toBe(cappedPlayer.overall);
+    expect(advancedPlayer.potential).toBe(cappedPlayer.overall);
+    expect(advancedPlayer.attributes).toEqual(beforeAttributes);
+    expect(report.progressions.some((progression) => progression.playerId === cappedPlayer.id)).toBe(false);
+  });
+
   it("applies blueprint focus presets and marks manual edits as custom", () => {
     let state = createDynasty(8925);
     state = setProgramBlueprintFocus(state, "development");

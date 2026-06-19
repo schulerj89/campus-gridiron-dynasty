@@ -2,6 +2,26 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.16 - 2026-06-19
+
+- Stopped at-potential players from gaining hidden attribute value during preseason development while keeping high-potential breakout growth intact.
+- Added regression coverage to verify players at their potential keep the same attributes and do not generate a development progression row.
+
+## 1.21.15 - 2026-06-19
+
+- Synchronized defensive sack stats with play-by-play sack events by having the play log consume the credited defensive sack queue.
+- Added deterministic coverage that compares each defense's box-score sacks to the opponent's play-by-play sack events.
+
+## 1.21.14 - 2026-06-19
+
+- Made interception risk account for estimated pass volume so Air Raid and other high-volume passing teams carry more total turnover exposure than run-heavy teams with the same ratings.
+- Added aggregate coverage that keeps interception rate bounded while confirming strategy-driven pass volume changes affect total picks.
+
+## 1.21.13 - 2026-06-19
+
+- Fixed scoring-plan tie-breaks so common scores prefer normal touchdown, field-goal, and made-extra-point compositions instead of artificial missed-extra-point plans.
+- Added direct scoring-plan regressions for common final scores including 24, 30, 31, 38, and 45.
+
 ## 1.21.12 - 2026-06-19
 
 - Made play-by-play calls honor air raid identity in normal, red-zone, stalled, and fourth-down situations.
