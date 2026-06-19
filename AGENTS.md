@@ -110,6 +110,7 @@ The smoke script chooses an available preview port and smoke specs use fixed see
 - `src/sim/blueprint.ts` owns Program Blueprint categories, director goal evaluation, and sim-effect helpers.
 - `src/sim/matchup.ts` owns pending user-game matchup preview calculations.
 - `src/sim/history.ts` owns derived program record-book summaries.
+- Offseason dashboard focus depends on `OffseasonReport.departuresReviewed`, `signingComplete`, `developmentComplete`, and `programReviewComplete`; keep those checkpoints in sync with `advanceWeek`.
 
 ## Repo-Local Skills
 

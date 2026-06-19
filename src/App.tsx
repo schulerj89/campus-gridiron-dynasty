@@ -76,6 +76,7 @@ type RecruitPositionFilter = "ALL" | Position;
 type RecruitStarsFilter = "ALL" | "1" | "2" | "3" | "4" | "5";
 type RecruitSort = "rank" | "interest" | "stars" | "need";
 type RecruitCommitmentFilter = "all" | "open" | "committed";
+type OffseasonStage = "departures" | "recruiting" | "signing" | "development" | "programReview";
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
@@ -154,6 +155,7 @@ export default function App() {
   const [savedSummary, setSavedSummary] = useState<DynastySaveSummary | undefined>(() => loadActiveDynastySummary());
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [saveStatus, setSaveStatus] = useState("Local DB ready");
+  const [isAdvancing, setIsAdvancing] = useState(false);
   const saveQueue = useMemo(() => createDynastySaveQueue(saveDynasty), []);
   const latestSaveRequest = useRef(0);
 
@@ -239,6 +241,21 @@ export default function App() {
     setState((current) => (current ? recipe(current) : current));
   };
 
+  const runAdvance = (recipe: (current: DynastyState) => DynastyState, status = "Advancing dynasty...") => {
+    if (!state || state.phase === "complete" || isAdvancing) return;
+    setIsAdvancing(true);
+    setSaveStatus(status);
+    window.setTimeout(() => {
+      try {
+        setState((current) => (current ? recipe(current) : current));
+      } catch {
+        setSaveStatus("Advance failed");
+      } finally {
+        setIsAdvancing(false);
+      }
+    }, 40);
+  };
+
   if (!state) {
     return (
       <HomeScreen
@@ -256,6 +273,7 @@ export default function App() {
   }
 
   const userTeam = getUserTeam(state);
+  const advanceLabel = advanceActionLabel(state);
 
   return (
     <div className="app-shell">
@@ -265,7 +283,7 @@ export default function App() {
             Campus Gridiron Dynasty <span className="version-pill">{APP_VERSION}</span>
           </p>
           <h1>{userTeam.name}</h1>
-          <p className="muted">
+          <p className="muted" data-testid="phase-week-label">
             Year {state.year} of {state.maxYears} - {state.calendarYear} - {phaseWeekLabel(state)}
           </p>
           <p className="save-status" data-testid="save-status">
@@ -277,13 +295,13 @@ export default function App() {
             <Save size={18} />
             Save
           </button>
-          <button className="secondary" data-testid="sim-month" onClick={() => update((current) => advanceMultipleWeeks(current, 4))} disabled={state.phase === "complete"}>
+          <button className="secondary" data-testid="sim-month" onClick={() => runAdvance((current) => advanceMultipleWeeks(current, 4), "Simulating 4 weeks...")} disabled={state.phase === "complete" || isAdvancing}>
             <ChevronsRight size={18} />
             Sim 4 Weeks
           </button>
-          <button className="primary" data-testid="advance-week" onClick={() => update(advanceWeek)} disabled={state.phase === "complete"}>
+          <button className={clsx("primary", isAdvancing && "is-loading")} data-testid="advance-week" onClick={() => runAdvance(advanceWeek, `${advanceLabel}...`)} disabled={state.phase === "complete" || isAdvancing} aria-busy={isAdvancing}>
             <ChevronsRight size={18} />
-            Advance Week
+            {isAdvancing ? "Advancing..." : advanceLabel}
           </button>
         </div>
       </header>
@@ -607,6 +625,7 @@ function OffseasonRecap({
   const walkOns = teamReport.walkOns ?? [];
   const topClasses = report.topClasses;
   const stage = offseasonStage(state, report);
+  const team = state.teams.find((candidate) => candidate.id === teamReport.teamId);
   return (
     <section className="panel span-2" data-testid="offseason-report-panel">
       <div className="panel-head">
@@ -618,15 +637,8 @@ function OffseasonRecap({
         </div>
         <GraduationCap size={20} />
       </div>
-      <div className="metric-grid offseason-metrics">
-        <Metric label="Graduated" value={graduates.length} />
-        <Metric label="Went Pro" value={proDepartures.length} />
-        <Metric label="Signees" value={report.signingComplete ? teamReport.signees.length : "Pending"} />
-        <Metric label="Walk-ons" value={report.developmentComplete ? walkOns.length : "Pending"} />
-        <Metric label="Class Rank" value={teamReport.recruitingRank ? `#${teamReport.recruitingRank}` : "Pending"} />
-      </div>
       <OffseasonSteps state={state} report={report} />
-      <div className="offseason-grid">
+      <div className={clsx("offseason-grid", "single-focus", `offseason-stage-${stage}`)} data-testid={`offseason-stage-${stage}`}>
         {stage === "departures" && (
           <>
             <DepartureGroup title="Graduated" departures={graduates} />
@@ -640,26 +652,22 @@ function OffseasonRecap({
             <RecruitingRankingPanel topClasses={topClasses} />
           </>
         )}
-        {stage === "development" && (
-          <>
-            <ProgressionGroup progressions={teamReport.progressions} />
-            <ProgramChangeGroup changes={teamReport.programChanges} />
-            <WalkOnGroup walkOns={walkOns} />
-          </>
-        )}
+        {stage === "development" && <ProgressionGroup team={team} progressions={teamReport.progressions} walkOns={walkOns} />}
+        {stage === "programReview" && <ProgramChangeGroup changes={teamReport.programChanges} />}
       </div>
     </section>
   );
 }
 
 function OffseasonSteps({ state, report }: { state: DynastyState; report: NonNullable<DynastyState["offseasonReport"]> }) {
-  const recruitingWeek = state.phase === "offseason" && !report.signingComplete ? Math.min(4, Math.max(1, state.week - 15)) : 4;
+  const recruitingWeek = state.phase === "offseason" && report.departuresReviewed && !report.signingComplete ? Math.min(4, Math.max(1, state.week - 15)) : report.signingComplete ? 4 : 1;
   const stage = offseasonStage(state, report);
   const steps = [
-    { label: "Departures", complete: true, active: stage === "departures" },
+    { label: "Departures", complete: Boolean(report.departuresReviewed || report.signingComplete || report.developmentComplete), active: stage === "departures" },
     { label: `Recruiting ${recruitingWeek}/4`, complete: report.signingComplete || state.week > 19, active: stage === "recruiting" },
     { label: "Signing Day", complete: Boolean(report.signingComplete), active: stage === "signing" },
     { label: "Development", complete: Boolean(report.developmentComplete), active: stage === "development" },
+    { label: "Program Review", complete: Boolean(report.programReviewComplete), active: stage === "programReview" },
   ];
   return (
     <div className="offseason-steps" data-testid="offseason-steps">
@@ -755,28 +763,6 @@ function ClassSigneesPanel({ reports, recruits, teams }: { reports: NonNullable<
         <p className="muted">Signing day has not posted yet.</p>
       )}
       {selectedSignee && <SignedRecruitModal signee={selectedSignee} recruit={selectedRecruit} teamName={selected?.teamName ?? "Signed program"} teams={teams} onClose={() => setSelectedSigneeId(undefined)} />}
-    </section>
-  );
-}
-
-function WalkOnGroup({ walkOns }: { walkOns: NonNullable<DynastyState["offseasonReport"]>["teams"][number]["walkOns"] }) {
-  return (
-    <section className="offseason-column" data-testid="walk-ons-panel">
-      <h3>Walk-on Additions</h3>
-      {walkOns.length ? (
-        <div className="table-list walk-on-list">
-          {walkOns.slice(0, 12).map((walkOn) => (
-            <div key={walkOn.playerId} className="table-row walk-on-row">
-              <strong>{walkOn.playerName}</strong>
-              <span>{walkOn.position}</span>
-              <span>OVR {walkOn.overall}</span>
-              <span>Pot {walkOn.potential}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="muted">Walk-ons appear only if recruiting does not restore the roster floor.</p>
-      )}
     </section>
   );
 }
@@ -878,24 +864,77 @@ function SignedRecruitModal({ signee, recruit, teamName, teams, onClose }: { sig
   );
 }
 
-function ProgressionGroup({ progressions }: { progressions: PlayerProgression[] }) {
-  const topProgressions = [...progressions].sort((a, b) => b.afterOverall - b.beforeOverall - (a.afterOverall - a.beforeOverall) || b.afterOverall - a.afterOverall).slice(0, 12);
+function ProgressionGroup({
+  team,
+  progressions,
+  walkOns,
+}: {
+  team?: Team;
+  progressions: PlayerProgression[];
+  walkOns: NonNullable<DynastyState["offseasonReport"]>["teams"][number]["walkOns"];
+}) {
+  const progressionByPlayer = new Map(progressions.map((progression) => [progression.playerId, progression]));
+  const walkOnIds = new Set(walkOns.map((walkOn) => walkOn.playerId));
+  const rosterRows = team
+    ? [...team.roster]
+        .sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || b.overall - a.overall || a.name.localeCompare(b.name))
+        .map((player) => {
+          const progression = progressionByPlayer.get(player.id);
+          return {
+            id: player.id,
+            name: player.name,
+            position: player.position,
+            year: progression ? `${progression.fromYear}->${progression.toYear}` : player.year,
+            beforeOverall: progression?.beforeOverall ?? player.overall,
+            afterOverall: progression?.afterOverall ?? player.overall,
+            delta: progression ? progression.afterOverall - progression.beforeOverall : 0,
+            potential: progression?.potential ?? player.potential,
+            status: player.incomingFreshman ? (walkOnIds.has(player.id) || player.walkOn ? "Walk-on" : "Incoming FR") : title(player.development),
+            gains: progression ? attributeGainText(progression.attributeGains) : player.incomingFreshman ? "Joins roster after signing day" : "No reported movement",
+          };
+        })
+    : [...progressions]
+        .sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || b.afterOverall - a.afterOverall || a.playerName.localeCompare(b.playerName))
+        .map((progression) => ({
+          id: progression.playerId,
+          name: progression.playerName,
+          position: progression.position,
+          year: `${progression.fromYear}->${progression.toYear}`,
+          beforeOverall: progression.beforeOverall,
+          afterOverall: progression.afterOverall,
+          delta: progression.afterOverall - progression.beforeOverall,
+          potential: progression.potential,
+          status: "Returning",
+          gains: attributeGainText(progression.attributeGains),
+        }));
   return (
     <section className="offseason-column" data-testid="preseason-progression-panel">
-      <h3>Preseason Development</h3>
-      {topProgressions.length ? (
-        <div className="table-list progression-list">
-          {topProgressions.map((progression) => (
-            <div key={progression.playerId} className="table-row progression-row">
-              <strong>{progression.playerName}</strong>
-              <span>{progression.position}</span>
+      <div className="panel-head compact">
+        <h3>Preseason Development</h3>
+        <span className="muted">{rosterRows.length} players</span>
+      </div>
+      {rosterRows.length ? (
+        <div className="table-list progression-list full-roster-development">
+          <div className="development-header">
+            <span>Player</span>
+            <span>Pos</span>
+            <span>Year</span>
+            <span>OVR</span>
+            <span>Pot</span>
+            <span>Status</span>
+            <span>Attribute Movement</span>
+          </div>
+          {rosterRows.map((row) => (
+            <div key={row.id} className="table-row progression-row">
+              <strong>{row.name}</strong>
+              <span>{row.position}</span>
+              <span>{row.year}</span>
               <span>
-                {`${progression.fromYear}->${progression.toYear}`}
+                {`${row.beforeOverall}->${row.afterOverall}`} <em className={row.delta > 0 ? "positive" : undefined}>{row.delta > 0 ? `+${row.delta}` : "+0"}</em>
               </span>
-              <span>
-                {`OVR +${progression.afterOverall - progression.beforeOverall} (${progression.beforeOverall}->${progression.afterOverall})`}
-              </span>
-              <span>{attributeGainText(progression.attributeGains)}</span>
+              <span>{row.potential}</span>
+              <span>{row.status}</span>
+              <span>{row.gains}</span>
             </div>
           ))}
         </div>
@@ -2115,13 +2154,36 @@ function advanceMultipleWeeks(state: DynastyState, weeks: number): DynastyState 
 function phaseWeekLabel(state: DynastyState): string {
   if (state.phase === "postseason" && state.playoff?.championTeamId) return "postseason - championship recap";
   if (state.phase === "offseason") {
+    if (state.offseasonReport && !state.offseasonReport.departuresReviewed) return "offseason departures";
     if (!state.offseasonReport?.signingComplete && state.week <= 19) return `offseason recruiting week ${Math.max(1, state.week - 15)} of 4`;
     if (!state.offseasonReport?.signingComplete) return "offseason signing day - ready";
     if (state.offseasonReport?.signingComplete && !state.offseasonReport.developmentComplete) return "offseason signing day - classes posted";
     return "offseason player development";
   }
-  if (state.phase === "preseason") return "preseason week - player development";
+  if (state.phase === "preseason" && state.offseasonReport?.developmentComplete) {
+    if (!state.offseasonReport.programReviewComplete) return "preseason development results";
+    return "preseason program review";
+  }
+  if (state.phase === "preseason") return "preseason week";
   return `${state.phase} - Week ${state.week}`;
+}
+
+function advanceActionLabel(state: DynastyState): string {
+  if (state.phase === "complete") return "Dynasty Complete";
+  if (state.phase === "postseason") return state.playoff?.championTeamId ? "Advance to Offseason" : "Advance Round";
+  if (state.phase === "offseason") {
+    const report = state.offseasonReport;
+    if (report && !report.departuresReviewed) return "Advance to Recruiting";
+    if (!report?.signingComplete && state.week <= 19) return "Advance Recruiting Week";
+    if (!report?.signingComplete) return "Run Signing Day";
+    if (report.signingComplete && !report.developmentComplete) return "Run Player Development";
+    return "Advance to Preseason";
+  }
+  if (state.phase === "preseason") {
+    if (state.offseasonReport?.developmentComplete && !state.offseasonReport.programReviewComplete) return "Advance to Program Review";
+    return "Start Season";
+  }
+  return "Advance Week";
 }
 
 function offseasonStageLabel(state: DynastyState, report: NonNullable<DynastyState["offseasonReport"]>): string {
@@ -2129,13 +2191,14 @@ function offseasonStageLabel(state: DynastyState, report: NonNullable<DynastySta
   if (stage === "departures") return "Offseason Departures";
   if (stage === "recruiting") return `Offseason Recruiting Week ${Math.min(4, Math.max(1, state.week - 15))} of 4`;
   if (stage === "signing") return report.signingComplete ? "Offseason Signing Day" : "Offseason Signing Day Ready";
-  return "Preseason Development";
+  if (stage === "development") return "Preseason Development";
+  return "Preseason Program Review";
 }
 
-function offseasonStage(state: DynastyState, report: NonNullable<DynastyState["offseasonReport"]>): "departures" | "recruiting" | "signing" | "development" {
-  if (report.developmentComplete) return "development";
+function offseasonStage(state: DynastyState, report: NonNullable<DynastyState["offseasonReport"]>): OffseasonStage {
+  if (report.developmentComplete) return report.programReviewComplete ? "programReview" : "development";
   if (report.signingComplete || state.week > 19) return "signing";
-  if (state.week === 16) return "departures";
+  if (!report.departuresReviewed) return "departures";
   return "recruiting";
 }
 

@@ -288,7 +288,7 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
       fastSimSeasons: debugFlags.fastSimSeasons ?? 0,
     },
     debugLog: raw.debugLog ?? [],
-    offseasonReport: raw.phase === "regular" ? undefined : normalizeOffseasonReport(raw.offseasonReport),
+    offseasonReport: raw.phase === "regular" ? undefined : normalizeOffseasonReport(raw.offseasonReport, raw.phase, raw.week),
     recruiting,
     schedule: normalizeGames(raw.schedule ?? []),
     playoff: raw.playoff
@@ -450,14 +450,19 @@ function uniqueValidIds(value: unknown, validIds: Set<string>): string[] {
   return ids;
 }
 
-function normalizeOffseasonReport(report: DynastyState["offseasonReport"]): DynastyState["offseasonReport"] {
+function normalizeOffseasonReport(report: DynastyState["offseasonReport"], phase?: DynastyState["phase"], week?: number): DynastyState["offseasonReport"] {
   if (!report) return undefined;
   const reportTeams = Array.isArray(report.teams) ? report.teams : [];
+  const signingComplete = Boolean(report.signingComplete);
+  const developmentComplete = Boolean(report.developmentComplete);
   return {
     ...report,
     topClasses: Array.isArray(report.topClasses) ? report.topClasses : [],
-    signingComplete: Boolean(report.signingComplete),
-    developmentComplete: Boolean(report.developmentComplete),
+    departuresReviewed:
+      typeof report.departuresReviewed === "boolean" ? report.departuresReviewed : Boolean(signingComplete || developmentComplete || phase === "preseason" || (phase === "offseason" && Number(week) > 16)),
+    signingComplete,
+    developmentComplete,
+    programReviewComplete: Boolean(report.programReviewComplete),
     teams: reportTeams.map((teamReport) => ({
       ...teamReport,
       departures: teamReport.departures ?? [],

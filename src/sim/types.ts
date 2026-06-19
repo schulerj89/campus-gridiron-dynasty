@@ -456,8 +456,10 @@ export interface OffseasonReport {
   teams: TeamOffseasonReport[];
   topClasses: { teamId: string; teamName: string; points: number }[];
   userRecruitingRank?: number;
+  departuresReviewed?: boolean;
   signingComplete?: boolean;
   developmentComplete?: boolean;
+  programReviewComplete?: boolean;
 }
 
 export interface DebugFlags {

@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.0 - 2026-06-18
+
+- Added explicit offseason review checkpoints so departures, recruiting, signing day, development, and program review each become a single-focus dashboard stage.
+- Added immediate advance-button feedback with disabled loading state and stage-specific button labels such as `Advance to Recruiting`, `Run Signing Day`, and `Advance to Program Review`.
+- Reworked preseason development into a full-roster table with green overall deltas, incoming freshman/walk-on indicators, and attribute movement details.
+- Extended smoke coverage to capture focused offseason stage screenshots.
+
 ## 1.19.3 - 2026-06-18
 
 - Fixed honor-team selection so All-American and all-conference second teams cannot reuse first-team players.

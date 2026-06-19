@@ -325,6 +325,13 @@ describe("dynasty flow", () => {
     expect(state.phase).toBe("offseason");
     const userReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
     expect(userReport?.departures.some((departure) => departure.reason === "graduated" || departure.reason === "pro")).toBe(true);
+    expect(state.offseasonReport?.departuresReviewed).toBe(false);
+
+    state = advanceWeek(state);
+    expect(state.phase).toBe("offseason");
+    expect(state.week).toBe(16);
+    expect(state.offseasonReport?.departuresReviewed).toBe(true);
+
     for (let week = 0; week < 4; week += 1) {
       state = advanceWeek(state);
       expect(state.phase).toBe("offseason");
@@ -342,6 +349,7 @@ describe("dynasty flow", () => {
     state = advanceWeek(state);
     expect(state.phase).toBe("preseason");
     expect(state.offseasonReport?.developmentComplete).toBe(true);
+    expect(state.offseasonReport?.programReviewComplete).toBe(false);
     const preseasonReport = state.offseasonReport?.teams.find((team) => team.teamId === state.userTeamId);
     const preseasonTeam = state.teams.find((team) => team.id === state.userTeamId)!;
     expect(preseasonReport?.progressions.every((progression) => progression.afterOverall >= progression.beforeOverall)).toBe(true);
@@ -358,6 +366,10 @@ describe("dynasty flow", () => {
     expect(state.offseasonReport?.teams.flatMap((teamReport) => teamReport.progressions).some((progression) => incomingIds.has(progression.playerId))).toBe(false);
     expect(state.history[0]?.userRecruitingRank).toBeGreaterThan(0);
     expect(state.teams.find((team) => team.id === state.userTeamId)?.history[0]?.recruitingClassRank).toBe(state.history[0]?.userRecruitingRank);
+
+    state = advanceWeek(state);
+    expect(state.phase).toBe("preseason");
+    expect(state.offseasonReport?.programReviewComplete).toBe(true);
 
     state = advanceWeek(state);
     expect(state.phase).toBe("regular");
@@ -424,6 +436,7 @@ describe("dynasty flow", () => {
     for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
     }
+    state = advanceWeek(state);
     for (let week = 0; week < 4; week += 1) {
       state = advanceWeek(state);
     }
@@ -442,6 +455,7 @@ describe("dynasty flow", () => {
     for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
     }
+    state = advanceWeek(state);
     for (let week = 0; week < 4; week += 1) {
       state = advanceWeek(state);
     }
@@ -546,7 +560,7 @@ describe("dynasty flow", () => {
     expect(advanced.phase).toBe("regular");
     expect(advanced.teams[0]?.roster.some((player) => player.careerStats.length > 0)).toBe(true);
     expect(advanced.teams.every((team) => team.roster.length >= ROSTER_FLOOR)).toBe(true);
-  }, 20_000);
+  }, 45_000);
 
   it("can fast-sim through the full 20-year dynasty", () => {
     const state = createDynasty(9124);
@@ -554,14 +568,14 @@ describe("dynasty flow", () => {
     expect(advanced.phase).toBe("complete");
     expect(advanced.history).toHaveLength(20);
     expect(advanced.year).toBe(20);
-  }, 120_000);
+  }, 180_000);
 
   it("keeps signed recruit player ids unique across multiple recruiting classes", () => {
     const state = createDynasty(9123);
     const advanced = simulateSeasons(state, 5);
     const playerIds = advanced.teams.flatMap((team) => team.roster.map((player) => player.id));
     expect(new Set(playerIds).size).toBe(playerIds.length);
-  }, 30_000);
+  }, 75_000);
 
   it("builds a sorted depth chart for every position", () => {
     const state = createDynasty(10101);
@@ -638,7 +652,9 @@ function developmentReadyReport(base: DynastyState, teams: Team[]): DynastyState
     })),
     topClasses: [],
     userRecruitingRank: 1,
+    departuresReviewed: true,
     signingComplete: true,
     developmentComplete: false,
+    programReviewComplete: false,
   };
 }

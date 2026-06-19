@@ -267,6 +267,11 @@ select {
   color: #231809;
 }
 
+.primary.is-loading {
+  cursor: wait;
+  opacity: 0.78;
+}
+
 .secondary,
 .icon-button,
 .debug-grid button {
@@ -1545,10 +1550,14 @@ select {
   margin-top: 14px;
 }
 
+.offseason-grid.single-focus {
+  grid-template-columns: 1fr;
+}
+
 .offseason-steps {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin: 12px 0 4px;
 }
 
@@ -1609,12 +1618,24 @@ select {
   grid-template-columns: 68px minmax(110px, 1fr) 38px 58px minmax(86px, 0.8fr);
 }
 
+.development-header {
+  color: var(--muted);
+  display: grid;
+  font-size: 0.75rem;
+  font-weight: 900;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 1.3fr) 46px 74px 100px 58px 96px minmax(210px, 1.2fr);
+  letter-spacing: 0;
+  padding: 0 12px;
+  text-transform: uppercase;
+}
+
 .progression-row {
-  grid-template-columns: minmax(140px, 1fr) 46px 74px minmax(150px, 1fr);
+  grid-template-columns: minmax(150px, 1.3fr) 46px 74px 100px 58px 96px minmax(210px, 1.2fr);
 }
 
 .progression-row span:last-child {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .program-change-row {
@@ -2004,6 +2025,14 @@ select {
   .progression-row,
   .program-change-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
+  }
+
+  .development-header {
+    display: none;
+  }
+
+  .progression-row span:last-child {
+    grid-column: 1 / -1;
   }
 
   .depth-player-row {

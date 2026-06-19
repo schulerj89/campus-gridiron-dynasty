@@ -81,7 +81,10 @@ export function advanceWeek(input: DynastyState): DynastyState {
   if (state.phase === "regular") return advanceRegularWeek(state);
   if (state.phase === "postseason") return advancePostseasonWeek(state);
   if (state.phase === "offseason") return advanceOffseasonWeek(state);
-  if (state.phase === "preseason") return startRegularSeason(state);
+  if (state.phase === "preseason") {
+    if (state.offseasonReport?.developmentComplete && !state.offseasonReport.programReviewComplete) return completeProgramReview(state);
+    return startRegularSeason(state);
+  }
   return state;
 }
 
@@ -492,11 +495,38 @@ function openOffseasonAfterChampionship(state: DynastyState): DynastyState {
 }
 
 function advanceOffseasonWeek(state: DynastyState): DynastyState {
+  if (state.offseasonReport && !state.offseasonReport.departuresReviewed && !state.offseasonReport.signingComplete && !state.offseasonReport.developmentComplete) return completeDeparturesReview(state);
   if (!state.offseasonReport?.signingComplete) {
     if (state.week <= OFFSEASON_RECRUITING_END_WEEK) return advanceOffseasonRecruitingWeek(state);
     return runSigningDay(state);
   }
   return runPreseasonDevelopment(state);
+}
+
+function completeDeparturesReview(state: DynastyState): DynastyState {
+  const departures = state.offseasonReport?.teams.find((teamReport) => teamReport.teamId === state.userTeamId)?.departures.length ?? 0;
+  return {
+    ...state,
+    offseasonReport: state.offseasonReport
+      ? {
+          ...state.offseasonReport,
+          departuresReviewed: true,
+        }
+      : state.offseasonReport,
+    debugLog: [`Offseason departures reviewed. ${departures} user-team roster spots are ready for the recruiting window.`, ...state.debugLog].slice(0, 20),
+  };
+}
+
+function completeProgramReview(state: DynastyState): DynastyState {
+  if (!state.offseasonReport) return startRegularSeason(state);
+  return {
+    ...state,
+    offseasonReport: {
+      ...state.offseasonReport,
+      programReviewComplete: true,
+    },
+    debugLog: [`Program review posted. Kickoff week is next.`, ...state.debugLog].slice(0, 20),
+  };
 }
 
 function runSigningDay(state: DynastyState): DynastyState {
@@ -509,8 +539,10 @@ function runSigningDay(state: DynastyState): DynastyState {
     week: PRESEASON_DEVELOPMENT_WEEK,
     offseasonReport: {
       ...offseasonReport,
+      departuresReviewed: true,
       signingComplete: true,
       developmentComplete: false,
+      programReviewComplete: false,
     },
     debugLog: [`Signing day complete. ${offseasonReport.topClasses.length} team classes are available in the offseason report.`, ...signedState.debugLog].slice(0, 20),
   };
@@ -947,6 +979,10 @@ function createOffseasonReport(teams: Team[], year: number): OffseasonReport {
       programChanges: [],
     })),
     topClasses: [],
+    departuresReviewed: false,
+    signingComplete: false,
+    developmentComplete: false,
+    programReviewComplete: false,
   };
 }
 
@@ -977,6 +1013,8 @@ function completeDevelopmentReport(report: OffseasonReport, updates: Map<string,
     ...report,
     signingComplete: true,
     developmentComplete: true,
+    departuresReviewed: true,
+    programReviewComplete: false,
     teams: report.teams.map((teamReport) => {
       const update = updates.get(teamReport.teamId);
       return {

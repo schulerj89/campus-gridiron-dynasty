@@ -108,6 +108,71 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   }
 });
 
+test("focused offseason stage smoke screenshots", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Focused offseason screenshots are captured once on desktop.");
+
+  await page.goto("/?seed=19301");
+  await clearBrowserSave(page);
+  await page.reload();
+  await page.getByTestId("new-dynasty").click();
+  await expect(page.getByText(/Year 1 of 20/)).toBeVisible({ timeout: 40_000 });
+
+  await page.getByRole("button", { name: /Debug/ }).click();
+  await page.getByRole("button", { name: "Force User Playoff" }).click();
+  await page.getByRole("button", { name: "Force User Award" }).click();
+  await page.getByRole("button", { name: /Overview/ }).click();
+
+  for (let week = 0; week < 12; week += 1) {
+    await advanceDynasty(page);
+  }
+  await expect(page.getByTestId("phase-week-label")).toContainText("postseason", { timeout: 60_000 });
+
+  for (let round = 0; round < 3; round += 1) {
+    await advanceDynasty(page);
+  }
+  await expect(page.getByTestId("championship-recap-panel")).toBeVisible({ timeout: 60_000 });
+  await page.screenshot({ path: path.join(screenshotDir, "offseason-championship-recap-desktop.png"), fullPage: true });
+
+  await advanceDynasty(page);
+  await expect(page.getByTestId("offseason-stage-departures")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("advance-week")).toContainText("Advance to Recruiting");
+  await page.screenshot({ path: path.join(screenshotDir, "offseason-departures-focus-desktop.png"), fullPage: true });
+
+  await advanceDynasty(page);
+  await expect(page.getByTestId("offseason-stage-recruiting")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("advance-week")).toContainText("Advance Recruiting Week");
+  await page.screenshot({ path: path.join(screenshotDir, "offseason-recruiting-focus-desktop.png"), fullPage: true });
+
+  for (let week = 0; week < 4; week += 1) {
+    await advanceDynasty(page);
+  }
+  await expect(page.getByTestId("advance-week")).toContainText("Run Signing Day");
+  await advanceDynasty(page);
+  await expect(page.getByTestId("offseason-stage-signing")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("offseason-all-classes-panel")).toContainText("All Team Classes");
+  await page.screenshot({ path: path.join(screenshotDir, "offseason-signing-day-focus-desktop.png"), fullPage: true });
+
+  await advanceDynasty(page);
+  await expect(page.getByTestId("offseason-stage-development")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("preseason-progression-panel")).toContainText("Preseason Development");
+  await page.screenshot({ path: path.join(screenshotDir, "offseason-development-focus-desktop.png"), fullPage: true });
+
+  await advanceDynasty(page);
+  await expect(page.getByTestId("offseason-stage-programReview")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByTestId("program-review-panel")).toContainText("Program Review");
+  await page.screenshot({ path: path.join(screenshotDir, "offseason-program-review-focus-desktop.png"), fullPage: true });
+});
+
+async function advanceDynasty(page: import("@playwright/test").Page) {
+  const label = page.getByTestId("phase-week-label");
+  const before = await label.textContent();
+  const advance = page.getByTestId("advance-week");
+  await expect(advance).toBeEnabled({ timeout: 60_000 });
+  await advance.click();
+  await expect(advance).toBeEnabled({ timeout: 90_000 });
+  await page.waitForFunction((previous) => document.querySelector('[data-testid="phase-week-label"]')?.textContent !== previous, before, { timeout: 90_000 }).catch(() => undefined);
+}
+
 async function clearBrowserSave(page: import("@playwright/test").Page) {
   await page.evaluate(async () => {
     localStorage.clear();
