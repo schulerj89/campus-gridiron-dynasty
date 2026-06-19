@@ -14,6 +14,15 @@ const MIN_SIGNING_CLASS = 22;
 const MAX_SIGNING_CLASS = 28;
 const ROSTER_TARGET_TOTAL = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
 
+export interface PositionNeed {
+  position: Position;
+  need: number;
+  target: number;
+  current: number;
+  pledged?: number;
+  projected?: number;
+}
+
 export function addRecruitToBoard(state: DynastyState, recruitId: string): DynastyState {
   const recruit = state.recruits.find((candidate) => candidate.id === recruitId);
   const limit = recruitingBoardLimit(state);
@@ -403,7 +412,7 @@ export function revealRecruitAttributes(rng: Rng, recruit: Recruit, progressGain
   };
 }
 
-export function positionNeeds(team: Team): { position: Position; need: number; target: number; current: number }[] {
+export function positionNeeds(team: Team): PositionNeed[] {
   return (Object.entries(TARGET_ROSTER) as [Position, number][])
     .map(([position, target]) => {
       const current = team.roster.filter((player) => player.position === position && player.year !== "SR").length;
@@ -417,8 +426,27 @@ export function positionNeeds(team: Team): { position: Position; need: number; t
     .sort((a, b) => b.need - a.need);
 }
 
+export function positionNeedsWithPledges(team: Team, recruits: Recruit[]): PositionNeed[] {
+  return positionNeeds(team)
+    .map((need) => {
+      const pledged = userPledgeCountForPosition(recruits, team.id, need.position);
+      const projected = need.current + pledged;
+      return {
+        ...need,
+        pledged,
+        projected,
+        need: Math.max(0, need.target - projected),
+      };
+    })
+    .sort((a, b) => b.need - a.need);
+}
+
 export function liveOfferCountForPosition(recruits: Recruit[], teamId: string, position: Position): number {
   return recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && !recruit.committedTeamId && recruit.offers?.includes(teamId)).length;
+}
+
+export function userPledgeCountForPosition(recruits: Recruit[], teamId: string, position: Position): number {
+  return recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && recruit.committedTeamId === teamId).length;
 }
 
 export function gemBustFor(recruit: Recruit): "gem" | "solid" | "bust" {

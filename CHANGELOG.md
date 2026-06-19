@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.7 - 2026-06-19
+
+- Made Recruiting Need Command pledge-aware so user pledges reduce visible positional need.
+- Added shared helpers for pledge counts and projected position needs without changing the base roster-only helper.
+- Added regression coverage for user pledges reducing a positional recruiting gap.
+
 ## 1.20.6 - 2026-06-19
 
 - Blocked manual scouting from spending points on recruits already scouted to 100%.

@@ -48,11 +48,12 @@ import {
   offerScholarship,
   pitchRecruit,
   PITCH_COST,
-  positionNeeds,
+  positionNeedsWithPledges,
   removeRecruitFromBoard,
   rescindScholarship,
   SCOUT_COST,
   scoutRecruit,
+  userPledgeCountForPosition,
 } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
@@ -1226,7 +1227,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [sortBy, setSortBy] = useState<RecruitSort>("rank");
   const [recruitPage, setRecruitPage] = useState(1);
   const [selectedRecruitId, setSelectedRecruitId] = useState<string>();
-  const needs = positionNeeds(userTeam);
+  const needs = positionNeedsWithPledges(userTeam, state.recruits);
   const seasonBudget = state.recruiting.seasonBudget ?? state.recruiting.weeklyPoints;
   const pointsSpent = state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining);
   const boardLimit = state.recruiting.boardLimit ?? 35;
@@ -1238,10 +1239,10 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const boardFull = board.length >= boardLimit;
   const needsByPosition = new Map(needs.map((need) => [need.position, need]));
   const needCommandRows = POSITIONS.map((position) => {
-    const need = needsByPosition.get(position) ?? { position, need: 0, target: 0, current: 0 };
+    const need = needsByPosition.get(position) ?? { position, need: 0, target: 0, current: 0, pledged: 0, projected: 0 };
     const boardCount = board.filter((recruit) => recruit.position === position).length;
     const offerCount = liveOfferCountForPosition(state.recruits, userTeam.id, position);
-    const committedCount = state.recruits.filter((recruit) => recruit.position === position && recruit.committedTeamId === userTeam.id).length;
+    const committedCount = userPledgeCountForPosition(state.recruits, userTeam.id, position);
     return {
       ...need,
       boardCount,

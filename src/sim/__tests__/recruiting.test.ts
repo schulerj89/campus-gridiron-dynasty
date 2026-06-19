@@ -16,6 +16,7 @@ import {
   SCOUT_COST,
   scoutRecruit,
   signRecruitingClass,
+  positionNeedsWithPledges,
 } from "../recruiting";
 
 describe("recruiting", () => {
@@ -265,6 +266,35 @@ describe("recruiting", () => {
     });
 
     expect(liveOfferCountForPosition(recruits, state.userTeamId, position)).toBe(1);
+  });
+
+  it("counts user pledges against recruiting position needs", () => {
+    const state = createDynasty(5687);
+    const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    const baseNeed = positionNeedsWithPledges(userTeam, state.recruits).find((need) => need.position === "QB")!;
+    const targetNeed = Math.max(1, baseNeed.need);
+    const roster = userTeam.roster
+      .filter((player) => player.position !== "QB")
+      .concat(userTeam.roster.filter((player) => player.position === "QB").slice(0, Math.max(0, baseNeed.target - targetNeed)));
+    const trimmedTeam = { ...userTeam, roster };
+    const trimmedBaseNeed = positionNeedsWithPledges(trimmedTeam, state.recruits).find((need) => need.position === "QB")!;
+    const recruit = state.recruits.find((candidate) => candidate.position === "QB" && candidate.stage !== "signed")!;
+    const pledgedRecruits = state.recruits.map((candidate) =>
+      candidate.id === recruit.id
+        ? {
+            ...candidate,
+            committedTeamId: state.userTeamId,
+            stage: "softPledge" as const,
+          }
+        : candidate,
+    );
+
+    const pledgedNeed = positionNeedsWithPledges(trimmedTeam, pledgedRecruits).find((need) => need.position === "QB")!;
+
+    expect(trimmedBaseNeed.need).toBeGreaterThan(0);
+    expect(pledgedNeed.pledged).toBe(1);
+    expect(pledgedNeed.projected).toBe(pledgedNeed.current + 1);
+    expect(pledgedNeed.need).toBe(Math.max(0, trimmedBaseNeed.need - 1));
   });
 
   it("requires an offer before pitching and blocks repeat pitches until the next week", () => {
