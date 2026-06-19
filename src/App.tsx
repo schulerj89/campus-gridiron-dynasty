@@ -96,6 +96,7 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
 ];
 
 const RECRUIT_PAGE_SIZE = 25;
+const BOARD_PAGE_SIZE = 8;
 const SIGNEE_PAGE_SIZE = 14;
 
 const ATTRIBUTE_KEYS_FOR_UI: AttributeKey[] = [
@@ -1239,6 +1240,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [commitmentFilter, setCommitmentFilter] = useState<RecruitCommitmentFilter>("all");
   const [pipelineOnly, setPipelineOnly] = useState(false);
   const [sortBy, setSortBy] = useState<RecruitSort>("rank");
+  const [boardPage, setBoardPage] = useState(1);
   const [recruitPage, setRecruitPage] = useState(1);
   const [selectedRecruitId, setSelectedRecruitId] = useState<string>();
   const needs = positionNeedsWithPledges(userTeam, state.recruits);
@@ -1251,6 +1253,9 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
     .filter((recruit): recruit is Recruit => recruit !== undefined)
     .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId);
   const boardFull = board.length >= boardLimit;
+  const boardPageCount = Math.max(1, Math.ceil(board.length / BOARD_PAGE_SIZE));
+  const currentBoardPage = Math.min(boardPage, boardPageCount);
+  const visibleBoard = board.slice((currentBoardPage - 1) * BOARD_PAGE_SIZE, currentBoardPage * BOARD_PAGE_SIZE);
   const needsByPosition = new Map(needs.map((need) => [need.position, need]));
   const needCommandRows = POSITIONS.map((position) => {
     const need = needsByPosition.get(position) ?? { position, need: 0, target: 0, current: 0, pledged: 0, projected: 0 };
@@ -1298,7 +1303,15 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             </h2>
             <p className="muted">Board {board.length}/{boardLimit} - weekly estimate {state.recruiting.weeklyPoints.toLocaleString()} - spent {pointsSpent.toLocaleString()}</p>
           </div>
-          <button className="primary" data-testid="auto-recruit" onClick={() => onUpdate((current) => autoRecruit(current, "Manual auto-recruit run."))} disabled={state.recruiting.pointsRemaining < MIN_RECRUITING_ACTION_COST}>
+          <button
+            className="primary"
+            data-testid="auto-recruit"
+            onClick={() => {
+              setBoardPage(1);
+              onUpdate((current) => autoRecruit(current, "Manual auto-recruit run."));
+            }}
+            disabled={state.recruiting.pointsRemaining < MIN_RECRUITING_ACTION_COST}
+          >
             <Search size={18} />
             Auto Recruit
           </button>
@@ -1343,7 +1356,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
         </div>
         {board.length ? (
           <div className="recruit-grid" data-testid="recruiting-board">
-            {board.map((recruit) => (
+            {visibleBoard.map((recruit) => (
               <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onOpen={setSelectedRecruitId} onBoard pointsRemaining={state.recruiting.pointsRemaining} boardFull={boardFull} week={state.week} />
             ))}
           </div>
@@ -1353,6 +1366,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             <p>Use the recruiting database below, Need Command cards, or Auto Recruit to add real board targets.</p>
           </div>
         )}
+        {board.length > BOARD_PAGE_SIZE && <PaginationControls page={currentBoardPage} pageCount={boardPageCount} total={board.length} pageSize={BOARD_PAGE_SIZE} label="board targets" onPageChange={setBoardPage} />}
       </section>
 
       <section className="panel span-2">

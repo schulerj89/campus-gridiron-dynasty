@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.3 - 2026-06-19
+
+- Added pagination to the active Recruiting Board so auto-filled boards no longer render every card at once.
+- Kept board count, board actions, recruit detail modals, and recruiting mechanics unchanged.
+- Added smoke coverage for moving to the second board page after Auto Recruit fills targets.
+
 ## 1.21.2 - 2026-06-19
 
 - Compactified Recruiting Need Command into a dense position matrix while preserving roster, need, board, offer, pledge, and meter data.

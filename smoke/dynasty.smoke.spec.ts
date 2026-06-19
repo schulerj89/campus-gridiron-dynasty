@@ -83,6 +83,9 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await page.getByRole("button", { name: /Recruiting/ }).click();
   await page.getByTestId("auto-recruit").click();
   await expect(page.getByTestId("recruiting-board")).toContainText(/Interest|Scout/);
+  await expect(page.getByTestId("board targets-pagination")).toContainText("board targets:");
+  await page.getByRole("button", { name: "Next board targets page" }).click();
+  await expect(page.getByTestId("board targets-pagination")).toContainText("Page 2");
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "recruiting-desktop.png"), fullPage: true });
   }
