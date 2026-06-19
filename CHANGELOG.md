@@ -2,6 +2,30 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.9 - 2026-06-19
+
+- Split the Roster Room render into focused roster picker, roster list, and depth-chart panel components.
+- Kept player modal behavior, team switching, position filtering, and depth-chart movement wiring unchanged while reducing the risk of future styling drift.
+- Documented the small-refactor review decision for roster/depth component ownership.
+
+## 1.21.8 - 2026-06-19
+
+- Simplified other-team depth charts by removing disabled move controls from view-only rows.
+- Fixed depth row action spacing so editable move buttons no longer overflow their reserved column.
+- Refreshed roster smoke coverage to assert view-only depth charts expose no movement buttons.
+
+## 1.21.7 - 2026-06-19
+
+- Shortened the Roster Room by switching between Roster List and Depth Chart views instead of stacking both work areas.
+- Compactified depth cards to show the top three players per position while retaining hidden-reserve rotation through move controls.
+- Added smoke coverage for demoting the visible depth cutoff into hidden reserves.
+
+## 1.21.6 - 2026-06-19
+
+- Aligned roster list ordering with depth-chart ordering by sorting on effective overall before potential.
+- Displayed streak-adjusted roster rows as `Eff` while preserving base overall in the player modal and row title text.
+- Updated depth-chart unit coverage to compare effective overall and verify per-position depth totals.
+
 ## 1.21.5 - 2026-06-19
 
 - Consolidated recruit card and recruit modal action controls into a shared `RecruitActionButtons` component.

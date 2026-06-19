@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, createDynasty } from "../generate";
 import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
-import { TARGET_ROSTER } from "../ratings";
+import { effectiveOverall, TARGET_ROSTER } from "../ratings";
 import { blueprintRemaining, blueprintSpent, emptyBlueprintAllocations } from "../blueprint";
 import { scoutRecruit } from "../recruiting";
 import { ATTRIBUTE_KEYS, type Attributes, type DynastyState, type Team } from "../types";
@@ -616,9 +616,10 @@ describe("dynasty flow", () => {
     expect(depthChart).toHaveLength(11);
     expect(depthChart.every((slot) => slot.players.length > 0 && slot.players.length <= 3)).toBe(true);
     for (const slot of depthChart) {
+      expect(slot.totalPlayers).toBe(team.roster.filter((player) => player.position === slot.position).length);
       expect(slot.players.every((player) => player.position === slot.position)).toBe(true);
       for (let index = 1; index < slot.players.length; index += 1) {
-        expect(slot.players[index - 1]!.overall).toBeGreaterThanOrEqual(slot.players[index]!.overall);
+        expect(effectiveOverall(slot.players[index - 1]!)).toBeGreaterThanOrEqual(effectiveOverall(slot.players[index]!));
       }
     }
   });
@@ -630,6 +631,20 @@ describe("dynasty flow", () => {
     const secondBack = hbSlot.players[1]!;
     const moved = moveDepthChartPlayer(team, "HB", secondBack.id, "up");
     expect(buildDepthChart(moved, 3).find((slot) => slot.position === "HB")?.players[0]?.id).toBe(secondBack.id);
+  });
+
+  it("can demote a visible depth chart cutoff into hidden reserves", () => {
+    const state = createDynasty(10103);
+    const team = state.teams[0]!;
+    const hbSlot = buildDepthChart(team, 3).find((slot) => slot.position === "HB")!;
+    expect(hbSlot.totalPlayers).toBeGreaterThan(3);
+    const visibleCutoffBack = hbSlot.players[2]!;
+
+    const moved = moveDepthChartPlayer(team, "HB", visibleCutoffBack.id, "down");
+    const updatedHbSlot = buildDepthChart(moved, 3).find((slot) => slot.position === "HB")!;
+
+    expect(updatedHbSlot.players.map((player) => player.id)).not.toContain(visibleCutoffBack.id);
+    expect(updatedHbSlot.totalPlayers).toBe(hbSlot.totalPlayers);
   });
 });
 

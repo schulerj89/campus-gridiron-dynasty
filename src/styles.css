@@ -1245,7 +1245,24 @@ select {
   margin-bottom: 14px;
 }
 
+.roster-workspace {
+  display: grid;
+  gap: 14px;
+}
+
+.roster-view-switch {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 6px;
+  width: fit-content;
+}
+
 .roster-controls button,
+.roster-view-switch button,
 .modal-tabs button {
   background: #10191e;
   border: 1px solid var(--line);
@@ -1258,9 +1275,16 @@ select {
 }
 
 .roster-controls button.active,
+.roster-view-switch button.active,
 .modal-tabs button.active {
   background: #22353d;
   color: var(--text);
+}
+
+.roster-view-switch button {
+  align-items: center;
+  display: inline-flex;
+  gap: 7px;
 }
 
 .roster-list {
@@ -1327,7 +1351,34 @@ select {
 .depth-grid {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.depth-chart-surface {
+  display: grid;
+  gap: 14px;
+}
+
+.depth-chart-header,
+.depth-card-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.depth-chart-header h2 {
+  margin-bottom: 4px;
+}
+
+.depth-card-head .eyebrow {
+  margin-bottom: 0;
+}
+
+.depth-card-count {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
 }
 
 .depth-card {
@@ -1342,7 +1393,11 @@ select {
 .depth-player-row {
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) 76px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.depth-player-row.view-only {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .depth-main {
@@ -1366,6 +1421,8 @@ select {
 .depth-actions {
   display: flex;
   gap: 6px;
+  justify-content: flex-end;
+  min-width: 78px;
 }
 
 .icon-button.small {

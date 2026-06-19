@@ -73,6 +73,7 @@ import { BLUEPRINT_CATEGORY_META, MAX_BLUEPRINT_CATEGORY_POINTS, blueprintRemain
 
 type Tab = "overview" | "rankings" | "roster" | "recruiting" | "schedule" | "stats" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
+type RosterView = "roster" | "depth";
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
 type OffseasonStage = "departures" | "recruiting" | "signing" | "development" | "programReview";
 
@@ -91,6 +92,7 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
 const RECRUIT_PAGE_SIZE = 25;
 const BOARD_PAGE_SIZE = 8;
 const SIGNEE_PAGE_SIZE = 14;
+const ROSTER_DEPTH_LIMIT = 3;
 
 const ATTRIBUTE_KEYS_FOR_UI: AttributeKey[] = [
   "throwPower",
@@ -1004,6 +1006,7 @@ function DepartureGroup({ title: groupTitle, departures }: { title: string; depa
 function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
   const [selectedTeamId, setSelectedTeamId] = useState(state.userTeamId);
   const [positionFilter, setPositionFilter] = useState<RosterFilter>("ALL");
+  const [rosterView, setRosterView] = useState<RosterView>("roster");
   const [selectedPlayer, setSelectedPlayer] = useState<Player | undefined>();
   const [modalTab, setModalTab] = useState<PlayerModalTab>("profile");
   useEffect(() => {
@@ -1016,9 +1019,9 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
   const conference = state.conferences.find((candidate) => candidate.id === team.conferenceId);
   const units = teamUnitRatings(team.roster);
   const teamOptions = [...state.teams].sort((a, b) => a.name.localeCompare(b.name));
-  const sorted = [...team.roster].sort((a, b) => b.overall - a.overall || b.potential - a.potential);
+  const sorted = [...team.roster].sort((a, b) => effectiveOverall(b) - effectiveOverall(a) || b.potential - a.potential || b.overall - a.overall);
   const filtered = positionFilter === "ALL" ? sorted : sorted.filter((player) => player.position === positionFilter);
-  const depthChart = buildDepthChart(team, 5);
+  const depthChart = buildDepthChart(team, ROSTER_DEPTH_LIMIT);
 
   const openPlayer = (player: Player) => {
     setSelectedPlayer(player);
@@ -1043,90 +1046,174 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
           </div>
           <Users size={20} />
         </div>
-        <div className="filter-grid compact-filters roster-team-picker" data-testid="roster-team-picker">
-          <label>
-            Program
-            <select
-              value={team.id}
-              onChange={(event) => {
-                setSelectedTeamId(event.target.value);
-                setSelectedPlayer(undefined);
-              }}
-              data-testid="roster-team-select"
-            >
-              {teamOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}{option.id === state.userTeamId ? " (your program)" : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="team-summary-strip" data-testid="roster-view-team-summary">
-            <TeamHelmet team={team} size="sm" />
-            <span>{teamIdentity(team)}</span>
-            <span>{team.season.wins}-{team.season.losses}</span>
-            <span>Power {teamPower(team.roster)}</span>
-          </div>
+        <RosterTeamPicker
+          team={team}
+          teamOptions={teamOptions}
+          userTeamId={state.userTeamId}
+          onSelectTeam={(teamId) => {
+            setSelectedTeamId(teamId);
+            setSelectedPlayer(undefined);
+          }}
+        />
+        <div className="roster-view-switch" data-testid="roster-view-switch">
+          <button className={clsx(rosterView === "roster" && "active")} onClick={() => setRosterView("roster")}>
+            <Users size={16} />
+            Roster List
+          </button>
+          <button className={clsx(rosterView === "depth" && "active")} onClick={() => setRosterView("depth")}>
+            <ClipboardList size={16} />
+            Depth Chart
+          </button>
         </div>
-        <div className="roster-controls" data-testid="position-filter">
-          {(["ALL", ...POSITIONS] as RosterFilter[]).map((position) => (
-            <button key={position} className={clsx(positionFilter === position && "active")} onClick={() => setPositionFilter(position)}>
-              {position}
-            </button>
-          ))}
-        </div>
-        <div className="roster-list" data-testid="roster-list">
-          {filtered.map((player) => (
-            <button key={player.id} className="roster-row" onClick={() => openPlayer(player)}>
-              <Portrait index={player.profileIndex} />
-              <strong>{player.name}</strong>
-              <span>{player.position}</span>
-              <span>{player.incomingFreshman ? `${player.year} In` : player.year}{player.walkOn ? " - Walk-on" : ""}</span>
-              <span>OVR {player.overall}</span>
-              <StreakBadge player={player} />
-              <span>Pot {player.potential}</span>
-            </button>
-          ))}
-        </div>
+        {rosterView === "roster" ? (
+          <RosterList players={filtered} positionFilter={positionFilter} onPositionFilterChange={setPositionFilter} onOpenPlayer={openPlayer} />
+        ) : (
+          <DepthChartPanel depthChart={depthChart} isUserTeam={isUserTeam} onOpenPlayer={openPlayer} onMovePlayer={movePlayer} />
+        )}
       </section>
 
-      <section className="panel span-2" data-testid="depth-chart-panel">
-        <div className="panel-head compact">
-          <div>
-            <h2>Depth Chart</h2>
-            <p className="muted">{isUserTeam ? "Editable for your program." : "View only for other programs."}</p>
-          </div>
-          <ClipboardList size={20} />
+      {selectedPlayer && <PlayerModal player={selectedPlayer} activeTab={modalTab} onTabChange={setModalTab} onClose={() => setSelectedPlayer(undefined)} />}
+    </>
+  );
+}
+
+function RosterTeamPicker({
+  team,
+  teamOptions,
+  userTeamId,
+  onSelectTeam,
+}: {
+  team: Team;
+  teamOptions: Team[];
+  userTeamId: string;
+  onSelectTeam: (teamId: string) => void;
+}) {
+  return (
+    <div className="filter-grid compact-filters roster-team-picker" data-testid="roster-team-picker">
+      <label>
+        Program
+        <select value={team.id} onChange={(event) => onSelectTeam(event.target.value)} data-testid="roster-team-select">
+          {teamOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.name}{option.id === userTeamId ? " (your program)" : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="team-summary-strip" data-testid="roster-view-team-summary">
+        <TeamHelmet team={team} size="sm" />
+        <span>{teamIdentity(team)}</span>
+        <span>{team.season.wins}-{team.season.losses}</span>
+        <span>Power {teamPower(team.roster)}</span>
+      </div>
+    </div>
+  );
+}
+
+function RosterList({
+  players,
+  positionFilter,
+  onPositionFilterChange,
+  onOpenPlayer,
+}: {
+  players: Player[];
+  positionFilter: RosterFilter;
+  onPositionFilterChange: (position: RosterFilter) => void;
+  onOpenPlayer: (player: Player) => void;
+}) {
+  return (
+    <div className="roster-workspace">
+      <div className="roster-controls" data-testid="position-filter">
+        {(["ALL", ...POSITIONS] as RosterFilter[]).map((position) => (
+          <button key={position} className={clsx(positionFilter === position && "active")} onClick={() => onPositionFilterChange(position)}>
+            {position}
+          </button>
+        ))}
+      </div>
+      {players.length ? (
+        <div className="roster-list" data-testid="roster-list">
+          {players.map((player) => {
+            const adjustedOverall = effectiveOverall(player);
+            return (
+              <button key={player.id} className="roster-row" onClick={() => onOpenPlayer(player)}>
+                <Portrait index={player.profileIndex} />
+                <strong>{player.name}</strong>
+                <span>{player.position}</span>
+                <span>{player.incomingFreshman ? `${player.year} In` : player.year}{player.walkOn ? " - Walk-on" : ""}</span>
+                <span title={adjustedOverall === player.overall ? undefined : `Base OVR ${player.overall}`}>
+                  {adjustedOverall === player.overall ? "OVR" : "Eff"} {adjustedOverall}
+                </span>
+                <StreakBadge player={player} />
+                <span>Pot {player.potential}</span>
+              </button>
+            );
+          })}
         </div>
-        <div className="depth-grid">
-          {depthChart.map((slot) => (
-            <article key={slot.position} className="depth-card">
+      ) : (
+        <div className="empty-state">
+          <strong>No players match this position filter.</strong>
+          <p>Choose All or another position to continue browsing the roster.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DepthChartPanel({
+  depthChart,
+  isUserTeam,
+  onOpenPlayer,
+  onMovePlayer,
+}: {
+  depthChart: ReturnType<typeof buildDepthChart>;
+  isUserTeam: boolean;
+  onOpenPlayer: (player: Player) => void;
+  onMovePlayer: (position: Position, playerId: string, direction: "up" | "down") => void;
+}) {
+  return (
+    <div className="depth-chart-surface" data-testid="depth-chart-panel">
+      <div className="depth-chart-header">
+        <div>
+          <h2>Depth Chart</h2>
+          <p className="muted">{isUserTeam ? "Editable for your program. Top reserves stay compact but can be rotated down." : "View only for other programs."}</p>
+        </div>
+        <ClipboardList size={20} />
+      </div>
+      <div className="depth-grid">
+        {depthChart.map((slot) => (
+          <article key={slot.position} className="depth-card" data-testid={`depth-slot-${slot.position}`}>
+            <div className="depth-card-head">
               <p className="eyebrow">{slot.position}</p>
-              {slot.players.map((player, index) => (
-                <div key={player.id} className="depth-player-row">
-                  <button className="depth-main" onClick={() => openPlayer(player)}>
+              <span className="depth-card-count">Top {slot.players.length} of {slot.totalPlayers}</span>
+            </div>
+            {slot.players.length ? (
+              slot.players.map((player, index) => (
+                <div key={player.id} className={clsx("depth-player-row", !isUserTeam && "view-only")}>
+                  <button className="depth-main" onClick={() => onOpenPlayer(player)}>
                     <span className="depth-rank">{index + 1}</span>
                     <strong className="depth-name">{player.name}</strong>
                     <em className="depth-overall">OVR {effectiveOverall(player)}</em>
                     <StreakBadge player={player} compact showNeutral={false} />
                   </button>
-                  <div className="depth-actions">
-                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "up")} disabled={!isUserTeam || index === 0} aria-label={`Move ${player.name} up`}>
-                      <ArrowUp size={15} />
-                    </button>
-                    <button className="icon-button small" onClick={() => movePlayer(slot.position, player.id, "down")} disabled={!isUserTeam || index === slot.players.length - 1} aria-label={`Move ${player.name} down`}>
-                      <ArrowDown size={15} />
-                    </button>
-                  </div>
+                  {isUserTeam && (
+                    <div className="depth-actions">
+                      <button className="icon-button small" onClick={() => onMovePlayer(slot.position, player.id, "up")} disabled={index === 0} aria-label={`Move ${player.name} up`}>
+                        <ArrowUp size={15} />
+                      </button>
+                      <button className="icon-button small" onClick={() => onMovePlayer(slot.position, player.id, "down")} disabled={index + 1 >= slot.totalPlayers} aria-label={`Move ${player.name} down`}>
+                        <ArrowDown size={15} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {selectedPlayer && <PlayerModal player={selectedPlayer} activeTab={modalTab} onTabChange={setModalTab} onClose={() => setSelectedPlayer(undefined)} />}
-    </>
+              ))
+            ) : (
+              <p className="muted">No active players at this position.</p>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
   );
 }
 

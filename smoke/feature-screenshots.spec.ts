@@ -23,7 +23,15 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Roster" }).click();
   await expect(page.getByText("Roster Room")).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "roster-desktop.png"), fullPage: true });
+  await page.getByRole("button", { name: "Depth Chart" }).click();
+  await expect(page.getByTestId("depth-chart-panel")).toContainText("Top 3");
+  const halfbackSlot = page.getByTestId("depth-slot-HB");
+  const cutoffHalfback = (await halfbackSlot.locator(".depth-name").nth(2).textContent())?.trim();
+  await expect(halfbackSlot.getByRole("button", { name: /Move .* down/ }).nth(2)).toBeEnabled();
+  await halfbackSlot.getByRole("button", { name: /Move .* down/ }).nth(2).click();
+  if (cutoffHalfback) await expect(halfbackSlot.locator(".depth-name").nth(2)).not.toHaveText(cutoffHalfback);
   await page.getByTestId("depth-chart-panel").screenshot({ path: path.join(screenshotDir, "depth-chart-desktop.png") });
+  await page.getByRole("button", { name: "Roster List" }).click();
   await page.locator(".roster-row").first().click();
   await expect(page.getByTestId("player-modal")).toBeVisible();
   await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "player-profile-modal-desktop.png") });
@@ -33,6 +41,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("attributes-panel")).toBeVisible();
   await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "attributes-desktop.png") });
   await page.getByRole("button", { name: "Close player card" }).click();
+  await page.getByRole("button", { name: "Depth Chart" }).click();
   const rosterTeamSelect = page.getByTestId("roster-team-select");
   const userRosterTeam = await rosterTeamSelect.inputValue();
   const rosterTeamOptions = await rosterTeamSelect.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
@@ -40,6 +49,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   if (otherRosterTeam) {
     await rosterTeamSelect.selectOption(otherRosterTeam);
     await expect(page.getByTestId("depth-chart-panel")).toContainText("View only");
+    await expect(page.getByTestId("depth-chart-panel").getByRole("button", { name: /Move .* up/ })).toHaveCount(0);
     await expect(page.getByTestId("roster-view-team-summary")).toBeVisible();
     await page.screenshot({ path: path.join(screenshotDir, "roster-other-team-desktop.png"), fullPage: true });
     await rosterTeamSelect.selectOption(userRosterTeam);

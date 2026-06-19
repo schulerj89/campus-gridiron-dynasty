@@ -4,15 +4,20 @@ import { POSITIONS, type Player, type Position, type Team } from "./types";
 export interface DepthChartSlot {
   position: Position;
   players: Player[];
+  totalPlayers: number;
 }
 
 export function buildDepthChart(teamOrRoster: Team | Player[], maxPerPosition = 4): DepthChartSlot[] {
   const team = Array.isArray(teamOrRoster) ? undefined : teamOrRoster;
   const roster = Array.isArray(teamOrRoster) ? teamOrRoster : teamOrRoster.roster;
-  return POSITIONS.map((position) => ({
-    position,
-    players: orderPositionPlayers(roster, position, team?.depthChart?.[position]).slice(0, maxPerPosition),
-  }));
+  return POSITIONS.map((position) => {
+    const orderedPlayers = orderPositionPlayers(roster, position, team?.depthChart?.[position]);
+    return {
+      position,
+      players: orderedPlayers.slice(0, maxPerPosition),
+      totalPlayers: orderedPlayers.length,
+    };
+  });
 }
 
 export function orderPositionPlayers(roster: Player[], position: Position, savedOrder: string[] = []): Player[] {
