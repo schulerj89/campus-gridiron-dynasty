@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.13 - 2026-06-19
+
+- Added a mobile-specific recruiting database row layout to remove desktop-width overflow.
+- Kept recruit row metadata readable as compact cards on phone-sized screens.
+- Added mobile smoke coverage and screenshot output for the recruiting page.
+
 ## 1.20.12 - 2026-06-19
 
 - Corrected Recruiting Need Command meter math to measure covered open roster slots.

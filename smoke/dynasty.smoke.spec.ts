@@ -86,6 +86,12 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "recruiting-desktop.png"), fullPage: true });
   }
+  if (testInfo.project.name === "webkit-iphone-15-pro-max") {
+    await expect(page.getByTestId("recruiting-database")).toBeVisible();
+    const databaseOverflows = await page.getByTestId("recruiting-database").evaluate((element) => element.scrollWidth > element.clientWidth + 1);
+    expect(databaseOverflows).toBe(false);
+    await page.getByTestId("recruiting-database").screenshot({ path: path.join(screenshotDir, "mobile-recruiting.png") });
+  }
 
   await page.getByRole("button", { name: /Debug/ }).click();
   await page.getByRole("button", { name: "Force User Playoff" }).click();

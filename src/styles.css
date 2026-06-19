@@ -2034,6 +2034,28 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .recruit-table .table-row {
+    gap: 8px 10px;
+    grid-template-columns: 76px minmax(0, 1fr);
+    min-width: 0;
+  }
+
+  .recruit-table .table-row .stars {
+    align-self: start;
+    grid-row: span 2;
+  }
+
+  .recruit-table .table-row strong,
+  .recruit-table .table-row span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .recruit-table .table-row .status-pill {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
   .compact-table .table-row,
   .roster-row,
   .departure-row,
