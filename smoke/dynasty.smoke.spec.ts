@@ -162,6 +162,10 @@ test("focused offseason stage smoke screenshots", async ({ page }, testInfo) => 
   await expect(page.getByTestId("offseason-stage-development")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId("preseason-progression-panel")).toContainText("Preseason Development");
   await page.screenshot({ path: path.join(screenshotDir, "offseason-development-focus-desktop.png"), fullPage: true });
+  await page.getByRole("button", { name: /Awards/ }).click();
+  await expect(page.getByTestId("awards-panel")).toContainText("Latest Season Awards");
+  await page.getByTestId("awards-panel").screenshot({ path: path.join(screenshotDir, "awards-latest-season-desktop.png") });
+  await page.getByRole("button", { name: /Overview/ }).click();
 
   await advanceDynasty(page);
   await expect(page.getByTestId("offseason-stage-programReview")).toBeVisible({ timeout: 60_000 });

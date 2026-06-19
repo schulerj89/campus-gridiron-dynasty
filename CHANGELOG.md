@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.18 - 2026-06-19
+
+- Corrected the Awards page title when showing completed-season history outside the regular season.
+- Added a preseason history smoke assertion for the `Latest Season Awards` state.
+- Added the `awards-latest-season-desktop.png` screenshot artifact.
+
 ## 1.20.17 - 2026-06-19
 
 - Aligned the signed-recruit modal close control with the app's standard icon button styling.

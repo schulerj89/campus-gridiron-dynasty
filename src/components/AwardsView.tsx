@@ -14,6 +14,7 @@ export function Awards({ state }: { state: DynastyState }) {
   const latestConferenceWeeklyAwards = userConference ? state.weeklyAwards[0]?.conference[userConference.id] ?? [] : [];
   const seasonAwardWatch = !state.seasonAwards && state.phase === "regular" && state.week >= 8 ? createSeasonAwards(state.teams, state.conferences, state.calendarYear).nationalAwards : undefined;
   const awardSource = state.seasonAwards?.nationalAwards ?? seasonAwardWatch ?? (state.phase === "regular" ? [] : latestHistory?.awardWinners ?? []);
+  const seasonAwardsTitle = state.seasonAwards ? "Season Awards" : seasonAwardWatch ? "Season Award Watch" : state.phase !== "regular" && awardSource.length ? "Latest Season Awards" : "Season Award Watch Opens Week 8";
   const currentChampionName = state.playoff?.championTeamId ? state.teams.find((team) => team.id === state.playoff?.championTeamId)?.name : undefined;
   const bracketChampionName = state.playoff ? currentChampionName : latestHistory?.championName;
   const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
@@ -35,7 +36,7 @@ export function Awards({ state }: { state: DynastyState }) {
       </section>
       <section className="panel span-2" data-testid="awards-panel">
         <div className="panel-head compact">
-          <h2>{state.seasonAwards ? "Season Awards" : state.week >= 8 ? "Season Award Watch" : "Season Award Watch Opens Week 8"}</h2>
+          <h2>{seasonAwardsTitle}</h2>
           <Award size={20} />
         </div>
         {state.week >= 8 || state.seasonAwards || state.phase !== "regular" ? <AwardGrid awards={awardSource} userTeamId={state.userTeamId} /> : <p className="muted">Season award tracking unlocks after Week 8.</p>}
