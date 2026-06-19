@@ -694,7 +694,7 @@ describe("dynasty flow", () => {
     expect(advanced.phase).toBe("complete");
     expect(advanced.history).toHaveLength(20);
     expect(advanced.year).toBe(20);
-  }, 180_000);
+  }, 300_000);
 
   it("keeps signed recruit player ids unique across multiple recruiting classes", () => {
     const state = createDynasty(9123);

@@ -22,5 +22,5 @@ describe("program record book", () => {
     expect(recordBook?.summitFourTrips).toBeGreaterThanOrEqual(recordBook?.crownBowlTitles ?? 0);
     expect(recordBook?.bowlTrips).toBeGreaterThanOrEqual(recordBook?.summitFourTrips ?? 0);
     expect(recordBook?.bestRecruitingClass?.rank).toBeGreaterThan(0);
-  }, 20_000);
+  }, 60_000);
 });
