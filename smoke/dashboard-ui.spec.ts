@@ -26,6 +26,25 @@ test("dashboard advance buttons use the guarded advance flow", async ({ page }, 
   await page.screenshot({ path: path.join(screenshotDir, "dashboard-advance-guard-desktop.png"), fullPage: true });
 });
 
+test("dashboard latest national awards highlight the user team", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Dashboard regression screenshots are captured once on desktop Chromium.");
+
+  await page.goto("/?seed=13042");
+  await clearBrowserSave(page);
+  await page.reload();
+  await page.getByTestId("new-dynasty").click();
+  await expect(page.getByText("Dynasty Command")).toBeVisible({ timeout: 40_000 });
+
+  await page.getByRole("button", { name: "Debug" }).click();
+  await page.getByRole("button", { name: "Force User Award" }).click();
+  await page.getByRole("button", { name: "Overview" }).click();
+
+  const awardsPanel = page.getByTestId("latest-national-awards-panel");
+  await expect(awardsPanel).toBeVisible();
+  await expect(awardsPanel.getByTestId("user-team-award-card")).toBeVisible();
+  await awardsPanel.screenshot({ path: path.join(screenshotDir, "dashboard-awards-highlight-desktop.png") });
+});
+
 async function clearBrowserSave(page: import("@playwright/test").Page) {
   await page.evaluate(async () => {
     localStorage.clear();

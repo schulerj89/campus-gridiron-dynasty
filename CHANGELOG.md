@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.16 - 2026-06-19
+
+- Applied existing user-team award highlighting to the dashboard's Latest National Awards panel.
+- Made the debug Force User Award command seed a current weekly award card for dashboard QA.
+- Added forced-award smoke coverage for the overview award panel.
+- Added a dashboard award highlight screenshot artifact.
+
 ## 1.20.15 - 2026-06-19
 
 - Defaulted the offseason signing-day class selector to the user's team instead of the top national class.

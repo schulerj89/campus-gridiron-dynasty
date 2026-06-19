@@ -29,6 +29,7 @@ import {
   type CollegeYear,
   type DynastyState,
   type Game,
+  type AwardWinner,
   type OffseasonReport,
   type Phase,
   type Player,
@@ -110,11 +111,37 @@ export function forceUserPlayoff(state: DynastyState): DynastyState {
 }
 
 export function forceUserAward(state: DynastyState): DynastyState {
+  const weeklyAwards = forceUserWeeklyAward(state);
   return {
     ...state,
     debugFlags: { ...state.debugFlags, forceUserAward: true },
+    weeklyAwards,
     debugLog: [`Debug: user-team QB will be forced into the next top national award slot.`, ...state.debugLog].slice(0, 20),
   };
+}
+
+function forceUserWeeklyAward(state: DynastyState): DynastyState["weeklyAwards"] {
+  const team = state.teams.find((candidate) => candidate.id === state.userTeamId);
+  const player = team?.roster.find((candidate) => candidate.position === "QB") ?? team?.roster[0];
+  if (!team || !player) return state.weeklyAwards;
+  const forcedAward: AwardWinner = {
+    awardName: "National Offensive Player of the Week",
+    playerId: player.id,
+    playerName: player.name,
+    teamId: team.id,
+    teamName: team.name,
+    position: player.position,
+    note: `${player.overall} overall debug award candidate`,
+  };
+  const currentAwards = state.weeklyAwards.find((entry) => entry.year === state.calendarYear && entry.week === state.week);
+  const national = [forcedAward, ...(currentAwards?.national ?? []).filter((award) => award.playerId !== player.id).slice(0, 3)];
+  const weeklyAward = {
+    year: state.calendarYear,
+    week: state.week,
+    national,
+    conference: currentAwards?.conference ?? {},
+  };
+  return [weeklyAward, ...state.weeklyAwards.filter((entry) => entry.year !== weeklyAward.year || entry.week !== weeklyAward.week)].slice(0, 24);
 }
 
 export function forceUserWalkOnNeed(state: DynastyState): DynastyState {

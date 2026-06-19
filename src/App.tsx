@@ -549,7 +549,7 @@ function Overview({
             <h2>Latest National Awards</h2>
             <Award size={20} />
           </div>
-          <AwardGrid awards={recentAwards.slice(0, 2)} />
+          <AwardGrid awards={recentAwards.slice(0, 2)} userTeamId={state.userTeamId} />
         </section>
       )}
 
