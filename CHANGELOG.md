@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.9 - 2026-06-19
+
+- Aligned the regular recruit modal with the app's dialog/backdrop modal pattern.
+- Added dialog semantics and an accessible recruit-specific modal label.
+- Extended recruiting smoke coverage to verify dialog attributes and backdrop-close behavior.
+
 ## 1.20.8 - 2026-06-19
 
 - Stopped rendering fallback database prospects inside an empty Recruiting Board.

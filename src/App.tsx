@@ -1528,8 +1528,8 @@ function RecruitModal({
     .slice(0, 3);
 
   return (
-    <div className="modal-backdrop">
-      <section className="player-modal recruit-modal" data-testid="recruit-modal">
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="player-modal recruit-modal" role="dialog" aria-modal="true" aria-label={`${recruit.name} recruit detail`} onMouseDown={(event) => event.stopPropagation()} data-testid="recruit-modal">
         <div className="modal-head">
           <div className="card-title">
             <Portrait index={recruit.profileIndex} />
