@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.1 - 2026-06-19
+
+- Replaced the fallback award statue drawings with file-backed `gpt-image-2` generated bronze statue PNGs.
+- Kept one distinct rendered pose per national season award, including a neutral Iron Lantern Trophy pose.
+- Refreshed awards screenshots to verify the upgraded trophy art in the candidate-board UI.
+
 ## 1.21.0 - 2026-06-19
 
 - Added bronze statue artwork for every national season award, including a neutral pose for the Iron Lantern Trophy.

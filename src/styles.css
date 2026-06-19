@@ -1018,7 +1018,7 @@ select {
   align-items: center;
   display: grid;
   gap: 14px;
-  grid-template-columns: 108px minmax(0, 1fr);
+  grid-template-columns: 124px minmax(0, 1fr);
 }
 
 .award-statue-frame {
@@ -1034,10 +1034,10 @@ select {
 
 .award-statue-frame img {
   display: block;
-  height: 96px;
+  height: 116px;
   image-rendering: auto;
   object-fit: contain;
-  width: 96px;
+  width: 116px;
 }
 
 .season-award-winner h3 {
@@ -2308,12 +2308,12 @@ select {
   }
 
   .season-award-main {
-    grid-template-columns: 82px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
   }
 
   .award-statue-frame img {
-    height: 72px;
-    width: 72px;
+    height: 88px;
+    width: 88px;
   }
 
   .candidate-list-head,
