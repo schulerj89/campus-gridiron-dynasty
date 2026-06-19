@@ -16,6 +16,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.reload();
   await page.getByTestId("new-dynasty").click();
   await expect(page.getByText("Dynasty Command")).toBeVisible({ timeout: 40_000 });
+  const userTeamName = (await page.locator(".topbar h1").textContent())?.trim() ?? "";
   await expect(page.getByTestId("dashboard-next-game-panel")).toContainText("Matchup Preview");
   await page.getByTestId("dashboard-next-game-panel").screenshot({ path: path.join(screenshotDir, "dashboard-next-game-desktop.png") });
 
@@ -242,6 +243,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await advanceDynasty(page);
   await expect(page.getByText(/offseason signing day - classes posted/)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByTestId("offseason-all-classes-panel")).toBeVisible();
+  const selectedClassName = await page.getByTestId("offseason-class-team-select").evaluate((select) => (select as HTMLSelectElement).selectedOptions[0]?.textContent ?? "");
+  expect(selectedClassName).toContain(userTeamName);
   await expect(page.getByTestId("recruiting-ranking-panel")).toContainText("Recruiting Class Leaderboard");
   await page.getByTestId("recruiting-ranking-panel").screenshot({ path: path.join(screenshotDir, "offseason-recruiting-rankings-desktop.png") });
   await page.getByTestId("offseason-all-classes-panel").screenshot({ path: path.join(screenshotDir, "offseason-all-classes-desktop.png") });

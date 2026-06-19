@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.15 - 2026-06-19
+
+- Defaulted the offseason signing-day class selector to the user's team instead of the top national class.
+- Preserved the ranked class list ordering while keeping the dashboard focus on the user's signing class.
+- Added smoke coverage that verifies the selected class matches the active dynasty team.
+
 ## 1.20.14 - 2026-06-19
 
 - Routed dashboard, postseason, and championship in-panel advance buttons through the guarded advance flow.

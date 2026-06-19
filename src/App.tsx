@@ -661,7 +661,7 @@ function OffseasonRecap({
         {stage === "recruiting" && <OffseasonRecruitingFocus state={state} />}
         {stage === "signing" && (
           <>
-            <ClassSigneesPanel reports={report.teams} recruits={state.recruits} teams={state.teams} />
+            <ClassSigneesPanel reports={report.teams} recruits={state.recruits} teams={state.teams} preferredTeamId={teamReport.teamId} />
             <RecruitingRankingPanel topClasses={topClasses} />
           </>
         )}
@@ -730,11 +730,15 @@ function RecruitingRankingPanel({ topClasses }: { topClasses: NonNullable<Dynast
   );
 }
 
-function ClassSigneesPanel({ reports, recruits, teams }: { reports: NonNullable<DynastyState["offseasonReport"]>["teams"]; recruits: Recruit[]; teams: Team[] }) {
-  const sortedReports = [...reports].sort((a, b) => (a.recruitingRank ?? 999) - (b.recruitingRank ?? 999) || a.teamName.localeCompare(b.teamName));
-  const [selectedTeamId, setSelectedTeamId] = useState(sortedReports[0]?.teamId ?? "");
+function ClassSigneesPanel({ reports, recruits, teams, preferredTeamId }: { reports: NonNullable<DynastyState["offseasonReport"]>["teams"]; recruits: Recruit[]; teams: Team[]; preferredTeamId: string }) {
+  const sortedReports = useMemo(() => [...reports].sort((a, b) => (a.recruitingRank ?? 999) - (b.recruitingRank ?? 999) || a.teamName.localeCompare(b.teamName)), [reports]);
+  const preferredReportId = sortedReports.find((report) => report.teamId === preferredTeamId)?.teamId ?? sortedReports[0]?.teamId ?? "";
+  const [selectedTeamId, setSelectedTeamId] = useState(preferredReportId);
   const [selectedSigneeId, setSelectedSigneeId] = useState<string>();
   const [signeePage, setSigneePage] = useState(1);
+  useEffect(() => {
+    setSelectedTeamId((current) => (sortedReports.some((report) => report.teamId === current) ? current : preferredReportId));
+  }, [preferredReportId, sortedReports]);
   const selected = sortedReports.find((report) => report.teamId === selectedTeamId) ?? sortedReports[0];
   const signees = selected?.signees ?? [];
   const signeePageCount = Math.max(1, Math.ceil(signees.length / SIGNEE_PAGE_SIZE));
