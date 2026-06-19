@@ -999,6 +999,24 @@ select {
   margin-bottom: 6px;
 }
 
+.empty-state {
+  background: #0f171b;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+}
+
+.empty-state strong {
+  color: var(--text);
+}
+
+.empty-state p {
+  margin: 0;
+}
+
 .playoff-grid .card strong,
 .playoff-grid .card span {
   display: block;

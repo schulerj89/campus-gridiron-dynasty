@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.8 - 2026-06-19
+
+- Stopped rendering fallback database prospects inside an empty Recruiting Board.
+- Added a clear empty board state that directs users to the database, Need Command, or Auto Recruit.
+- Added reusable empty-state styling for compact panel messages.
+
 ## 1.20.7 - 2026-06-19
 
 - Made Recruiting Need Command pledge-aware so user pledges reduce visible positional need.

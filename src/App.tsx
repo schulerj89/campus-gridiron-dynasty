@@ -1316,11 +1316,18 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             </button>
           ))}
         </div>
-        <div className="recruit-grid" data-testid="recruiting-board">
-          {(board.length ? board : matchingRecruits.slice(0, 6)).map((recruit) => (
-            <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onOpen={setSelectedRecruitId} onBoard={board.some((item) => item.id === recruit.id)} pointsRemaining={state.recruiting.pointsRemaining} boardFull={boardFull} week={state.week} />
-          ))}
-        </div>
+        {board.length ? (
+          <div className="recruit-grid" data-testid="recruiting-board">
+            {board.map((recruit) => (
+              <RecruitCard key={recruit.id} recruit={recruit} userTeam={userTeam} onUpdate={onUpdate} onOpen={setSelectedRecruitId} onBoard pointsRemaining={state.recruiting.pointsRemaining} boardFull={boardFull} week={state.week} />
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state recruiting-empty-state" data-testid="recruiting-board">
+            <strong>No prospects on your board</strong>
+            <p>Use the recruiting database below, Need Command cards, or Auto Recruit to add real board targets.</p>
+          </div>
+        )}
       </section>
 
       <section className="panel span-2">
