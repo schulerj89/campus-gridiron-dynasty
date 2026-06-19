@@ -329,6 +329,10 @@ select {
   padding-bottom: 2px;
 }
 
+.mobile-menu-trigger {
+  display: none;
+}
+
 .tab {
   align-items: center;
   background: transparent;
@@ -2393,6 +2397,96 @@ select {
     align-items: flex-start;
   }
 
+  .app-shell {
+    padding: 8px;
+  }
+
+  .topbar {
+    border-radius: 8px;
+    gap: 10px;
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .topbar h1 {
+    font-size: 1.45rem;
+    line-height: 1.05;
+    margin-bottom: 5px;
+  }
+
+  .topbar .eyebrow {
+    font-size: 0.68rem;
+  }
+
+  .save-status {
+    display: none;
+  }
+
+  .content-grid {
+    gap: 10px;
+  }
+
+  .panel,
+  .offseason-column {
+    padding: 12px;
+  }
+
+  .panel-head {
+    gap: 10px;
+  }
+
+  .panel-head h2,
+  .offseason-column h3 {
+    font-size: 1.15rem;
+    line-height: 1.15;
+  }
+
+  .mobile-menu-trigger {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    width: 100%;
+  }
+
+  .mobile-menu-trigger span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tabbar {
+    background: #10181d;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: none;
+    gap: 6px;
+    margin: 0 0 10px;
+    overflow: visible;
+    padding: 8px;
+  }
+
+  .tabbar.mobile-open {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tabbar.mobile-open .tab {
+    justify-content: flex-start;
+    min-width: 0;
+    padding: 0 8px;
+    width: auto;
+  }
+
+  .tabbar.mobile-open .tab span {
+    display: inline;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .player-grid,
   .recruit-grid,
   .award-grid,
@@ -2434,7 +2528,44 @@ select {
     grid-template-columns: 38px minmax(0, 1fr) 50px;
   }
 
+  .need-command-legend {
+    display: none;
+  }
+
+  .need-command-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .need-command-card {
+    gap: 5px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 74px;
+    padding: 8px;
+  }
+
+  .need-command-card em,
+  .need-command-card i {
+    grid-column: 1 / -1;
+  }
+
+  .need-command-card small {
+    font-size: 0.72rem;
+  }
+
+  .recruiting-budget-grid,
+  .compact-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .topbar-actions .secondary {
+    display: none;
+  }
+
+  .topbar-actions .primary {
+    flex-basis: 100%;
+  }
+
+  .dashboard-panel .panel-head > .primary {
     display: none;
   }
 
@@ -2446,6 +2577,54 @@ select {
 
   .roster-controls button {
     flex: 0 0 auto;
+  }
+
+  .roster-list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .roster-row {
+    min-height: 70px;
+    padding: 8px;
+  }
+
+  .stats-table-scroll {
+    overflow: visible;
+  }
+
+  .leaderboard-row {
+    gap: 6px;
+    grid-template-columns: 30px minmax(0, 1fr) 38px minmax(48px, 0.55fr) 56px;
+    min-width: 0;
+  }
+
+  .leaderboard-row > span:nth-child(n + 5):not(.selected-stat) {
+    display: none;
+  }
+
+  .leaderboard-row span,
+  .leaderboard-row strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .leaderboard-row .selected-stat {
+    display: block;
+    justify-self: end;
+  }
+
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pagination > div {
+    justify-content: space-between;
   }
 
   .modal-title {
@@ -2466,12 +2645,11 @@ select {
     width: 58px;
   }
 
-  .tab span {
-    display: none;
+  .play-event {
+    grid-template-columns: 1fr;
   }
 
-  .tab {
-    justify-content: center;
-    width: 44px;
+  .play-event > b {
+    justify-self: start;
   }
 }

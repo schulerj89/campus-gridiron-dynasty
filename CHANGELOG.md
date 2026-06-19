@@ -2,6 +2,14 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.17 - 2026-06-19
+
+- Added a mobile section menu that collapses the dynasty tab rail behind a hamburger control on iPhone-sized screens.
+- Reduced mobile scrolling with smaller responsive page sizes for roster, recruiting, signing day, development, departures, class rankings, and schedule lists.
+- Tightened mobile styles for stat leaders, recruiting need cards, pagination controls, and sticky top navigation.
+- Added a GitHub Pages deployment workflow and Vite Pages base path for `campus-gridiron-dynasty`.
+- Documented the code-review/design decisions for the mobile usability and Pages deploy patch.
+
 ## 1.21.16 - 2026-06-19
 
 - Stopped at-potential players from gaining hidden attribute value during preseason development while keeping high-potential breakout growth intact.

@@ -36,6 +36,12 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await expect(page.getByText("Action Items")).not.toBeVisible();
     await expect(page.getByText("Latest National Awards")).not.toBeVisible();
     await expect(page.getByText("Passing")).not.toBeVisible();
+    await expect(page.getByTestId("mobile-section-menu")).toBeVisible();
+    await expect(page.locator("#dynasty-section-tabs")).toBeHidden();
+    await page.getByTestId("mobile-section-menu").click();
+    await expect(page.locator("#dynasty-section-tabs")).toBeVisible();
+    await page.screenshot({ path: path.join(screenshotDir, "mobile-section-menu.png"), fullPage: false });
+    await page.getByTestId("mobile-section-menu").click();
     await page.screenshot({ path: path.join(screenshotDir, "mobile-dashboard.png"), fullPage: true });
   }
 
@@ -80,7 +86,7 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await expect(page.getByText(/Year 1 of 20/)).toBeVisible({ timeout: 40_000 });
   }
 
-  await page.getByRole("button", { name: /Recruiting/ }).click();
+  await openDynastySection(page, testInfo, /Recruiting/);
   await page.getByTestId("auto-recruit").click();
   await expect(page.getByTestId("recruiting-board")).toContainText(/Interest|Scout/);
   await expect(page.getByTestId("board targets-pagination")).toContainText("board targets:");
@@ -96,20 +102,20 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await page.getByTestId("recruiting-database").screenshot({ path: path.join(screenshotDir, "mobile-recruiting.png") });
   }
 
-  await page.getByRole("button", { name: /Debug/ }).click();
+  await openDynastySection(page, testInfo, /Debug/);
   await page.getByRole("button", { name: "Force User Playoff" }).click();
   await page.getByRole("button", { name: "Force User Award" }).click();
   await page.getByTestId("sim-three-seasons").click();
   await expect(page.getByText(/Year 4 of 20/)).toBeVisible({ timeout: 90_000 });
 
-  await page.getByRole("button", { name: /Program/ }).click();
+  await openDynastySection(page, testInfo, /Program/);
   await expect(page.getByTestId("program-record-book-panel")).toContainText("Program Record Book");
   await expect(page.getByTestId("dynasty-history-panel")).toContainText("Dynasty History");
   if (testInfo.project.name === "chromium-desktop") {
     await page.getByTestId("program-record-book-panel").screenshot({ path: path.join(screenshotDir, "program-record-book-desktop.png") });
   }
 
-  await page.getByRole("button", { name: /Awards/ }).click();
+  await openDynastySection(page, testInfo, /Awards/);
   await expect(page.getByTestId("awards-panel")).toBeVisible();
   await expect(page.getByTestId("playoff-panel")).toBeVisible();
   if (testInfo.project.name === "chromium-desktop") {
@@ -186,6 +192,14 @@ async function advanceDynasty(page: import("@playwright/test").Page) {
   await advance.click();
   await expect(advance).toBeEnabled({ timeout: 90_000 });
   await page.waitForFunction((previous) => document.querySelector('[data-testid="phase-week-label"]')?.textContent !== previous, before, { timeout: 90_000 }).catch(() => undefined);
+}
+
+async function openDynastySection(page: import("@playwright/test").Page, testInfo: import("@playwright/test").TestInfo, name: string | RegExp) {
+  const mobileMenu = page.getByTestId("mobile-section-menu");
+  if (testInfo.project.name === "webkit-iphone-15-pro-max" && (await mobileMenu.isVisible())) {
+    await mobileMenu.click();
+  }
+  await page.getByRole("button", { name }).click();
 }
 
 async function clearBrowserSave(page: import("@playwright/test").Page) {

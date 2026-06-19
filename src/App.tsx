@@ -22,6 +22,7 @@ import {
   Flame,
   LineChart,
   MapPinned,
+  Menu,
   Play,
   Plus,
   RotateCcw,
@@ -90,8 +91,21 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
 ];
 
 const RECRUIT_PAGE_SIZE = 25;
+const MOBILE_RECRUIT_PAGE_SIZE = 8;
 const BOARD_PAGE_SIZE = 8;
+const MOBILE_BOARD_PAGE_SIZE = 4;
 const SIGNEE_PAGE_SIZE = 14;
+const MOBILE_SIGNEE_PAGE_SIZE = 6;
+const ROSTER_PAGE_SIZE = 18;
+const MOBILE_ROSTER_PAGE_SIZE = 7;
+const PROGRESSION_PAGE_SIZE = 24;
+const MOBILE_PROGRESSION_PAGE_SIZE = 7;
+const DEPARTURE_PAGE_SIZE = 12;
+const MOBILE_DEPARTURE_PAGE_SIZE = 6;
+const CLASS_RANKING_PAGE_SIZE = 20;
+const MOBILE_CLASS_RANKING_PAGE_SIZE = 8;
+const SCHEDULE_PAGE_SIZE = 24;
+const MOBILE_SCHEDULE_PAGE_SIZE = 8;
 const ROSTER_DEPTH_LIMIT = 3;
 const ROSTER_FLOOR_TOTAL = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
 
@@ -149,6 +163,19 @@ const blueprintFocusOptions: { value: BlueprintFocus; label: string }[] = [
   { value: "retention", label: "Retention" },
 ];
 
+function useCompactMobile(): boolean {
+  const [matches, setMatches] = useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 480px)").matches);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(max-width: 480px)");
+    const update = () => setMatches(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  return matches;
+}
+
 export default function App() {
   const previewWorld = useMemo(() => createDynasty(20260616), []);
   const [selectedTeamId, setSelectedTeamId] = useState(previewWorld.userTeamId);
@@ -158,9 +185,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [saveStatus, setSaveStatus] = useState("Local DB ready");
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>();
   const [playerModalTab, setPlayerModalTab] = useState<PlayerModalTab>("profile");
   const advanceLockedRef = useRef(false);
+  const hadDynastyStateRef = useRef(false);
+  const lastActiveTabRef = useRef(activeTab);
   const saveQueue = useMemo(() => createDynastySaveQueue(saveDynasty), []);
   const latestSaveRequest = useRef(0);
 
@@ -187,6 +217,23 @@ export default function App() {
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [state]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!state) {
+      hadDynastyStateRef.current = false;
+      lastActiveTabRef.current = activeTab;
+      return;
+    }
+    const enteringDynasty = !hadDynastyStateRef.current;
+    const changedTab = lastActiveTabRef.current !== activeTab;
+    hadDynastyStateRef.current = true;
+    lastActiveTabRef.current = activeTab;
+    if (enteringDynasty || changedTab) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [activeTab, state]);
 
   const queueSave = (nextState: DynastyState, status: (saved: DynastyState) => string) => {
     const request = ++latestSaveRequest.current;
@@ -286,6 +333,8 @@ export default function App() {
   const userTeam = getUserTeam(state);
   const advanceLabel = advanceActionLabel(state);
   const selectedPlayer = selectedPlayerId ? state.teams.flatMap((team) => team.roster).find((player) => player.id === selectedPlayerId) : undefined;
+  const activeTabMeta = tabs.find((tab) => tab.id === activeTab) ?? tabs[0]!;
+  const ActiveTabIcon = activeTabMeta.icon;
   const openPlayer = (player: Player, tab: PlayerModalTab = "profile") => {
     setSelectedPlayerId(player.id);
     setPlayerModalTab(tab);
@@ -322,11 +371,33 @@ export default function App() {
         </div>
       </header>
 
-      <nav className="tabbar" aria-label="Dynasty sections">
+      <button
+        type="button"
+        className="secondary mobile-menu-trigger"
+        data-testid="mobile-section-menu"
+        aria-controls="dynasty-section-tabs"
+        aria-expanded={mobileNavOpen}
+        onClick={() => setMobileNavOpen((open) => !open)}
+      >
+        <Menu size={18} />
+        <span>{activeTabMeta.label}</span>
+        <ActiveTabIcon size={17} />
+      </button>
+
+      <nav id="dynasty-section-tabs" className={clsx("tabbar", mobileNavOpen && "mobile-open")} aria-label="Dynasty sections">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} className={clsx("tab", activeTab === tab.id && "active")} onClick={() => setActiveTab(tab.id)} aria-label={tab.label}>
+            <button
+              key={tab.id}
+              className={clsx("tab", activeTab === tab.id && "active")}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setMobileNavOpen(false);
+              }}
+              aria-label={tab.label}
+              aria-current={activeTab === tab.id ? "page" : undefined}
+            >
               <Icon size={17} />
               <span>{tab.label}</span>
             </button>
@@ -723,19 +794,31 @@ function OffseasonRecruitingFocus({ state }: { state: DynastyState }) {
 }
 
 function RecruitingRankingPanel({ topClasses }: { topClasses: NonNullable<DynastyState["offseasonReport"]>["topClasses"] }) {
+  const isCompactMobile = useCompactMobile();
+  const pageSize = isCompactMobile ? MOBILE_CLASS_RANKING_PAGE_SIZE : CLASS_RANKING_PAGE_SIZE;
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(topClasses.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleClasses = topClasses.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize, topClasses.length]);
   return (
     <section className="offseason-column" data-testid="recruiting-ranking-panel">
       <h3>Recruiting Class Leaderboard</h3>
       {topClasses.length ? (
-        <div className="table-list class-ranking-list">
-          {topClasses.slice(0, 20).map((entry, index) => (
-            <div key={entry.teamId} className="table-row class-rank-row">
-              <span>{index + 1}</span>
-              <strong>{entry.teamName}</strong>
-              <span>{entry.points} pts</span>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="table-list class-ranking-list">
+            {visibleClasses.map((entry, index) => (
+              <div key={entry.teamId} className="table-row class-rank-row">
+                <span>{(currentPage - 1) * pageSize + index + 1}</span>
+                <strong>{entry.teamName}</strong>
+                <span>{entry.points} pts</span>
+              </div>
+            ))}
+          </div>
+          {topClasses.length > pageSize && <PaginationControls page={currentPage} pageCount={pageCount} total={topClasses.length} pageSize={pageSize} label="classes" onPageChange={setPage} />}
+        </>
       ) : (
         <p className="muted">Class rankings post after signing day.</p>
       )}
@@ -749,14 +832,19 @@ function ClassSigneesPanel({ reports, recruits, teams, preferredTeamId }: { repo
   const [selectedTeamId, setSelectedTeamId] = useState(preferredReportId);
   const [selectedSigneeId, setSelectedSigneeId] = useState<string>();
   const [signeePage, setSigneePage] = useState(1);
+  const isCompactMobile = useCompactMobile();
+  const signeePageSize = isCompactMobile ? MOBILE_SIGNEE_PAGE_SIZE : SIGNEE_PAGE_SIZE;
   useEffect(() => {
     setSelectedTeamId((current) => (sortedReports.some((report) => report.teamId === current) ? current : preferredReportId));
   }, [preferredReportId, sortedReports]);
+  useEffect(() => {
+    setSigneePage(1);
+  }, [signeePageSize]);
   const selected = sortedReports.find((report) => report.teamId === selectedTeamId) ?? sortedReports[0];
   const signees = selected?.signees ?? [];
-  const signeePageCount = Math.max(1, Math.ceil(signees.length / SIGNEE_PAGE_SIZE));
+  const signeePageCount = Math.max(1, Math.ceil(signees.length / signeePageSize));
   const currentSigneePage = Math.min(signeePage, signeePageCount);
-  const visibleSignees = signees.slice((currentSigneePage - 1) * SIGNEE_PAGE_SIZE, currentSigneePage * SIGNEE_PAGE_SIZE);
+  const visibleSignees = signees.slice((currentSigneePage - 1) * signeePageSize, currentSigneePage * signeePageSize);
   const selectedSignee = selectedSigneeId ? signees.find((signee) => signee.recruitId === selectedSigneeId) : undefined;
   const selectedRecruit = selectedSignee ? recruits.find((recruit) => recruit.id === selectedSignee.recruitId) : undefined;
   return (
@@ -787,7 +875,7 @@ function ClassSigneesPanel({ reports, recruits, teams, preferredTeamId }: { repo
               <SigneeRow key={signee.recruitId} signee={signee} onOpen={() => setSelectedSigneeId(signee.recruitId)} />
             ))}
           </div>
-          <PaginationControls page={currentSigneePage} pageCount={signeePageCount} total={signees.length} pageSize={SIGNEE_PAGE_SIZE} label="signees" onPageChange={setSigneePage} />
+          <PaginationControls page={currentSigneePage} pageCount={signeePageCount} total={signees.length} pageSize={signeePageSize} label="signees" onPageChange={setSigneePage} />
         </>
       ) : (
         <p className="muted">Signing day has not posted yet.</p>
@@ -901,6 +989,9 @@ function ProgressionGroup({
   team?: Team;
   progressions: PlayerProgression[];
 }) {
+  const isCompactMobile = useCompactMobile();
+  const pageSize = isCompactMobile ? MOBILE_PROGRESSION_PAGE_SIZE : PROGRESSION_PAGE_SIZE;
+  const [page, setPage] = useState(1);
   const progressionByPlayer = new Map(progressions.map((progression) => [progression.playerId, progression]));
   const rosterRows = team
     ? [...team.roster]
@@ -935,6 +1026,12 @@ function ProgressionGroup({
           status: "Returning",
           gains: attributeGainText(progression.attributeGains),
         }));
+  const pageCount = Math.max(1, Math.ceil(rosterRows.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRows = rosterRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize, progressions.length, team?.id]);
   return (
     <section className="offseason-column" data-testid="preseason-progression-panel">
       <div className="panel-head compact">
@@ -952,7 +1049,7 @@ function ProgressionGroup({
             <span>Status</span>
             <span>Attribute Movement</span>
           </div>
-          {rosterRows.map((row) => (
+          {visibleRows.map((row) => (
             <div key={row.id} className="table-row progression-row">
               <strong>{row.name}</strong>
               <span>{row.position}</span>
@@ -965,6 +1062,7 @@ function ProgressionGroup({
               <span>{row.gains}</span>
             </div>
           ))}
+          {rosterRows.length > pageSize && <PaginationControls page={currentPage} pageCount={pageCount} total={rosterRows.length} pageSize={pageSize} label="development" onPageChange={setPage} />}
         </div>
       ) : (
         <p className="muted">Development posts in preseason week.</p>
@@ -1028,22 +1126,34 @@ function ProgramChangeGroup({ changes }: { changes: ProgramChange[] }) {
 }
 
 function DepartureGroup({ title: groupTitle, departures }: { title: string; departures: PlayerDeparture[] }) {
+  const isCompactMobile = useCompactMobile();
+  const pageSize = isCompactMobile ? MOBILE_DEPARTURE_PAGE_SIZE : DEPARTURE_PAGE_SIZE;
+  const [page, setPage] = useState(1);
   const sortedDepartures = [...departures].sort((a, b) => b.overall - a.overall || a.playerName.localeCompare(b.playerName));
+  const pageCount = Math.max(1, Math.ceil(sortedDepartures.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleDepartures = sortedDepartures.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize, departures.length]);
   return (
     <section className="offseason-column" data-testid={groupTitle === "Graduated" ? "graduated-panel" : "pro-departures-panel"}>
       <h3>{groupTitle}</h3>
       {departures.length ? (
-        <div className="table-list departure-list">
-          {sortedDepartures.slice(0, 12).map((departure) => (
-            <div key={departure.playerId} className="table-row departure-row">
-              <strong>{departure.playerName}</strong>
-              <span>{departure.position}</span>
-              <span>{departure.year}</span>
-              <span>OVR {departure.overall}</span>
-              <span>{departure.note}</span>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="table-list departure-list">
+            {visibleDepartures.map((departure) => (
+              <div key={departure.playerId} className="table-row departure-row">
+                <strong>{departure.playerName}</strong>
+                <span>{departure.position}</span>
+                <span>{departure.year}</span>
+                <span>OVR {departure.overall}</span>
+                <span>{departure.note}</span>
+              </div>
+            ))}
+          </div>
+          {sortedDepartures.length > pageSize && <PaginationControls page={currentPage} pageCount={pageCount} total={sortedDepartures.length} pageSize={pageSize} label={`${groupTitle.toLowerCase()} departures`} onPageChange={setPage} />}
+        </>
       ) : (
         <p className="muted">No players in this group.</p>
       )}
@@ -1160,6 +1270,15 @@ function RosterList({
   onPositionFilterChange: (position: RosterFilter) => void;
   onOpenPlayer: (player: Player) => void;
 }) {
+  const isCompactMobile = useCompactMobile();
+  const pageSize = isCompactMobile ? MOBILE_ROSTER_PAGE_SIZE : ROSTER_PAGE_SIZE;
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(players.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visiblePlayers = players.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    setPage(1);
+  }, [positionFilter, pageSize, players.length]);
   return (
     <div className="roster-workspace">
       <div className="roster-controls" data-testid="position-filter">
@@ -1170,24 +1289,27 @@ function RosterList({
         ))}
       </div>
       {players.length ? (
-        <div className="roster-list" data-testid="roster-list">
-          {players.map((player) => {
-            const adjustedOverall = effectiveOverall(player);
-            return (
-              <button key={player.id} className="roster-row" onClick={() => onOpenPlayer(player)}>
-                <Portrait index={player.profileIndex} />
-                <strong>{player.name}</strong>
-                <span>{player.position}</span>
-                <span>{player.incomingFreshman ? `${player.year} In` : player.year}{player.walkOn ? " - Walk-on" : ""}</span>
-                <span title={adjustedOverall === player.overall ? undefined : `Base OVR ${player.overall}`}>
-                  {adjustedOverall === player.overall ? "OVR" : "Eff"} {adjustedOverall}
-                </span>
-                <StreakBadge player={player} />
-                <span>Pot {player.potential}</span>
-              </button>
-            );
-          })}
-        </div>
+        <>
+          <div className="roster-list" data-testid="roster-list">
+            {visiblePlayers.map((player) => {
+              const adjustedOverall = effectiveOverall(player);
+              return (
+                <button key={player.id} className="roster-row" onClick={() => onOpenPlayer(player)}>
+                  <Portrait index={player.profileIndex} />
+                  <strong>{player.name}</strong>
+                  <span>{player.position}</span>
+                  <span>{player.incomingFreshman ? `${player.year} In` : player.year}{player.walkOn ? " - Walk-on" : ""}</span>
+                  <span title={adjustedOverall === player.overall ? undefined : `Base OVR ${player.overall}`}>
+                    {adjustedOverall === player.overall ? "OVR" : "Eff"} {adjustedOverall}
+                  </span>
+                  <StreakBadge player={player} />
+                  <span>Pot {player.potential}</span>
+                </button>
+              );
+            })}
+          </div>
+          {players.length > pageSize && <PaginationControls page={currentPage} pageCount={pageCount} total={players.length} pageSize={pageSize} label="roster" onPageChange={setPage} />}
+        </>
       ) : (
         <div className="empty-state">
           <strong>No players match this position filter.</strong>
@@ -1362,6 +1484,9 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [boardPage, setBoardPage] = useState(1);
   const [recruitPage, setRecruitPage] = useState(1);
   const [selectedRecruitId, setSelectedRecruitId] = useState<string>();
+  const isCompactMobile = useCompactMobile();
+  const boardPageSize = isCompactMobile ? MOBILE_BOARD_PAGE_SIZE : BOARD_PAGE_SIZE;
+  const recruitPageSize = isCompactMobile ? MOBILE_RECRUIT_PAGE_SIZE : RECRUIT_PAGE_SIZE;
   const seasonBudget = state.recruiting.seasonBudget ?? state.recruiting.weeklyPoints;
   const pointsSpent = state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining);
   const boardLimit = state.recruiting.boardLimit ?? 35;
@@ -1378,14 +1503,18 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
     pipelineOnly,
     sortBy,
   });
-  const boardPageCount = Math.max(1, Math.ceil(board.length / BOARD_PAGE_SIZE));
+  const boardPageCount = Math.max(1, Math.ceil(board.length / boardPageSize));
   const currentBoardPage = Math.min(boardPage, boardPageCount);
-  const visibleBoard = board.slice((currentBoardPage - 1) * BOARD_PAGE_SIZE, currentBoardPage * BOARD_PAGE_SIZE);
-  const recruitPageCount = Math.max(1, Math.ceil(matchingRecruits.length / RECRUIT_PAGE_SIZE));
+  const visibleBoard = board.slice((currentBoardPage - 1) * boardPageSize, currentBoardPage * boardPageSize);
+  const recruitPageCount = Math.max(1, Math.ceil(matchingRecruits.length / recruitPageSize));
   const currentRecruitPage = Math.min(recruitPage, recruitPageCount);
-  const visibleRecruits = matchingRecruits.slice((currentRecruitPage - 1) * RECRUIT_PAGE_SIZE, currentRecruitPage * RECRUIT_PAGE_SIZE);
+  const visibleRecruits = matchingRecruits.slice((currentRecruitPage - 1) * recruitPageSize, currentRecruitPage * recruitPageSize);
   const selectedRecruit = selectedRecruitId ? state.recruits.find((recruit) => recruit.id === selectedRecruitId) : undefined;
   const resetRecruitPage = () => setRecruitPage(1);
+  useEffect(() => {
+    setBoardPage(1);
+    setRecruitPage(1);
+  }, [boardPageSize, recruitPageSize]);
 
   return (
     <>
@@ -1461,7 +1590,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             <p>Use the recruiting database below, Need Command cards, or Auto Recruit to add real board targets.</p>
           </div>
         )}
-        {board.length > BOARD_PAGE_SIZE && <PaginationControls page={currentBoardPage} pageCount={boardPageCount} total={board.length} pageSize={BOARD_PAGE_SIZE} label="board targets" onPageChange={setBoardPage} />}
+        {board.length > boardPageSize && <PaginationControls page={currentBoardPage} pageCount={boardPageCount} total={board.length} pageSize={boardPageSize} label="board targets" onPageChange={setBoardPage} />}
       </section>
 
       <section className="panel span-2">
@@ -1536,7 +1665,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             </button>
           ))}
         </div>
-        <PaginationControls page={currentRecruitPage} pageCount={recruitPageCount} total={matchingRecruits.length} pageSize={RECRUIT_PAGE_SIZE} label="recruits" onPageChange={setRecruitPage} />
+        <PaginationControls page={currentRecruitPage} pageCount={recruitPageCount} total={matchingRecruits.length} pageSize={recruitPageSize} label="recruits" onPageChange={setRecruitPage} />
       </section>
       {selectedRecruit && (
         <RecruitModal
@@ -1807,11 +1936,20 @@ function formatRecruitInterest(score: number): string {
 function Schedule({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
   const [selectedGame, setSelectedGame] = useState<Game | undefined>();
+  const [gamePage, setGamePage] = useState(1);
+  const isCompactMobile = useCompactMobile();
+  const gamePageSize = isCompactMobile ? MOBILE_SCHEDULE_PAGE_SIZE : SCHEDULE_PAGE_SIZE;
   const matchupPreview = buildMatchupPreview(state);
   const games = scheduleGamesForDisplay(state, userTeam.id);
+  const gamePageCount = Math.max(1, Math.ceil(games.length / gamePageSize));
+  const currentGamePage = Math.min(gamePage, gamePageCount);
+  const visibleGames = games.slice((currentGamePage - 1) * gamePageSize, currentGamePage * gamePageSize);
   const standings = [...state.teams]
     .filter((team) => team.conferenceId === userTeam.conferenceId)
     .sort((a, b) => b.season.confWins - a.season.confWins || a.season.confLosses - b.season.confLosses || b.season.wins - a.season.wins);
+  useEffect(() => {
+    setGamePage(1);
+  }, [gamePageSize, state.phase, state.week]);
   return (
     <>
       <MatchupPreviewPanel preview={matchupPreview} testId="schedule-matchup-preview" />
@@ -1838,7 +1976,7 @@ function Schedule({ state }: { state: DynastyState }) {
           <Trophy size={20} />
         </div>
         <div className="table-list">
-          {games.map((game) => {
+          {visibleGames.map((game) => {
             const home = state.teams.find((team) => team.id === game.homeTeamId);
             const away = state.teams.find((team) => team.id === game.awayTeamId);
             return (
@@ -1853,6 +1991,7 @@ function Schedule({ state }: { state: DynastyState }) {
             );
           })}
         </div>
+        {games.length > gamePageSize && <PaginationControls page={currentGamePage} pageCount={gamePageCount} total={games.length} pageSize={gamePageSize} label="games" onPageChange={setGamePage} />}
       </section>
       {selectedGame && <GameModal game={selectedGame} teams={state.teams} onClose={() => setSelectedGame(undefined)} />}
     </>
