@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.19 - 2026-06-19
+
+- Expanded the Awards page national weekly panel to show all four generated weekly awards.
+- Kept the dashboard Latest National Awards panel compact at two cards.
+- Added smoke coverage for Ground Surge and Sky Route award visibility.
+
 ## 1.20.18 - 2026-06-19
 
 - Corrected the Awards page title when showing completed-season history outside the regular season.

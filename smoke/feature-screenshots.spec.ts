@@ -126,6 +126,8 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("player-of-week-panel")).toBeVisible();
   await expect(page.getByTestId("player-of-week-panel")).toContainText("National Offensive Player of the Week");
   await expect(page.getByTestId("player-of-week-panel")).toContainText("National Defensive Player of the Week");
+  await expect(page.getByTestId("player-of-week-panel")).toContainText("Ground Surge");
+  await expect(page.getByTestId("player-of-week-panel")).toContainText("Sky Route");
   await page.getByTestId("player-of-week-panel").screenshot({ path: path.join(screenshotDir, "player-of-week-desktop.png") });
   await expect(page.getByTestId("conference-player-of-week-panel")).toBeVisible();
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });

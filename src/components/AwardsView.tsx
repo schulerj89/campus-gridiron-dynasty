@@ -25,7 +25,7 @@ export function Awards({ state }: { state: DynastyState }) {
           <h2>National Players of the Week</h2>
           <Award size={20} />
         </div>
-        <AwardGrid awards={latestWeeklyAwards.slice(0, 2)} userTeamId={state.userTeamId} />
+        <AwardGrid awards={latestWeeklyAwards} limit={4} userTeamId={state.userTeamId} />
       </section>
       <section className="panel span-2" data-testid="conference-player-of-week-panel">
         <div className="panel-head compact">
