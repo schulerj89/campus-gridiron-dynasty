@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.19.2 - 2026-06-18
+
+- Fixed game usage selection so saved manual depth-chart order is honored within each position.
+- Applied depth-chart-aware selection to aggregate box-score stats and down-by-down play-by-play.
+- Added regression coverage proving a lower-rated manually promoted QB receives the game pass attempts instead of the higher-rated benched QB.
+
 ## 1.19.1 - 2026-06-18
 
 - Fixed coach recruiting upgrades so active recruiting season budgets refresh immediately.

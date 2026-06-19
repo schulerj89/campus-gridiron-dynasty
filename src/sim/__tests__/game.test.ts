@@ -107,6 +107,18 @@ describe("game simulation stat pacing", () => {
     expect(airBox.totals.passTd).toBeGreaterThanOrEqual(runBox.totals.passTd);
   });
 
+  it("uses manual depth chart starters for simulated game usage", () => {
+    const setup = controlledDepthChartSetup(7108);
+    const result = simulateGame(new Rng(7109), setup.game, setup.teams);
+    const updatedUserTeam = result.teams.find((team) => team.id === setup.userTeamId)!;
+    const promotedQuarterback = updatedUserTeam.roster.find((player) => player.id === setup.promotedQuarterbackId)!;
+    const benchedQuarterback = updatedUserTeam.roster.find((player) => player.id === setup.benchedQuarterbackId)!;
+
+    expect(promotedQuarterback.overall).toBeLessThan(benchedQuarterback.overall);
+    expect(promotedQuarterback.stats.passAttempts).toBeGreaterThan(0);
+    expect(benchedQuarterback.stats.passAttempts).toBe(0);
+  });
+
   it("lets weak passing attributes produce sub-60 completion games", () => {
     const { teams, game, userTeamId } = controlledPassingStressSetup(7111);
     const result = simulateGame(new Rng(7112), game, teams);
@@ -204,6 +216,55 @@ function controlledPassingStressSetup(seed: number): { teams: Team[]; game: Game
     return team;
   });
   return { teams, game: userGames[0]!, userTeamId };
+}
+
+function controlledDepthChartSetup(seed: number): { teams: Team[]; game: Game; userTeamId: string; promotedQuarterbackId: string; benchedQuarterbackId: string } {
+  const state = createDynasty(seed, "team-1");
+  const userTeamId = state.userTeamId;
+  const userGames = state.schedule.filter((game) => game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
+  const userTeam = state.teams.find((team) => team.id === userTeamId)!;
+  const quarterbacks = userTeam.roster.filter((player) => player.position === "QB").sort((a, b) => b.overall - a.overall);
+  const benchedQuarterbackId = quarterbacks[0]!.id;
+  const promotedQuarterbackId = quarterbacks.at(-1)!.id;
+  const teams = state.teams.map((team) =>
+    team.id === userTeamId
+      ? {
+          ...team,
+          depthChart: {
+            ...team.depthChart,
+            QB: [promotedQuarterbackId, ...quarterbacks.filter((player) => player.id !== promotedQuarterbackId).map((player) => player.id)],
+          },
+          roster: team.roster.map((player) => {
+            if (player.id === promotedQuarterbackId) {
+              return {
+                ...player,
+                overall: 58,
+                attributes: {
+                  ...player.attributes,
+                  throwPower: 58,
+                  accuracy: 56,
+                  awareness: 57,
+                },
+              };
+            }
+            if (player.id === benchedQuarterbackId) {
+              return {
+                ...player,
+                overall: 92,
+                attributes: {
+                  ...player.attributes,
+                  throwPower: 92,
+                  accuracy: 92,
+                  awareness: 92,
+                },
+              };
+            }
+            return player;
+          }),
+        }
+      : team,
+  );
+  return { teams, game: userGames[0]!, userTeamId, promotedQuarterbackId, benchedQuarterbackId };
 }
 
 function controlledCornerMatchupSetup(seed: number, corner: "strong" | "weak"): { teams: Team[]; game: Game; userTeamId: string; eliteReceiverId: string } {

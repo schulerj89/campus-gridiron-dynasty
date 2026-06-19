@@ -76,6 +76,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Director Goals should appear before Week 1 and the previous resolved blueprint review should remain visible during the next preseason.
 - Team helmets use generated fictional 16-bit PNG assets in `public/assets/team-helmets`; do not add real logos or licensed marks.
 - Roster Room can inspect any team roster, but depth-chart movement should remain user-team only.
+- Manual depth-chart order must influence game usage selection for simulated box scores and play-by-play within each position.
 
 ## Frequent Commands
 

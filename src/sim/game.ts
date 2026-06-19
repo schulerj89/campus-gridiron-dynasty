@@ -1,4 +1,5 @@
 import { Rng, clamp } from "./rng";
+import { orderPositionPlayers } from "./depthChart";
 import { effectiveAttributes, effectiveOverall, teamPower, teamUnitRatings } from "./ratings";
 import { emptyStats, type AttributeKey, type Game, type OffensiveStrategy, type PlayByPlayEvent, type PlayEventType, type Player, type PlayerGameStats, type PlayerStats, type PlayerStreakStatus, type Position, type Team, type TeamBoxScore } from "./types";
 
@@ -220,17 +221,17 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   const roster = team.roster;
   const units = teamUnitRatings(roster);
   const opponentUnits = teamUnitRatings(opponent.roster);
-  const qb = topAt(roster, ["QB"], 1)[0];
-  const backs = rotationAt(rng, roster, ["HB"], rng.nextInt(2, 3));
-  const targets = rotationAt(rng, roster, ["WR", "TE"], rng.nextInt(5, 7));
-  const blockers = uniquePlayers([...topAt(roster, ["OL"], 5), ...topAt(roster, ["TE"], 1)]);
+  const qb = topAt(team, ["QB"], 1)[0];
+  const backs = rotationAt(rng, team, ["HB"], rng.nextInt(2, 3));
+  const targets = rotationAt(rng, team, ["WR", "TE"], rng.nextInt(5, 7));
+  const blockers = uniquePlayers([...topAt(team, ["OL"], 5), ...topAt(team, ["TE"], 1)]);
   const defenders = uniquePlayers([
-    ...rotationAt(rng, roster, ["DL"], 4),
-    ...rotationAt(rng, roster, ["LB"], 4),
-    ...rotationAt(rng, roster, ["CB"], 4),
-    ...rotationAt(rng, roster, ["S"], 3),
+    ...rotationAt(rng, team, ["DL"], 4),
+    ...rotationAt(rng, team, ["LB"], 4),
+    ...rotationAt(rng, team, ["CB"], 4),
+    ...rotationAt(rng, team, ["S"], 3),
   ]);
-  const kicker = topAt(roster, ["K"], 1)[0];
+  const kicker = topAt(team, ["K"], 1)[0];
   const strategy = team.offensiveStrategy ?? "balanced";
   const passRate = offensivePassRate(strategy, units.passing, units.rushing, pointsFor < pointsAgainst);
   const plays = clamp(rng.nextInt(58, 74) + (strategy === "spreadTempo" ? rng.nextInt(2, 5) : strategy === "runHeavy" ? -rng.nextInt(0, 3) : 0), 56, 78);
@@ -303,7 +304,7 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
       }
     });
   }
-  const receiverMatchups = receiverCoverageMatchups(targets, opponent.roster);
+  const receiverMatchups = receiverCoverageMatchups(targets, opponent);
   const receivingWeights = receivingUsageWeights(targets, receiverMatchups);
   const targetWeights = targetUsageWeights(targets, receiverMatchups);
   for (const [playerId, value] of splitAmount(targets, targetAttempts, (player) => targetWeights.get(player.id) ?? receivingSkill(player))) {
@@ -429,19 +430,41 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
   };
 }
 
-function topAt(roster: Player[], positions: string[], count: number): Player[] {
-  return roster
-    .filter((player) => positions.includes(player.position))
-      .sort((a, b) => effectiveOverall(b) - effectiveOverall(a))
-    .slice(0, count);
+function topAt(teamOrRoster: Team | Player[], positions: Position[], count: number): Player[] {
+  return orderedPlayers(teamOrRoster, positions).slice(0, count);
 }
 
-function rotationAt(rng: Rng, roster: Player[], positions: string[], count: number): Player[] {
-  const ranked = roster.filter((player) => positions.includes(player.position)).sort((a, b) => effectiveOverall(b) - effectiveOverall(a));
+function rotationAt(rng: Rng, teamOrRoster: Team | Player[], positions: Position[], count: number): Player[] {
+  const ranked = orderedPlayers(teamOrRoster, positions);
   const core = ranked.slice(0, Math.max(1, count - 1));
   const rotationPool = ranked.slice(core.length, Math.min(ranked.length, count + 3));
   const extra = rotationPool.length ? rng.shuffle(rotationPool).slice(0, Math.max(0, count - core.length)) : [];
   return uniquePlayers([...core, ...extra]).slice(0, count);
+}
+
+function orderedPlayers(teamOrRoster: Team | Player[], positions: Position[]): Player[] {
+  const team = Array.isArray(teamOrRoster) ? undefined : teamOrRoster;
+  const roster = Array.isArray(teamOrRoster) ? teamOrRoster : teamOrRoster.roster;
+  const depthRank = new Map<string, number>();
+  if (team) {
+    for (const position of positions) {
+      const savedOrder = team.depthChart?.[position];
+      if (!savedOrder?.length) continue;
+      orderPositionPlayers(roster, position, savedOrder).forEach((player, index) => {
+        depthRank.set(player.id, index);
+      });
+    }
+  }
+  return roster
+    .filter((player) => positions.includes(player.position))
+    .sort((a, b) => {
+      if (a.position === b.position) {
+        const aDepth = depthRank.get(a.id);
+        const bDepth = depthRank.get(b.id);
+        if (aDepth !== undefined || bDepth !== undefined) return (aDepth ?? Number.MAX_SAFE_INTEGER) - (bDepth ?? Number.MAX_SAFE_INTEGER);
+      }
+      return effectiveOverall(b) - effectiveOverall(a);
+    });
 }
 
 function receivingUsageWeights(targets: Player[], matchups = new Map<string, ReceiverMatchup>()): Map<string, number> {
@@ -473,11 +496,11 @@ function receivingSkill(player: Player): number {
   return effectiveOverall(player) + attributes.catching * 0.55 + attributes.routeRunning * 0.5 + attributes.speed * 0.25 + attributes.awareness * 0.15;
 }
 
-function receiverCoverageMatchups(targets: Player[], opponentRoster: Player[]): Map<string, ReceiverMatchup> {
+function receiverCoverageMatchups(targets: Player[], opponent: Team | Player[]): Map<string, ReceiverMatchup> {
   const receivers = [...targets].sort((a, b) => receivingSkill(b) - receivingSkill(a));
-  const corners = topAt(opponentRoster, ["CB"], 5).sort((a, b) => coverageSkill(b) - coverageSkill(a));
-  const safeties = topAt(opponentRoster, ["S"], 4).sort((a, b) => coverageSkill(b) - coverageSkill(a));
-  const linebackers = topAt(opponentRoster, ["LB"], 4).sort((a, b) => coverageSkill(b) - coverageSkill(a));
+  const corners = topAt(opponent, ["CB"], 5).sort((a, b) => coverageSkill(b) - coverageSkill(a));
+  const safeties = topAt(opponent, ["S"], 4).sort((a, b) => coverageSkill(b) - coverageSkill(a));
+  const linebackers = topAt(opponent, ["LB"], 4).sort((a, b) => coverageSkill(b) - coverageSkill(a));
   const fallback = uniquePlayers([...corners, ...safeties, ...linebackers]).sort((a, b) => coverageSkill(b) - coverageSkill(a));
   let wideoutIndex = 0;
   let tightEndIndex = 0;
@@ -756,20 +779,20 @@ function buildPlayByPlay(rng: Rng, home: Team, away: Team, homeProfile: TeamGame
 function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGameProfile, side: "home" | "away"): PlayContext {
   const units = teamUnitRatings(team.roster);
   const opponentUnits = teamUnitRatings(opponent.roster);
-  const targets = rotationAt(rng, team.roster, ["WR", "TE"], 7);
+  const targets = rotationAt(rng, team, ["WR", "TE"], 7);
   return {
     team,
     opponent,
     side,
     profile,
-    qb: topAt(team.roster, ["QB"], 1)[0],
-    backs: rotationAt(rng, team.roster, ["HB"], 3),
+    qb: topAt(team, ["QB"], 1)[0],
+    backs: rotationAt(rng, team, ["HB"], 3),
     targets,
-    punter: topAt(team.roster, ["P"], 1)[0],
-    kicker: topAt(team.roster, ["K"], 1)[0],
-    returners: uniquePlayers([...topAt(opponent.roster, ["WR"], 3), ...topAt(opponent.roster, ["CB"], 2), ...topAt(opponent.roster, ["HB"], 1)]),
-    defenders: uniquePlayers([...topAt(opponent.roster, ["CB"], 3), ...topAt(opponent.roster, ["S"], 3), ...topAt(opponent.roster, ["LB"], 3), ...topAt(opponent.roster, ["DL"], 3)]),
-    receiverMatchups: receiverCoverageMatchups(targets, opponent.roster),
+    punter: topAt(team, ["P"], 1)[0],
+    kicker: topAt(team, ["K"], 1)[0],
+    returners: uniquePlayers([...topAt(opponent, ["WR"], 3), ...topAt(opponent, ["CB"], 2), ...topAt(opponent, ["HB"], 1)]),
+    defenders: uniquePlayers([...topAt(opponent, ["CB"], 3), ...topAt(opponent, ["S"], 3), ...topAt(opponent, ["LB"], 3), ...topAt(opponent, ["DL"], 3)]),
+    receiverMatchups: receiverCoverageMatchups(targets, opponent),
     pancakeBlockers: [...profile.pancakeBlockers],
     passProtectionEdge: units.blocking - opponentUnits.defense,
     passRemaining: profile.passAttempts,
