@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.1 - 2026-06-18
+
+- Fixed play-by-play field goal continuity so scripted field goals cannot fire immediately after an early-down first-down conversion.
+- Prevented normal non-touchdown plays from gaining through the goal line and repeating `1st & 1` at the opponent 1.
+- Added terminal drive finalization so possession does not flip after a non-terminal play; exhausted drives now end with a queued score, fourth-down field goal, turnover on downs, or punt.
+- Added regression coverage for field-goal jumps, goal-line loops, non-terminal possession changes, and play-by-play attempt count drift.
+
 ## 1.20.0 - 2026-06-18
 
 - Added explicit offseason review checkpoints so departures, recruiting, signing day, development, and program review each become a single-focus dashboard stage.

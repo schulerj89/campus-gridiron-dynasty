@@ -106,7 +106,20 @@ export interface GameBoxScore {
   away: TeamBoxScore;
 }
 
-export type PlayEventType = "pass" | "rush" | "sack" | "punt" | "passTd" | "rushTd" | "fieldGoal" | "extraPoint" | "missedFieldGoal" | "missedExtraPoint" | "turnover";
+export type PlayEventType =
+  | "pass"
+  | "rush"
+  | "sack"
+  | "punt"
+  | "passTd"
+  | "rushTd"
+  | "fieldGoal"
+  | "extraPoint"
+  | "missedFieldGoal"
+  | "missedExtraPoint"
+  | "turnover"
+  | "turnoverOnDowns"
+  | "driveStall";
 
 export interface PlayByPlayEvent {
   quarter: number;

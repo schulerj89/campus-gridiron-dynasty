@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
 import { simulateGame } from "../game";
 import { Rng } from "../rng";
-import type { Game, Player, Team } from "../types";
+import type { Game, PlayByPlayEvent, Player, Team } from "../types";
 
 describe("game simulation stat pacing", () => {
   it("features an elite receiver while preserving receiving totals and target participation", () => {
@@ -52,7 +52,7 @@ describe("game simulation stat pacing", () => {
   it("separates scoring kicks and records full down-by-down play-by-play totals", () => {
     const { teams, game } = controlledReceivingSetup(7104);
     let result = simulateGame(new Rng(7105), game, teams);
-    for (let seed = 7106; seed < 7130 && !result.game.result?.playByPlay?.some((event) => event.type === "turnover"); seed += 1) {
+    for (let seed = 7106; seed < 7205 && !hasKickAndTurnoverCoverage(result.game.result?.playByPlay ?? []); seed += 1) {
       result = simulateGame(new Rng(seed), game, teams);
     }
     const box = result.game.result!.boxScore!;
@@ -81,10 +81,40 @@ describe("game simulation stat pacing", () => {
     expect(events.some((event) => event.type === "punt" && /punted \d+ yards (to .+, returned \d+ yards|with no return)/.test(event.description))).toBe(true);
     expect(events.some((event) => event.type === "turnover" && /intercepted by .+, returned \d+ yards/.test(event.description))).toBe(true);
     expect(events.some((event) => event.type === "rush" && event.description.includes("pancake block"))).toBe(true);
+    for (const teamBox of [box.home, box.away]) {
+      const teamEvents = events.filter((event) => event.teamId === teamBox.teamId);
+      const playByPlayPassAttempts = teamEvents.filter((event) => event.type === "pass" || event.type === "sack" || event.type === "passTd" || event.type === "turnover").length;
+      const playByPlayRushAttempts = teamEvents.filter((event) => event.type === "rush" || event.type === "rushTd").length;
+      expect(playByPlayPassAttempts).toBe(teamBox.passAttempts);
+      expect(playByPlayRushAttempts).toBe(teamBox.rushAttempts);
+    }
     for (let index = 0; index < events.length; index += 1) {
       const event = events[index]!;
       if (event.type !== "extraPoint" && event.type !== "missedExtraPoint") continue;
       expect(events[index - 1]?.type === "passTd" || events[index - 1]?.type === "rushTd").toBe(true);
+    }
+  });
+
+  it("keeps play-by-play drive context through field goals, goal-line snaps, and possession changes", () => {
+    const { teams, game } = controlledReceivingSetup(7104);
+    const teamAbbreviations = new Map(teams.map((team) => [team.id, team.abbreviation]));
+
+    for (let seed = 7105; seed < 7205; seed += 1) {
+      const result = simulateGame(new Rng(seed), game, teams);
+      const events = result.game.result?.playByPlay ?? [];
+      const badJump = events.some((event, index) => {
+        const previous = events[index - 1];
+        return Boolean(previous && event.teamId === previous.teamId && isFieldGoalPlay(event) && convertedEarlyDown(previous));
+      });
+      const badGoalLineGain = events.some((event) => isPositiveNonTouchdownAtOpponentOne(event, teamAbbreviations.get(event.teamId)));
+      const badPossessionChange = events.some((event, index) => {
+        const previous = events[index - 1];
+        return Boolean(previous && previous.teamId !== event.teamId && !isTerminalPlay(previous));
+      });
+
+      expect(badJump).toBe(false);
+      expect(badGoalLineGain).toBe(false);
+      expect(badPossessionChange).toBe(false);
     }
   });
 
@@ -166,6 +196,28 @@ describe("game simulation stat pacing", () => {
     expect(quarterback.stats.passYards / setup.userGames.length).toBeLessThanOrEqual(420);
   });
 });
+
+function isFieldGoalPlay(event: PlayByPlayEvent): boolean {
+  return event.type === "fieldGoal" || event.type === "missedFieldGoal";
+}
+
+function hasKickAndTurnoverCoverage(events: PlayByPlayEvent[]): boolean {
+  return events.some((event) => event.type === "punt") && events.some((event) => event.type === "turnover" && event.description.includes("intercepted by"));
+}
+
+function convertedEarlyDown(event: PlayByPlayEvent): boolean {
+  return Boolean(event.down && event.down < 4 && event.distance !== undefined && event.yards !== undefined && event.yards >= event.distance);
+}
+
+function isPositiveNonTouchdownAtOpponentOne(event: PlayByPlayEvent, teamAbbreviation: string | undefined): boolean {
+  if (event.type !== "pass" && event.type !== "rush") return false;
+  if (!event.yardLine?.endsWith(" 1") || event.yardLine === `${teamAbbreviation} 1`) return false;
+  return Boolean(event.yards && event.yards > 0);
+}
+
+function isTerminalPlay(event: PlayByPlayEvent): boolean {
+  return ["punt", "passTd", "rushTd", "fieldGoal", "missedFieldGoal", "extraPoint", "missedExtraPoint", "turnover", "turnoverOnDowns"].includes(event.type);
+}
 
 function controlledReceivingSetup(seed: number): { teams: Team[]; game: Game; userGames: Game[]; userTeamId: string; eliteReceiverId: string } {
   const state = createDynasty(seed, "team-1");

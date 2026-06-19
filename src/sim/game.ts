@@ -818,8 +818,10 @@ function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
 
   while (hasPlayableEvents(context) && snaps < 16) {
     const openAttempts = openPassAttempts(context) + openRushAttempts(context);
+    const nextScore = context.scoringEvents[0];
+    const canUseScoringEvent = Boolean(nextScore && (!isFieldGoalEvent(nextScore) || state.down === 4));
     const shouldUseScoringEvent =
-      context.scoringEvents.length > 0 &&
+      canUseScoringEvent &&
       (snaps >= minimumDriveSnaps || openAttempts === 0 || state.yardLine >= rng.nextInt(62, 82) || attemptsRemaining(context) <= context.scoringEvents.length + 1);
 
     if (shouldUseScoringEvent) {
@@ -828,9 +830,10 @@ function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
     }
 
     if (state.down === 4) {
-      const nextScore = context.scoringEvents[0];
       if (nextScore?.type === "fieldGoal" || nextScore?.type === "missedFieldGoal") {
         events.push(...consumeScoringPlay(rng, context, state));
+      } else if (state.yardLine >= 65) {
+        events.push(buildTurnoverOnDownsPlay(context, state));
       } else {
         events.push(buildPuntPlay(rng, context, state));
       }
@@ -839,7 +842,10 @@ function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
 
     const normalPlay = buildNormalPlay(rng, context, state);
     if (!normalPlay) {
-      if (context.scoringEvents.length) events.push(...consumeScoringPlay(rng, context, state));
+      const nextScore = context.scoringEvents[0];
+      if (nextScore) {
+        events.push(...(isFieldGoalEvent(nextScore) ? consumeFieldGoalAfterStall(rng, context, state) : consumeScoringPlay(rng, context, state)));
+      }
       break;
     }
     events.push(normalPlay);
@@ -847,8 +853,56 @@ function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
     snaps += 1;
   }
 
-  if (!events.length && context.scoringEvents.length) return consumeScoringPlay(rng, context, state);
+  if (!events.length && context.scoringEvents.length) {
+    const nextScore = context.scoringEvents[0];
+    return isFieldGoalEvent(nextScore) && state.down !== 4 ? consumeFieldGoalAfterStall(rng, context, state) : consumeScoringPlay(rng, context, state);
+  }
+  return finishDriveIfNeeded(rng, context, state, events);
+}
+
+function isFieldGoalEvent(event: ScoringEvent | undefined): boolean {
+  return event?.type === "fieldGoal" || event?.type === "missedFieldGoal";
+}
+
+function consumeFieldGoalAfterStall(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay[] {
+  const plays: ScriptedPlay[] = [];
+  const stalled = appendDriveStallsToFourth(context, state, plays);
+  plays.push(...consumeScoringPlay(rng, context, stalled));
+  return plays;
+}
+
+function finishDriveIfNeeded(rng: Rng, context: PlayContext, state: DriveState, events: ScriptedPlay[]): ScriptedPlay[] {
+  const last = events.at(-1);
+  if (!last || isTerminalPlay(last)) return events;
+  events.push(...terminalDriveSequence(rng, context, state));
   return events;
+}
+
+function terminalDriveSequence(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay[] {
+  const nextScore = context.scoringEvents[0];
+  if (nextScore) {
+    return isFieldGoalEvent(nextScore) && state.down !== 4 ? consumeFieldGoalAfterStall(rng, context, state) : consumeScoringPlay(rng, context, state);
+  }
+  const plays: ScriptedPlay[] = [];
+  const fourthDownState = appendDriveStallsToFourth(context, state, plays);
+  plays.push(fourthDownState.yardLine >= 65 ? buildTurnoverOnDownsPlay(context, fourthDownState) : buildPuntPlay(rng, context, fourthDownState));
+  return plays;
+}
+
+function appendDriveStallsToFourth(context: PlayContext, state: DriveState, plays: ScriptedPlay[]): DriveState {
+  let stalled = state;
+  while (stalled.down < 4) {
+    plays.push({
+      ...basePlay(context, "driveStall", 0, stalled, 0),
+      description: `${context.team.name} could not create space as the drive stalled.`,
+    });
+    stalled = advanceDriveState(stalled, 0);
+  }
+  return stalled;
+}
+
+function isTerminalPlay(play: ScriptedPlay): boolean {
+  return ["punt", "passTd", "rushTd", "fieldGoal", "missedFieldGoal", "extraPoint", "missedExtraPoint", "turnover", "turnoverOnDowns"].includes(play.type);
 }
 
 function consumeScoringPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay[] {
@@ -963,7 +1017,7 @@ function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
     };
   }
 
-  const maxGain = Math.max(1, Math.min(46, 99 - state.yardLine));
+  const maxGain = maxNormalGain(state, 46);
   const baseGain = state.distance <= 3 ? rng.nextInt(2, 9) : rng.nextInt(4, 18);
   const explosive = rng.chance(0.14) ? rng.nextInt(10, 28) : 0;
   const conversionBoost = state.down === 3 && baseGain < state.distance && rng.chance(0.42) ? state.distance - baseGain + rng.nextInt(0, 7) : 0;
@@ -978,7 +1032,7 @@ function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
 function buildRushPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay {
   context.rushRemaining = Math.max(0, context.rushRemaining - 1);
   const runner = selectRunner(rng, context)?.name ?? context.qb?.name ?? "The runner";
-  const maxGain = Math.max(1, Math.min(34, 99 - state.yardLine));
+  const maxGain = maxNormalGain(state, 34);
   const shortYardageBoost = state.distance <= 2 ? 1 : 0;
   const explosive = rng.chance(0.09) ? rng.nextInt(8, 21) : 0;
   const yards = clamp(rng.nextInt(-3, 8) + shortYardageBoost + explosive, -5, maxGain);
@@ -986,6 +1040,13 @@ function buildRushPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
   return {
     ...basePlay(context, "rush", 0, state, yards),
     description: `${runner} rushed for ${yardPhrase(yards)}${pancakeBlocker ? ` behind ${pancakeBlocker}'s pancake block` : ""}.`,
+  };
+}
+
+function buildTurnoverOnDownsPlay(context: PlayContext, state: DriveState): ScriptedPlay {
+  return {
+    ...basePlay(context, "turnoverOnDowns", 0, { ...state, down: 4 }, 0),
+    description: `${context.team.name} was stopped short on fourth down.`,
   };
 }
 
@@ -1048,8 +1109,9 @@ function stampScriptedPlays(scripted: ScriptedPlay[]): PlayByPlayEvent[] {
 }
 
 function advanceDriveState(state: DriveState, yards: number): DriveState {
-  const yardLine = clamp(state.yardLine + yards, 1, 99);
-  if (yards >= state.distance) {
+  const cappedYards = yards > 0 ? Math.min(yards, maxNormalGain(state, yards)) : yards;
+  const yardLine = clamp(state.yardLine + cappedYards, 1, 99);
+  if (cappedYards >= state.distance) {
     return {
       down: 1,
       distance: firstDownDistance(yardLine),
@@ -1058,9 +1120,13 @@ function advanceDriveState(state: DriveState, yards: number): DriveState {
   }
   return {
     down: Math.min(4, state.down + 1) as 1 | 2 | 3 | 4,
-    distance: clamp(state.distance - yards, 1, 32),
+    distance: clamp(state.distance - cappedYards, 1, 32),
     yardLine,
   };
+}
+
+function maxNormalGain(state: DriveState, cap: number): number {
+  return Math.max(0, Math.min(cap, 99 - state.yardLine));
 }
 
 function firstDownDistance(yardLine: number): number {
