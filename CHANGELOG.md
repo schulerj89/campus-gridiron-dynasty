@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.5 - 2026-06-19
+
+- Consolidated recruit card and recruit modal action controls into a shared `RecruitActionButtons` component.
+- Preserved compact card labels and full modal labels while sharing disabled-state and action wiring.
+- Reduced duplicate Recruiting UI code for future scholarship, scouting, and pitch updates.
+
 ## 1.21.4 - 2026-06-19
 
 - Extracted Recruiting page derived data into a pure view-model helper.

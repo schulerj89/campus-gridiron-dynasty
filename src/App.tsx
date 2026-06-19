@@ -1471,36 +1471,59 @@ function RecruitCard({
         {known.length ? known.map((key) => <span key={key}>{shortAttr(key)} {recruit.attributes[key]}</span>) : <span>No ratings unlocked</span>}
       </div>
       <p className={clsx("trait-chip", recruit.gemBust)}>{recruit.traitRevealed ? recruit.hiddenTrait : recruit.gemBust ? gemBustFor(recruit) : "trait hidden"}</p>
-      <div className="button-row compact-row">
+      <RecruitActionButtons recruit={recruit} eligibility={eligibility} onBoard={onBoard} onUpdate={onUpdate} onOpen={onOpen} variant="card" />
+    </article>
+  );
+}
+
+function RecruitActionButtons({
+  recruit,
+  eligibility,
+  onBoard,
+  onUpdate,
+  onOpen,
+  variant,
+}: {
+  recruit: Recruit;
+  eligibility: ReturnType<typeof recruitActionEligibility>;
+  onBoard: boolean;
+  onUpdate: (recipe: (state: DynastyState) => DynastyState) => void;
+  onOpen?: (recruitId: string) => void;
+  variant: "card" | "modal";
+}) {
+  const compact = variant === "card";
+  return (
+    <div className={clsx("button-row", compact && "compact-row")}>
+      {onOpen && (
         <button className="secondary" onClick={() => onOpen(recruit.id)}>
           Details
         </button>
-        {onBoard ? (
-          <button className="secondary" onClick={() => onUpdate((state) => removeRecruitFromBoard(state, recruit.id))}>
-            Remove
-          </button>
-        ) : (
-          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={!eligibility.canAdd}>
-            Add
-          </button>
-        )}
-        {eligibility.offered ? (
-          <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={!eligibility.canRescind}>
-            Rescind
-          </button>
-        ) : (
-          <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={!eligibility.canOffer}>
-            Offer
-          </button>
-        )}
-        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={!eligibility.canScout}>
-          Scout
+      )}
+      {onBoard ? (
+        <button className="secondary" onClick={() => onUpdate((state) => removeRecruitFromBoard(state, recruit.id))}>
+          {compact ? "Remove" : "Remove Board"}
         </button>
-        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!eligibility.canPitch}>
-          Pitch
+      ) : (
+        <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={!eligibility.canAdd}>
+          {compact ? "Add" : "Add Board"}
         </button>
-      </div>
-    </article>
+      )}
+      {eligibility.offered ? (
+        <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={!eligibility.canRescind}>
+          {compact ? "Rescind" : "Rescind Scholarship"}
+        </button>
+      ) : (
+        <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={!eligibility.canOffer}>
+          {compact ? "Offer" : "Offer Scholarship"}
+        </button>
+      )}
+      <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={!eligibility.canScout}>
+        Scout
+      </button>
+      <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!eligibility.canPitch}>
+        Pitch
+      </button>
+    </div>
   );
 }
 
@@ -1596,32 +1619,7 @@ function RecruitModal({
             <div className="known-attrs">
               {recruit.knownAttributes.length ? recruit.knownAttributes.slice(0, 6).map((key) => <span key={key}>{shortAttr(key)} {recruit.attributes[key]}</span>) : <span>No ratings unlocked</span>}
             </div>
-            <div className="button-row">
-              {onBoard ? (
-                <button className="secondary" onClick={() => onUpdate((state) => removeRecruitFromBoard(state, recruit.id))}>
-                  Remove Board
-                </button>
-              ) : (
-                <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={!eligibility.canAdd}>
-                  Add Board
-                </button>
-              )}
-              {eligibility.offered ? (
-                <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={!eligibility.canRescind}>
-                  Rescind Scholarship
-                </button>
-              ) : (
-                <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={!eligibility.canOffer}>
-                  Offer Scholarship
-                </button>
-              )}
-              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={!eligibility.canScout}>
-                Scout
-              </button>
-              <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!eligibility.canPitch}>
-                Pitch
-              </button>
-            </div>
+            <RecruitActionButtons recruit={recruit} eligibility={eligibility} onBoard={onBoard} onUpdate={onUpdate} variant="modal" />
           </section>
         </div>
       </section>
