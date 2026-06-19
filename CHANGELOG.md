@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.2 - 2026-06-19
+
+- Blocked off-board pitch spending when the recruiting board is full.
+- Updated recruit card and modal pitch controls to match board-capacity rules.
+- Added regression coverage for offered off-board full-board pitch attempts.
+
 ## 1.20.1 - 2026-06-18
 
 - Fixed play-by-play field goal continuity so scripted field goals cannot fire immediately after an early-down first-down conversion.

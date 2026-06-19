@@ -120,6 +120,41 @@ describe("recruiting", () => {
     expect(attempted.recruiting.lastActions).toEqual(["existing action"]);
   });
 
+  it("does not spend pitch points for an offered off-board recruit when the board is full", () => {
+    const state = createDynasty(5675);
+    const boardLimit = state.recruiting.boardLimit ?? 35;
+    const board = state.recruits.slice(0, boardLimit).map((recruit) => recruit.id);
+    const recruit = state.recruits.find((candidate) => !board.includes(candidate.id) && !candidate.offers.includes(state.userTeamId))!;
+    const prepared = {
+      ...state,
+      recruits: state.recruits.map((candidate) =>
+        candidate.id === recruit.id
+          ? {
+              ...candidate,
+              offers: [...candidate.offers, state.userTeamId],
+            }
+          : candidate,
+      ),
+      recruiting: {
+        ...state.recruiting,
+        board,
+        investedByRecruit: {},
+        lastActions: ["existing action"],
+        pointsRemaining: PITCH_COST,
+        pointsSpent: 0,
+      },
+    };
+
+    const attempted = pitchRecruit(prepared, recruit.id);
+
+    expect(attempted.recruiting.board).toEqual(board);
+    expect(attempted.recruiting.pointsRemaining).toBe(PITCH_COST);
+    expect(attempted.recruiting.pointsSpent).toBe(0);
+    expect(attempted.recruiting.investedByRecruit).toEqual({});
+    expect(attempted.recruiting.lastActions).toEqual(["existing action"]);
+    expect(attempted.recruits.find((candidate) => candidate.id === recruit.id)?.lastPitchWeek).toBeUndefined();
+  });
+
   it("offers a scholarship once, adds the recruit to the board, and spends points", () => {
     let state = createDynasty(5679);
     const recruit = state.recruits.find((candidate) => !candidate.offers.includes(state.userTeamId))!;

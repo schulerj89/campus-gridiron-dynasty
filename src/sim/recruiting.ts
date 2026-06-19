@@ -140,7 +140,9 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
   const target = state.recruits.find((recruit) => recruit.id === recruitId);
   if (!target || target.stage === "signed" || target.committedTeamId) return state;
   const team = getUserTeam(state);
+  const limit = recruitingBoardLimit(state);
   if (!target.offers?.includes(team.id) || target.lastPitchWeek === state.week) return state;
+  if (state.recruiting.board.length >= limit && !state.recruiting.board.includes(recruitId)) return state;
   if (state.recruiting.pointsRemaining < PITCH_COST) return state;
   const rng = new Rng(state.rngState);
   const recruits = state.recruits.map((recruit) => {
@@ -167,7 +169,7 @@ export function pitchRecruit(state: DynastyState, recruitId: string): DynastySta
       pointsRemaining: state.recruiting.pointsRemaining - PITCH_COST,
       pointsSpent: (state.recruiting.pointsSpent ?? 0) + PITCH_COST,
       investedByRecruit: addRecruitInvestment(state.recruiting.investedByRecruit, recruitId, PITCH_COST),
-      board: boardWithRecruit(state.recruiting.board, recruitId, recruitingBoardLimit(state)),
+      board: boardWithRecruit(state.recruiting.board, recruitId, limit),
       lastActions: [`Pitched ${recruit?.name ?? "recruit"} for ${PITCH_COST} points.`, ...state.recruiting.lastActions].slice(0, 8),
     },
   };
