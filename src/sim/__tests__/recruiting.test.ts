@@ -9,6 +9,7 @@ import {
   offerScholarship,
   PITCH_COST,
   isPipelineRecruit,
+  liveOfferCountForPosition,
   pitchRecruit,
   removeRecruitFromBoard,
   rescindScholarship,
@@ -214,6 +215,31 @@ describe("recruiting", () => {
     expect(state.recruiting.investedByRecruit[recruit.id]).toBeUndefined();
     expect(state.recruiting.pointsRemaining).toBe(beforeRescindPoints);
     expect(state.recruiting.pointsSpent).toBe(beforeRescindSpent);
+  });
+
+  it("counts only open live offers for recruiting need coverage", () => {
+    const state = createDynasty(5685);
+    const position = "WR";
+    const prospects = state.recruits.filter((candidate) => candidate.position === position).slice(0, 3);
+    const otherTeam = state.teams.find((team) => team.id !== state.userTeamId)!;
+    const sanitized = state.recruits.map((candidate) =>
+      candidate.position === position
+        ? {
+            ...candidate,
+            offers: candidate.offers.filter((teamId) => teamId !== state.userTeamId),
+            committedTeamId: undefined,
+            stage: "open" as const,
+          }
+        : candidate,
+    );
+    const recruits = sanitized.map((candidate) => {
+      if (candidate.id === prospects[0]?.id) return { ...candidate, offers: [...candidate.offers, state.userTeamId] };
+      if (candidate.id === prospects[1]?.id) return { ...candidate, offers: [...candidate.offers, state.userTeamId], committedTeamId: otherTeam.id, stage: "softPledge" as const };
+      if (candidate.id === prospects[2]?.id) return { ...candidate, offers: [...candidate.offers, state.userTeamId], committedTeamId: state.userTeamId, stage: "softPledge" as const };
+      return candidate;
+    });
+
+    expect(liveOfferCountForPosition(recruits, state.userTeamId, position)).toBe(1);
   });
 
   it("requires an offer before pitching and blocks repeat pitches until the next week", () => {

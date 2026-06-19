@@ -42,6 +42,7 @@ import {
   autoRecruit,
   gemBustFor,
   isPipelineRecruit,
+  liveOfferCountForPosition,
   MIN_RECRUITING_ACTION_COST,
   OFFER_COST,
   offerScholarship,
@@ -1239,7 +1240,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const needCommandRows = POSITIONS.map((position) => {
     const need = needsByPosition.get(position) ?? { position, need: 0, target: 0, current: 0 };
     const boardCount = board.filter((recruit) => recruit.position === position).length;
-    const offerCount = state.recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && recruit.offers?.includes(userTeam.id)).length;
+    const offerCount = liveOfferCountForPosition(state.recruits, userTeam.id, position);
     const committedCount = state.recruits.filter((recruit) => recruit.position === position && recruit.committedTeamId === userTeam.id).length;
     return {
       ...need,

@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.4 - 2026-06-19
+
+- Updated Recruiting Need Command offer counts to include only open, live scholarship offers.
+- Moved live offer counting into the recruiting service for consistent future reuse.
+- Added regression coverage proving committed recruits do not inflate live offer coverage.
+
 ## 1.20.3 - 2026-06-19
 
 - Added a shared minimum recruiting action cost so auto recruit can still scout with 40 remaining points.

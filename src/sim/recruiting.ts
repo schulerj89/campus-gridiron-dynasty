@@ -416,6 +416,10 @@ export function positionNeeds(team: Team): { position: Position; need: number; t
     .sort((a, b) => b.need - a.need);
 }
 
+export function liveOfferCountForPosition(recruits: Recruit[], teamId: string, position: Position): number {
+  return recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && !recruit.committedTeamId && recruit.offers?.includes(teamId)).length;
+}
+
 export function gemBustFor(recruit: Recruit): "gem" | "solid" | "bust" {
   const expected = recruit.stars === 5 ? 84 : recruit.stars === 4 ? 79 : recruit.stars === 3 ? 72 : recruit.stars === 2 ? 66 : 60;
   const grade = recruit.overall * 0.55 + recruit.potential * 0.45;
