@@ -158,6 +158,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [saveStatus, setSaveStatus] = useState("Local DB ready");
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>();
+  const [playerModalTab, setPlayerModalTab] = useState<PlayerModalTab>("profile");
   const advanceLockedRef = useRef(false);
   const saveQueue = useMemo(() => createDynastySaveQueue(saveDynasty), []);
   const latestSaveRequest = useRef(0);
@@ -202,12 +204,14 @@ export default function App() {
 
   const startDynasty = () => {
     const dynasty = createDynasty(dynastySeed(), selectedTeamId);
+    setSelectedPlayerId(undefined);
     setState(dynasty);
     setActiveTab("overview");
   };
 
   const continueDynasty = () => {
     if (savedState) {
+      setSelectedPlayerId(undefined);
       setState(savedState);
       setActiveTab("overview");
       return;
@@ -221,6 +225,7 @@ export default function App() {
       }
       setSavedState(loaded);
       setSavedSummary(summarizeDynastyState(loaded));
+      setSelectedPlayerId(undefined);
       setState(loaded);
       setActiveTab("overview");
     }).catch(() => setSaveStatus("Local save unavailable"));
@@ -231,6 +236,7 @@ export default function App() {
       latestSaveRequest.current += 1;
       await saveQueue.cancelPending();
       await clearDynasty();
+      setSelectedPlayerId(undefined);
       setState(undefined);
       setSavedState(undefined);
       setSavedSummary(undefined);
@@ -279,6 +285,11 @@ export default function App() {
 
   const userTeam = getUserTeam(state);
   const advanceLabel = advanceActionLabel(state);
+  const selectedPlayer = selectedPlayerId ? state.teams.flatMap((team) => team.roster).find((player) => player.id === selectedPlayerId) : undefined;
+  const openPlayer = (player: Player, tab: PlayerModalTab = "profile") => {
+    setSelectedPlayerId(player.id);
+    setPlayerModalTab(tab);
+  };
 
   return (
     <div className="app-shell">
@@ -326,14 +337,15 @@ export default function App() {
       <main className="content-grid">
         {activeTab === "overview" && <Overview state={state} onAdvance={() => runAdvance(advanceWeek, `${advanceLabel}...`)} advanceLabel={advanceLabel} isAdvancing={isAdvancing} onNavigate={setActiveTab} />}
         {activeTab === "rankings" && <Rankings state={state} />}
-        {activeTab === "roster" && <Roster state={state} onUpdate={update} />}
+        {activeTab === "roster" && <Roster state={state} onUpdate={update} onOpenPlayer={(player) => openPlayer(player)} />}
         {activeTab === "recruiting" && <Recruiting state={state} onUpdate={update} />}
         {activeTab === "schedule" && <Schedule state={state} />}
-        {activeTab === "stats" && <Stats state={state} />}
-        {activeTab === "awards" && <Awards state={state} />}
+        {activeTab === "stats" && <Stats state={state} onOpenPlayer={(player) => openPlayer(player, "stats")} />}
+        {activeTab === "awards" && <Awards state={state} onOpenPlayer={(player) => openPlayer(player, "awards")} />}
         {activeTab === "program" && <Program state={state} onUpdate={update} />}
         {activeTab === "debug" && <Debug state={state} onUpdate={update} onReset={resetAll} />}
       </main>
+      {selectedPlayer && <PlayerModal player={selectedPlayer} activeTab={playerModalTab} onTabChange={setPlayerModalTab} onClose={() => setSelectedPlayerId(undefined)} />}
     </div>
   );
 }
@@ -1039,12 +1051,10 @@ function DepartureGroup({ title: groupTitle, departures }: { title: string; depa
   );
 }
 
-function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void }) {
+function Roster({ state, onUpdate, onOpenPlayer }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void; onOpenPlayer: (player: Player) => void }) {
   const [selectedTeamId, setSelectedTeamId] = useState(state.userTeamId);
   const [positionFilter, setPositionFilter] = useState<RosterFilter>("ALL");
   const [rosterView, setRosterView] = useState<RosterView>("roster");
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | undefined>();
-  const [modalTab, setModalTab] = useState<PlayerModalTab>("profile");
   useEffect(() => {
     if (!state.teams.some((candidate) => candidate.id === selectedTeamId)) {
       setSelectedTeamId(state.userTeamId);
@@ -1059,10 +1069,6 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
   const filtered = positionFilter === "ALL" ? sorted : sorted.filter((player) => player.position === positionFilter);
   const depthChart = buildDepthChart(team, ROSTER_DEPTH_LIMIT);
 
-  const openPlayer = (player: Player) => {
-    setSelectedPlayer(player);
-    setModalTab("profile");
-  };
   const movePlayer = (position: Position, playerId: string, direction: "up" | "down") => {
     if (!isUserTeam) return;
     onUpdate((current) => ({
@@ -1088,7 +1094,6 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
           userTeamId={state.userTeamId}
           onSelectTeam={(teamId) => {
             setSelectedTeamId(teamId);
-            setSelectedPlayer(undefined);
           }}
         />
         <div className="roster-view-switch" data-testid="roster-view-switch">
@@ -1102,13 +1107,11 @@ function Roster({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: (
           </button>
         </div>
         {rosterView === "roster" ? (
-          <RosterList players={filtered} positionFilter={positionFilter} onPositionFilterChange={setPositionFilter} onOpenPlayer={openPlayer} />
+          <RosterList players={filtered} positionFilter={positionFilter} onPositionFilterChange={setPositionFilter} onOpenPlayer={onOpenPlayer} />
         ) : (
-          <DepthChartPanel depthChart={depthChart} isUserTeam={isUserTeam} onOpenPlayer={openPlayer} onMovePlayer={movePlayer} />
+          <DepthChartPanel depthChart={depthChart} isUserTeam={isUserTeam} onOpenPlayer={onOpenPlayer} onMovePlayer={movePlayer} />
         )}
       </section>
-
-      {selectedPlayer && <PlayerModal player={selectedPlayer} activeTab={modalTab} onTabChange={setModalTab} onClose={() => setSelectedPlayer(undefined)} />}
     </>
   );
 }

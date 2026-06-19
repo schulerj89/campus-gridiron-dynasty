@@ -1013,6 +1013,24 @@ select {
   padding: 14px;
 }
 
+.clickable-card,
+.clickable-award-main,
+.clickable-award-row {
+  cursor: pointer;
+}
+
+.clickable-card:hover,
+.clickable-card:focus-visible,
+.clickable-award-main:hover,
+.clickable-award-main:focus-visible,
+.clickable-award-row:hover,
+.clickable-award-row:focus-visible,
+.table-row.clickable:hover,
+.table-row.clickable:focus-visible {
+  border-color: rgba(94, 177, 191, 0.62);
+  outline: none;
+}
+
 .card h3 {
   margin-bottom: 6px;
 }
@@ -1034,9 +1052,13 @@ select {
 
 .season-award-main {
   align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
   display: grid;
   gap: 14px;
   grid-template-columns: 124px minmax(0, 1fr);
+  margin: -4px;
+  padding: 4px;
 }
 
 .award-statue-frame {

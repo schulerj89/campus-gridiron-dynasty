@@ -71,11 +71,11 @@ const LEADERBOARD_PAGE_SIZE = 10;
 const USER_TEAM_SCOPE = "user-team";
 const NATIONAL_SCOPE = "national";
 
-export function Stats({ state }: { state: DynastyState }) {
-  return <StatLeaderboard state={state} />;
+export function Stats({ state, onOpenPlayer }: { state: DynastyState; onOpenPlayer?: (player: Player) => void }) {
+  return <StatLeaderboard state={state} onOpenPlayer={onOpenPlayer} />;
 }
 
-function StatLeaderboard({ state }: { state: DynastyState }) {
+function StatLeaderboard({ state, onOpenPlayer }: { state: DynastyState; onOpenPlayer?: (player: Player) => void }) {
   const userTeam = getUserTeam(state);
   const [scope, setScope] = useState(NATIONAL_SCOPE);
   const [statKey, setStatKey] = useState<LeaderboardStatKey>("passYards");
@@ -138,7 +138,7 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
         </div>
         {visibleRows.length ? (
           visibleRows.map((row, index) => (
-            <div key={`${row.player.id}-${statKey}`} className={clsx("table-row leaderboard-row", row.team.id === userTeam.id && "user-team-highlight")} data-testid={row.team.id === userTeam.id ? "user-team-leaderboard-row" : undefined}>
+            <button key={`${row.player.id}-${statKey}`} type="button" className={clsx("table-row leaderboard-row clickable", row.team.id === userTeam.id && "user-team-highlight")} onClick={() => onOpenPlayer?.(row.player)} data-testid={row.team.id === userTeam.id ? "user-team-leaderboard-row" : undefined} aria-label={`Open ${row.player.name} player card`}>
               <span>{(page - 1) * LEADERBOARD_PAGE_SIZE + index + 1}</span>
               <strong>{row.player.name}</strong>
               <span>{row.player.position}</span>
@@ -148,7 +148,7 @@ function StatLeaderboard({ state }: { state: DynastyState }) {
                   {formatStat(row.player.stats, column.key)}
                 </span>
               ))}
-            </div>
+            </button>
           ))
         ) : (
           <p className="muted">Stat leaders populate after games are played.</p>

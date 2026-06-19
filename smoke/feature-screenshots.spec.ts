@@ -139,6 +139,9 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("player-of-week-panel")).toContainText("National Defensive Player of the Week");
   await expect(page.getByTestId("player-of-week-panel").locator(".award-grid > .card")).toHaveCount(2);
   await page.getByTestId("player-of-week-panel").screenshot({ path: path.join(screenshotDir, "player-of-week-desktop.png") });
+  await page.getByTestId("player-of-week-panel").locator(".clickable-card").first().click();
+  await expect(page.getByTestId("player-modal")).toBeVisible();
+  await page.getByRole("button", { name: "Close player card" }).click();
   await expect(page.getByTestId("conference-player-of-week-panel")).toBeVisible();
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
   await page.getByRole("button", { name: "Stats" }).click();
@@ -158,6 +161,10 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("user-team-leaderboard-row").first()).toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "stats-desktop.png"), fullPage: true });
   await page.getByTestId("leaderboard-panel").screenshot({ path: path.join(screenshotDir, "leaderboard-desktop.png") });
+  await page.locator(".leaderboard-row.clickable").first().click();
+  await expect(page.getByTestId("player-modal")).toBeVisible();
+  await expect(page.getByTestId("player-modal")).toContainText("GP");
+  await page.getByRole("button", { name: "Close player card" }).click();
 
   for (let week = 0; week < 7; week += 1) {
     await advanceDynasty(page);

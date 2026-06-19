@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.11 - 2026-06-19
+
+- Let Stats leaderboard rows open the selected player's card directly on the stats tab.
+- Let Awards page weekly cards, season award winners, candidate rows, and honor-team cards open current roster players from other programs.
+- Added smoke coverage for Stats and Awards player-card entry points and refreshed visible-version screenshots.
+
 ## 1.21.10 - 2026-06-19
 
 - Raised high-star recruit starting floors so four-stars enter at 68+ overall and five-stars enter at 74+ overall while preserving the 83 recruit entry cap.
