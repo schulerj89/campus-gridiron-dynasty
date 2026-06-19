@@ -817,7 +817,7 @@ function SignedRecruitModal({ signee, recruit, teamName, teams, onClose }: { sig
               </p>
             </div>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close signed recruit detail">
+          <button className="icon-button" onClick={onClose} aria-label="Close signed recruit detail">
             <X size={18} />
           </button>
         </div>

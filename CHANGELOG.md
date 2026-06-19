@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.17 - 2026-06-19
+
+- Aligned the signed-recruit modal close control with the app's standard icon button styling.
+- Added smoke coverage to assert the signed-recruit close control uses the shared icon-button class.
+- Refreshed the signing-day recruit modal screenshot.
+
 ## 1.20.16 - 2026-06-19
 
 - Applied existing user-team award highlighting to the dashboard's Latest National Awards panel.

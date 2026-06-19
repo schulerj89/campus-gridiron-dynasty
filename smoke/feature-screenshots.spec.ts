@@ -255,6 +255,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("signee-row").first().click();
   await expect(page.getByTestId("signed-recruit-modal")).toContainText("Signed Prospect");
   await expect(page.getByTestId("signed-recruit-attributes")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close signed recruit detail" })).toHaveClass(/icon-button/);
   await page.getByTestId("signed-recruit-modal").screenshot({ path: path.join(screenshotDir, "signing-day-recruit-modal-desktop.png") });
   await page.getByRole("button", { name: "Close signed recruit detail" }).click();
 
