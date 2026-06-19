@@ -756,22 +756,40 @@ select {
 
 .recruiting-need-command {
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
   margin: 14px 0 16px;
 }
 
+.need-command-legend {
+  align-items: center;
+  color: var(--muted);
+  display: grid;
+  font-size: 0.72rem;
+  font-weight: 900;
+  gap: 8px;
+  grid-template-columns: 42px 54px 72px repeat(3, 44px);
+  padding: 0 10px;
+  text-transform: uppercase;
+}
+
+.need-command-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+}
+
 .need-command-card {
-  align-items: start;
+  align-items: center;
   background: #0f171b;
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--text);
   cursor: pointer;
   display: grid;
-  gap: 5px;
-  min-height: 118px;
-  padding: 12px;
+  gap: 6px;
+  grid-template-columns: 42px 54px 72px repeat(3, 44px);
+  min-height: 48px;
+  padding: 8px 10px;
   text-align: left;
 }
 
@@ -784,7 +802,7 @@ select {
 }
 
 .need-command-card strong {
-  font-size: 1.04rem;
+  font-size: 0.95rem;
 }
 
 .need-command-card span,
@@ -802,8 +820,8 @@ select {
   border: 1px solid var(--line);
   border-radius: 999px;
   display: block;
+  grid-column: 1 / -1;
   height: 8px;
-  margin-top: 4px;
   overflow: hidden;
 }
 

@@ -1310,25 +1310,36 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
           <Metric label="Points Return" value="Commitments" />
         </div>
         <div className="recruiting-need-command" data-testid="recruiting-needs-panel">
-          {needCommandRows.map((row) => (
-            <button
-              key={row.position}
-              className={clsx("need-command-card", positionFilter === row.position && "active", row.need > 0 && "urgent")}
-              onClick={() => {
-                setPositionFilter(row.position);
-                resetRecruitPage();
-              }}
-              data-testid={`need-command-${row.position}`}
-            >
-              <strong>{row.position}</strong>
-              <span>{row.current}/{row.target} roster</span>
-              <em>{row.need > 0 ? `Need ${row.need}` : "Covered"}</em>
-              <small>Board {row.boardCount} - Offers {row.offerCount} - Pledges {row.committedCount}</small>
-              <i>
-                <b style={{ width: `${row.meterPercent}%` }} />
-              </i>
-            </button>
-          ))}
+          <div className="need-command-legend">
+            <span>Roster</span>
+            <span>Need</span>
+            <span>Board</span>
+            <span>Offers</span>
+            <span>Pledges</span>
+          </div>
+          <div className="need-command-grid">
+            {needCommandRows.map((row) => (
+              <button
+                key={row.position}
+                className={clsx("need-command-card", positionFilter === row.position && "active", row.need > 0 && "urgent")}
+                onClick={() => {
+                  setPositionFilter(row.position);
+                  resetRecruitPage();
+                }}
+                data-testid={`need-command-${row.position}`}
+              >
+                <strong>{row.position}</strong>
+                <span>{row.current}/{row.target}</span>
+                <em>{row.need > 0 ? `Need ${row.need}` : "OK"}</em>
+                <small>B{row.boardCount}</small>
+                <small>O{row.offerCount}</small>
+                <small>P{row.committedCount}</small>
+                <i>
+                  <b style={{ width: `${row.meterPercent}%` }} />
+                </i>
+              </button>
+            ))}
+          </div>
         </div>
         {board.length ? (
           <div className="recruit-grid" data-testid="recruiting-board">

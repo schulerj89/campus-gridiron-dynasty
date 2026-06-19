@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.2 - 2026-06-19
+
+- Compactified Recruiting Need Command into a dense position matrix while preserving roster, need, board, offer, pledge, and meter data.
+- Kept each position row clickable so it still filters the recruiting database.
+- Refreshed recruiting needs screenshots for the simplified page layout.
+
 ## 1.21.1 - 2026-06-19
 
 - Replaced the fallback award statue drawings with file-backed `gpt-image-2` generated bronze statue PNGs.
