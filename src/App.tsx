@@ -161,6 +161,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [saveStatus, setSaveStatus] = useState("Local DB ready");
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const advanceLockedRef = useRef(false);
   const saveQueue = useMemo(() => createDynastySaveQueue(saveDynasty), []);
   const latestSaveRequest = useRef(0);
 
@@ -247,7 +248,8 @@ export default function App() {
   };
 
   const runAdvance = (recipe: (current: DynastyState) => DynastyState, status = "Advancing dynasty...") => {
-    if (!state || state.phase === "complete" || isAdvancing) return;
+    if (!state || state.phase === "complete" || isAdvancing || advanceLockedRef.current) return;
+    advanceLockedRef.current = true;
     setIsAdvancing(true);
     setSaveStatus(status);
     window.setTimeout(() => {
@@ -256,6 +258,7 @@ export default function App() {
       } catch {
         setSaveStatus("Advance failed");
       } finally {
+        advanceLockedRef.current = false;
         setIsAdvancing(false);
       }
     }, 40);
@@ -324,7 +327,7 @@ export default function App() {
       </nav>
 
       <main className="content-grid">
-        {activeTab === "overview" && <Overview state={state} onUpdate={update} onNavigate={setActiveTab} />}
+        {activeTab === "overview" && <Overview state={state} onAdvance={() => runAdvance(advanceWeek, `${advanceLabel}...`)} advanceLabel={advanceLabel} isAdvancing={isAdvancing} onNavigate={setActiveTab} />}
         {activeTab === "rankings" && <Rankings state={state} />}
         {activeTab === "roster" && <Roster state={state} onUpdate={update} />}
         {activeTab === "recruiting" && <Recruiting state={state} onUpdate={update} />}
@@ -441,11 +444,15 @@ function HomeScreen({
 
 function Overview({
   state,
-  onUpdate,
+  onAdvance,
+  advanceLabel,
+  isAdvancing,
   onNavigate,
 }: {
   state: DynastyState;
-  onUpdate: (recipe: (state: DynastyState) => DynastyState) => void;
+  onAdvance: () => void;
+  advanceLabel: string;
+  isAdvancing: boolean;
   onNavigate: (tab: Tab) => void;
 }) {
   const userTeam = getUserTeam(state);
@@ -458,11 +465,12 @@ function Overview({
   const championshipFocus = state.phase === "postseason" && Boolean(champion);
   const postseasonFocus = state.phase === "postseason" && Boolean(state.playoff) && !championshipFocus;
   const regularDashboardFocus = !offseasonFocus && !postseasonFocus && !championshipFocus;
+  const advanceDisabled = state.phase === "complete" || isAdvancing;
   const matchupPreview = buildMatchupPreview(state);
 
   return (
     <>
-      {championshipFocus && <ChampionshipRecap state={state} onUpdate={onUpdate} onNavigate={onNavigate} />}
+      {championshipFocus && <ChampionshipRecap state={state} onAdvance={onAdvance} isAdvancing={isAdvancing} onNavigate={onNavigate} />}
 
       {offseasonFocus && state.offseasonReport && offseasonTeamReport && <OffseasonRecap state={state} report={state.offseasonReport} teamReport={offseasonTeamReport} />}
 
@@ -475,9 +483,9 @@ function Overview({
               <p className="muted">The dashboard follows the playoff bracket until the Crown Bowl is complete.</p>
             </div>
             <div className="button-row compact-row">
-              <button className="primary" onClick={() => onUpdate(advanceWeek)}>
+              <button className={clsx("primary", isAdvancing && "is-loading")} onClick={onAdvance} disabled={advanceDisabled} aria-busy={isAdvancing}>
                 <ChevronsRight size={16} />
-                Advance Round
+                {isAdvancing ? "Advancing..." : advanceLabel}
               </button>
               <button className="secondary" onClick={() => onNavigate("awards")}>
                 <Trophy size={16} />
@@ -506,9 +514,9 @@ function Overview({
                 <p className="muted">Power {teamPower(userTeam.roster)} {userPollEntry ? `- National Rank #${userPollEntry.rank}` : "- Not ranked"}</p>
               </div>
             </div>
-            <button className="primary" onClick={() => onUpdate(advanceWeek)} disabled={state.phase === "complete"}>
+            <button className={clsx("primary", isAdvancing && "is-loading")} onClick={onAdvance} disabled={advanceDisabled} aria-busy={isAdvancing}>
               <ChevronsRight size={18} />
-              Advance Week
+              {isAdvancing ? "Advancing..." : advanceLabel}
             </button>
           </div>
           <div className="metric-grid mobile-priority">
@@ -567,7 +575,7 @@ function Overview({
   );
 }
 
-function ChampionshipRecap({ state, onUpdate, onNavigate }: { state: DynastyState; onUpdate: (recipe: (state: DynastyState) => DynastyState) => void; onNavigate: (tab: Tab) => void }) {
+function ChampionshipRecap({ state, onAdvance, isAdvancing, onNavigate }: { state: DynastyState; onAdvance: () => void; isAdvancing: boolean; onNavigate: (tab: Tab) => void }) {
   const champion = playoffChampion(state);
   const finalGame = state.playoff?.games.find((game) => game.playoffRound === "final");
   if (!champion || !state.playoff) return null;
@@ -587,9 +595,9 @@ function ChampionshipRecap({ state, onUpdate, onNavigate }: { state: DynastyStat
           </div>
         </div>
         <div className="button-row compact-row">
-          <button className="primary" onClick={() => onUpdate(advanceWeek)}>
+          <button className={clsx("primary", isAdvancing && "is-loading")} onClick={onAdvance} disabled={isAdvancing} aria-busy={isAdvancing}>
             <ChevronsRight size={16} />
-            Advance to Offseason
+            {isAdvancing ? "Advancing..." : "Advance to Offseason"}
           </button>
           <button className="secondary" onClick={() => onNavigate("awards")}>
             <Trophy size={16} />

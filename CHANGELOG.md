@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.14 - 2026-06-19
+
+- Routed dashboard, postseason, and championship in-panel advance buttons through the guarded advance flow.
+- Added an immediate advance lock so rapid clicks cannot queue multiple week or phase advances.
+- Added a dashboard smoke screenshot covering the guarded in-panel advance button.
+
 ## 1.20.13 - 2026-06-19
 
 - Added a mobile-specific recruiting database row layout to remove desktop-width overflow.
