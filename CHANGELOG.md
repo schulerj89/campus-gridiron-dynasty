@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.11 - 2026-06-19
+
+- Replaced misleading recruit interest percentage labels with `/150` score labels.
+- Applied the shared interest formatter to the database, recruit card, recruit modal, and signed recruit modal.
+- Extended recruiting smoke coverage to assert the visible `/150` interest scale.
+
 ## 1.20.10 - 2026-06-19
 
 - Updated recruit modal school-interest rows to respect the recruit's actual cut list.

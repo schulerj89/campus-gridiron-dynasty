@@ -854,7 +854,7 @@ function SignedRecruitModal({ signee, recruit, teamName, teams, onClose }: { sig
                     <div className="interest-meter">
                       <i style={{ width: `${Math.min(100, Math.round((interest / 150) * 100))}%` }} />
                     </div>
-                    <span>{interest}%</span>
+                    <span>{formatRecruitInterest(interest)}</span>
                   </div>
                 ))}
               </div>
@@ -1396,7 +1396,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
               <span>{recruit.position}</span>
               <span>#{recruit.nationalRank}</span>
               <span>{recruit.hometown}{isPipelineRecruit(userTeam, recruit) ? " - Pipeline" : ""}</span>
-              <span>{recruit.interest[userTeam.id] ?? 0}%</span>
+              <span>{formatRecruitInterest(recruit.interest[userTeam.id] ?? 0)}</span>
               <span className={clsx("status-pill", recruit.committedTeamId && "committed")}>
                 {recruit.committedTeamId ? `Committed to ${teamNameById.get(recruit.committedTeamId) ?? "another school"}` : recruit.stage}
               </span>
@@ -1456,7 +1456,7 @@ function RecruitCard({
         </div>
       </div>
       <div className="mini-metrics">
-        <span>Interest {recruit.interest[userTeam.id] ?? 0}</span>
+        <span>Interest {formatRecruitInterest(recruit.interest[userTeam.id] ?? 0)}</span>
         <span>{eligibility.statusLabel}</span>
         <span>Scout {recruit.scoutProgress}%</span>
       </div>
@@ -1565,7 +1565,7 @@ function RecruitModal({
                     <div className="interest-meter">
                       <i style={{ width: `${Math.min(100, Math.round((interest / 150) * 100))}%` }} />
                     </div>
-                    <span>{interest}%</span>
+                    <span>{formatRecruitInterest(interest)}</span>
                   </div>
                 );
               })}
@@ -1667,6 +1667,10 @@ function recruitActionEligibility({ recruit, userTeam, onBoard, boardFull, point
     statusLabel,
     pitchStatus,
   };
+}
+
+function formatRecruitInterest(score: number): string {
+  return `${score}/150`;
 }
 
 function Schedule({ state }: { state: DynastyState }) {

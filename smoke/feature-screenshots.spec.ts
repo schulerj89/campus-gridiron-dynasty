@@ -64,6 +64,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("recruit-position-filter")).toHaveValue("QB");
   await expect(page.locator(".stars svg").first()).toBeVisible();
   await expect(page.getByTestId("recruiting-database")).toContainText("QB");
+  await expect(page.getByTestId("recruiting-database")).toContainText(/\/150/);
   await expect(page.getByTestId("recruits-pagination")).toContainText("recruits:");
   await page.getByRole("button", { name: "Next recruits page" }).click();
   await expect(page.getByTestId("recruits-pagination")).toContainText("Page 2");
@@ -78,6 +79,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   const pitchButton = recruitModal.getByRole("button", { name: "Pitch" });
   if (await pitchButton.isEnabled()) await pitchButton.click();
   await expect(recruitModal).toContainText("Pitch:");
+  await expect(recruitModal.getByTestId("recruit-school-list")).toContainText(/\/150/);
   await recruitModal.screenshot({ path: path.join(screenshotDir, "recruiting-scholarship-modal-desktop.png") });
   await page.locator(".modal-backdrop").click({ position: { x: 8, y: 8 } });
   await expect(recruitModal).not.toBeVisible();
