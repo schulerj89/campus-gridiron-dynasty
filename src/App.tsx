@@ -1433,11 +1433,7 @@ function RecruitCard({
   week: number;
 }) {
   const known = recruit.knownAttributes.slice(0, 5);
-  const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
-  const lockedCommitment = Boolean(recruit.committedTeamId);
-  const offered = recruit.offers?.includes(userTeam.id);
-  const pitchedThisWeek = recruit.lastPitchWeek === week;
-  const boardBlocked = boardFull && !onBoard;
+  const eligibility = recruitActionEligibility({ recruit, userTeam, onBoard, boardFull, pointsRemaining, week });
   return (
     <article className="card recruit-card">
       <div className="card-title">
@@ -1452,7 +1448,7 @@ function RecruitCard({
       </div>
       <div className="mini-metrics">
         <span>Interest {recruit.interest[userTeam.id] ?? 0}</span>
-        <span>{offered ? "Scholarship sent" : committedElsewhere ? "Committed elsewhere" : recruit.stage}</span>
+        <span>{eligibility.statusLabel}</span>
         <span>Scout {recruit.scoutProgress}%</span>
       </div>
       <div className="known-attrs">
@@ -1468,23 +1464,23 @@ function RecruitCard({
             Remove
           </button>
         ) : (
-          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || lockedCommitment}>
+          <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={!eligibility.canAdd}>
             Add
           </button>
         )}
-        {offered ? (
-          <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={lockedCommitment}>
+        {eligibility.offered ? (
+          <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={!eligibility.canRescind}>
             Rescind
           </button>
         ) : (
-          <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={boardBlocked || pointsRemaining < OFFER_COST || lockedCommitment}>
+          <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={!eligibility.canOffer}>
             Offer
           </button>
         )}
-        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={boardBlocked || pointsRemaining < SCOUT_COST || lockedCommitment}>
+        <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={!eligibility.canScout}>
           Scout
         </button>
-        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || boardBlocked || pointsRemaining < PITCH_COST || lockedCommitment}>
+        <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!eligibility.canPitch}>
           Pitch
         </button>
       </div>
@@ -1514,11 +1510,7 @@ function RecruitModal({
   onUpdate: (recipe: (state: DynastyState) => DynastyState) => void;
 }) {
   const teamById = new Map(teams.map((team) => [team.id, team]));
-  const offered = recruit.offers?.includes(userTeam.id);
-  const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
-  const lockedCommitment = Boolean(recruit.committedTeamId);
-  const pitchedThisWeek = recruit.lastPitchWeek === week;
-  const boardBlocked = boardFull && !onBoard;
+  const eligibility = recruitActionEligibility({ recruit, userTeam, onBoard, boardFull, pointsRemaining, week });
   const topSchools = Object.entries(recruit.interest)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
@@ -1526,17 +1518,6 @@ function RecruitModal({
   const priorities = Object.entries(recruit.priorities)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
-  const pitchStatus = committedElsewhere
-    ? "Committed elsewhere"
-    : boardBlocked
-      ? "Board full"
-    : !offered
-      ? "Scholarship required"
-      : pitchedThisWeek
-        ? `Available Week ${week + 1}`
-        : pointsRemaining < PITCH_COST
-          ? "Not enough points"
-          : "Ready";
 
   return (
     <div className="modal-backdrop">
@@ -1588,9 +1569,9 @@ function RecruitModal({
               <Handshake size={18} />
             </div>
             <div className="mini-metrics modal-metrics">
-              <span>{offered ? "Scholarship sent" : "No scholarship"}</span>
+              <span>{eligibility.offered ? "Scholarship sent" : "No scholarship"}</span>
               <span>{userRank ? `Your rank #${userRank}` : "Outside Top 10"}</span>
-              <span>Pitch: {pitchStatus}</span>
+              <span>Pitch: {eligibility.pitchStatus}</span>
             </div>
             <div className="known-attrs">
               {priorities.map(([key, value]) => (
@@ -1606,23 +1587,23 @@ function RecruitModal({
                   Remove Board
                 </button>
               ) : (
-                <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={boardFull || lockedCommitment}>
+                <button className="secondary" onClick={() => onUpdate((state) => addRecruitToBoard(state, recruit.id))} disabled={!eligibility.canAdd}>
                   Add Board
                 </button>
               )}
-              {offered ? (
-                <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={lockedCommitment}>
+              {eligibility.offered ? (
+                <button className="secondary" onClick={() => onUpdate((state) => rescindScholarship(state, recruit.id))} disabled={!eligibility.canRescind}>
                   Rescind Scholarship
                 </button>
               ) : (
-                <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={boardBlocked || pointsRemaining < OFFER_COST || lockedCommitment}>
+                <button className="secondary" onClick={() => onUpdate((state) => offerScholarship(state, recruit.id))} disabled={!eligibility.canOffer}>
                   Offer Scholarship
                 </button>
               )}
-              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={boardBlocked || pointsRemaining < SCOUT_COST || lockedCommitment}>
+              <button className="secondary" onClick={() => onUpdate((state) => scoutRecruit(state, recruit.id))} disabled={!eligibility.canScout}>
                 Scout
               </button>
-              <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!offered || pitchedThisWeek || boardBlocked || pointsRemaining < PITCH_COST || lockedCommitment}>
+              <button className="primary" onClick={() => onUpdate((state) => pitchRecruit(state, recruit.id))} disabled={!eligibility.canPitch}>
                 Pitch
               </button>
             </div>
@@ -1631,6 +1612,53 @@ function RecruitModal({
       </section>
     </div>
   );
+}
+
+interface RecruitActionEligibilityInput {
+  recruit: Recruit;
+  userTeam: Team;
+  onBoard: boolean;
+  boardFull: boolean;
+  pointsRemaining: number;
+  week: number;
+}
+
+function recruitActionEligibility({ recruit, userTeam, onBoard, boardFull, pointsRemaining, week }: RecruitActionEligibilityInput) {
+  const committedElsewhere = Boolean(recruit.committedTeamId && recruit.committedTeamId !== userTeam.id);
+  const lockedCommitment = Boolean(recruit.committedTeamId);
+  const offered = recruit.offers?.includes(userTeam.id) ?? false;
+  const pitchedThisWeek = recruit.lastPitchWeek === week;
+  const boardBlocked = boardFull && !onBoard;
+  const canAdd = !onBoard && !boardBlocked && !lockedCommitment;
+  const canRescind = offered && !lockedCommitment;
+  const canOffer = !offered && !boardBlocked && pointsRemaining >= OFFER_COST && !lockedCommitment;
+  const canScout = !boardBlocked && pointsRemaining >= SCOUT_COST && !lockedCommitment;
+  const canPitch = offered && !pitchedThisWeek && !boardBlocked && pointsRemaining >= PITCH_COST && !lockedCommitment;
+  const statusLabel = committedElsewhere ? "Committed elsewhere" : lockedCommitment ? "Committed" : offered ? "Scholarship sent" : recruit.stage;
+  const pitchStatus = committedElsewhere
+    ? "Committed elsewhere"
+    : lockedCommitment
+      ? "Committed"
+      : boardBlocked
+        ? "Board full"
+        : !offered
+          ? "Scholarship required"
+          : pitchedThisWeek
+            ? `Available Week ${week + 1}`
+            : pointsRemaining < PITCH_COST
+              ? "Not enough points"
+              : "Ready";
+
+  return {
+    offered,
+    canAdd,
+    canRescind,
+    canOffer,
+    canScout,
+    canPitch,
+    statusLabel,
+    pitchStatus,
+  };
 }
 
 function Schedule({ state }: { state: DynastyState }) {

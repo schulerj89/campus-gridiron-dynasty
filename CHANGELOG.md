@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.5 - 2026-06-19
+
+- Centralized recruit action eligibility so card and modal buttons share one Add, Offer, Scout, Pitch, and Rescind rule set.
+- Reused the shared eligibility output for recruit status and pitch availability messaging.
+- Refined committed recruit status text so committed prospects no longer display as active scholarship targets.
+
 ## 1.20.4 - 2026-06-19
 
 - Updated Recruiting Need Command offer counts to include only open, live scholarship offers.
