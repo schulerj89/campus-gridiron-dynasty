@@ -42,6 +42,7 @@ import {
   autoRecruit,
   gemBustFor,
   isPipelineRecruit,
+  MIN_RECRUITING_ACTION_COST,
   OFFER_COST,
   offerScholarship,
   pitchRecruit,
@@ -1281,7 +1282,7 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
             </h2>
             <p className="muted">Board {board.length}/{boardLimit} - weekly estimate {state.recruiting.weeklyPoints.toLocaleString()} - spent {pointsSpent.toLocaleString()}</p>
           </div>
-          <button className="primary" data-testid="auto-recruit" onClick={() => onUpdate((current) => autoRecruit(current, "Manual auto-recruit run."))} disabled={state.recruiting.pointsRemaining < 50}>
+          <button className="primary" data-testid="auto-recruit" onClick={() => onUpdate((current) => autoRecruit(current, "Manual auto-recruit run."))} disabled={state.recruiting.pointsRemaining < MIN_RECRUITING_ACTION_COST}>
             <Search size={18} />
             Auto Recruit
           </button>

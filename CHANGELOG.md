@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.3 - 2026-06-19
+
+- Added a shared minimum recruiting action cost so auto recruit can still scout with 40 remaining points.
+- Updated manual and automatic auto-recruit availability checks to use the scout-sized threshold.
+- Added regression coverage for auto recruit spending a 40-point remainder on scouting.
+
 ## 1.20.2 - 2026-06-19
 
 - Blocked off-board pitch spending when the recruiting board is full.

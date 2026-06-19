@@ -5,7 +5,7 @@ import { applyPositionCaps, calculateOverall, TARGET_ROSTER } from "./ratings";
 import { clamp, Rng } from "./rng";
 import { createPollSnapshot } from "./polls";
 import { createNextPlayoffRound, createPlayoffGames, createSchedule } from "./schedule";
-import { advanceRecruitingWeek, autoRecruit, OFFER_COST, signRecruitingClass } from "./recruiting";
+import { advanceRecruitingWeek, autoRecruit, MIN_RECRUITING_ACTION_COST, signRecruitingClass } from "./recruiting";
 import {
   MAX_BLUEPRINT_CATEGORY_POINTS,
   autoBlueprintAllocations,
@@ -550,7 +550,7 @@ function runSigningDay(state: DynastyState): DynastyState {
 
 function advanceOffseasonRecruitingWeek(state: DynastyState): DynastyState {
   const beforeWeek = state.week;
-  const withAuto = state.recruiting.autoEnabled && state.recruiting.pointsRemaining >= OFFER_COST ? autoRecruit(state, "Auto-recruit attacked offseason needs before the next signing window.") : state;
+  const withAuto = state.recruiting.autoEnabled && state.recruiting.pointsRemaining >= MIN_RECRUITING_ACTION_COST ? autoRecruit(state, "Auto-recruit attacked offseason needs before the next signing window.") : state;
   const advanced = advanceRecruitingAndKeepClock(withAuto);
   return {
     ...advanced,
@@ -670,7 +670,7 @@ function startRegularSeason(state: DynastyState): DynastyState {
 
 function advanceRecruitingAndKeepClock(state: DynastyState): DynastyState {
   const advanced = advanceRecruitingWeek(state);
-  return advanced.recruiting.autoEnabled && advanced.recruiting.pointsRemaining >= OFFER_COST
+  return advanced.recruiting.autoEnabled && advanced.recruiting.pointsRemaining >= MIN_RECRUITING_ACTION_COST
     ? autoRecruit(advanced, "Auto-recruit reallocated freed points after commitments.")
     : advanced;
 }

@@ -25,6 +25,29 @@ describe("recruiting", () => {
     expect(recruited.recruiting.pointsRemaining).toBeLessThan(state.recruiting.pointsRemaining);
   });
 
+  it("uses a scout-sized point remainder when auto recruit cannot afford an offer", () => {
+    const state = createDynasty(4566);
+    const recruit = state.recruits.find((candidate) => !candidate.committedTeamId && candidate.scoutProgress < 65)!;
+    const prepared = {
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        board: [recruit.id],
+        investedByRecruit: {},
+        lastActions: [],
+        pointsRemaining: SCOUT_COST,
+        pointsSpent: 0,
+      },
+    };
+
+    const recruited = autoRecruit(prepared, "test auto");
+
+    expect(recruited.recruiting.pointsRemaining).toBe(0);
+    expect(recruited.recruiting.pointsSpent).toBe(SCOUT_COST);
+    expect(Object.values(recruited.recruiting.investedByRecruit)).toContain(SCOUT_COST);
+    expect(recruited.recruiting.lastActions.join(" ")).toContain("Auto-scouted");
+  });
+
   it("balances auto-recruit board targets across positions instead of only chasing the largest need", () => {
     const state = createDynasty(4568);
     const teams = state.teams.map((team) =>

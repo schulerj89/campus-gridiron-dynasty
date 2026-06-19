@@ -7,6 +7,7 @@ import { blueprintPitchBonus, blueprintScoutProgressBonus } from "./blueprint";
 export const OFFER_COST = 50;
 export const SCOUT_COST = 40;
 export const PITCH_COST = 75;
+export const MIN_RECRUITING_ACTION_COST = Math.min(OFFER_COST, SCOUT_COST, PITCH_COST);
 const BOARD_LIMIT = 35;
 const PIPELINE_BONUS = 8;
 const MIN_SIGNING_CLASS = 22;
@@ -186,7 +187,7 @@ export function autoRecruit(state: DynastyState, reason = "Auto-recruit filled u
   const actions: string[] = [];
   const skipped = new Set<string>();
 
-  while (points >= Math.min(OFFER_COST, SCOUT_COST, PITCH_COST) && board.length > 0 && skipped.size < board.length) {
+  while (points >= MIN_RECRUITING_ACTION_COST && board.length > 0 && skipped.size < board.length) {
     const target = pickAutoTarget(recruits, board, team, points, skipped);
     if (!target) break;
     const offered = target.offers?.includes(team.id);
