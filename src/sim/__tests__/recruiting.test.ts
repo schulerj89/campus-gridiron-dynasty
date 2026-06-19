@@ -17,6 +17,7 @@ import {
   scoutRecruit,
   signRecruitingClass,
   positionNeedsWithPledges,
+  rankedRecruitSchoolInterests,
 } from "../recruiting";
 
 describe("recruiting", () => {
@@ -295,6 +296,42 @@ describe("recruiting", () => {
     expect(pledgedNeed.pledged).toBe(1);
     expect(pledgedNeed.projected).toBe(pledgedNeed.current + 1);
     expect(pledgedNeed.need).toBe(Math.max(0, trimmedBaseNeed.need - 1));
+  });
+
+  it("uses the recruit cut list when ranking modal school interests", () => {
+    const state = createDynasty(5688);
+    const recruit = {
+      ...state.recruits[0]!,
+      topSchools: ["team-b", "team-c", "missing-team"],
+      interest: {
+        "team-a": 150,
+        "team-b": 90,
+        "team-c": 80,
+      },
+    };
+
+    expect(rankedRecruitSchoolInterests(recruit)).toEqual([
+      ["team-b", 90],
+      ["team-c", 80],
+    ]);
+  });
+
+  it("falls back to sorted interest when a recruit cut list is empty or invalid", () => {
+    const state = createDynasty(5689);
+    const recruit = {
+      ...state.recruits[0]!,
+      topSchools: ["missing-team"],
+      interest: {
+        "team-a": 75,
+        "team-b": 120,
+        "team-c": 95,
+      },
+    };
+
+    expect(rankedRecruitSchoolInterests(recruit, 2)).toEqual([
+      ["team-b", 120],
+      ["team-c", 95],
+    ]);
   });
 
   it("requires an offer before pitching and blocks repeat pitches until the next week", () => {

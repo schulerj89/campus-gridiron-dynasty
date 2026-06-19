@@ -49,6 +49,7 @@ import {
   pitchRecruit,
   PITCH_COST,
   positionNeedsWithPledges,
+  rankedRecruitSchoolInterests,
   removeRecruitFromBoard,
   rescindScholarship,
   SCOUT_COST,
@@ -1519,10 +1520,9 @@ function RecruitModal({
 }) {
   const teamById = new Map(teams.map((team) => [team.id, team]));
   const eligibility = recruitActionEligibility({ recruit, userTeam, onBoard, boardFull, pointsRemaining, week });
-  const topSchools = Object.entries(recruit.interest)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10);
+  const topSchools = rankedRecruitSchoolInterests(recruit);
   const userRank = topSchools.findIndex(([teamId]) => teamId === userTeam.id) + 1;
+  const userRankLabel = recruit.topSchools.length ? "Outside current cut" : "Outside Top 10";
   const priorities = Object.entries(recruit.priorities)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
@@ -1578,7 +1578,7 @@ function RecruitModal({
             </div>
             <div className="mini-metrics modal-metrics">
               <span>{eligibility.offered ? "Scholarship sent" : "No scholarship"}</span>
-              <span>{userRank ? `Your rank #${userRank}` : "Outside Top 10"}</span>
+              <span>{userRank ? `Your rank #${userRank}` : userRankLabel}</span>
               <span>Pitch: {eligibility.pitchStatus}</span>
             </div>
             <div className="known-attrs">

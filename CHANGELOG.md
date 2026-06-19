@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.10 - 2026-06-19
+
+- Updated recruit modal school-interest rows to respect the recruit's actual cut list.
+- Added a safe sorted-interest fallback for legacy or malformed recruit cut lists.
+- Added regression coverage for cut-list ranking and fallback ranking behavior.
+
 ## 1.20.9 - 2026-06-19
 
 - Aligned the regular recruit modal with the app's dialog/backdrop modal pattern.

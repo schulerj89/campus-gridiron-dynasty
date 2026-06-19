@@ -445,6 +445,13 @@ export function liveOfferCountForPosition(recruits: Recruit[], teamId: string, p
   return recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && !recruit.committedTeamId && recruit.offers?.includes(teamId)).length;
 }
 
+export function rankedRecruitSchoolInterests(recruit: Recruit, fallbackLimit = 10): [string, number][] {
+  const sortedInterest = Object.entries(recruit.interest).sort((a, b) => b[1] - a[1]);
+  const cutList = recruit.topSchools.filter((teamId) => Object.prototype.hasOwnProperty.call(recruit.interest, teamId));
+  if (cutList.length) return cutList.map((teamId) => [teamId, recruit.interest[teamId] ?? 0]);
+  return sortedInterest.slice(0, fallbackLimit);
+}
+
 export function userPledgeCountForPosition(recruits: Recruit[], teamId: string, position: Position): number {
   return recruits.filter((recruit) => recruit.position === position && recruit.stage !== "signed" && recruit.committedTeamId === teamId).length;
 }
