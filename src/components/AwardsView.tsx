@@ -1,8 +1,10 @@
 import clsx from "clsx";
 import { Award, Medal, Trophy } from "lucide-react";
-import { createSeasonAwards } from "../sim/awards";
+import { createSeasonAwardCandidateBoards, createSeasonAwards, SEASON_AWARD_DEFINITIONS, type SeasonAwardCandidateBoard, type SeasonAwardKey } from "../sim/awards";
 import { getUserTeam } from "../sim/dynasty";
 import type { AwardWinner, DynastyState, Game, Team } from "../sim/types";
+
+const AWARD_KEY_BY_NAME = new Map(SEASON_AWARD_DEFINITIONS.map((definition) => [definition.awardName, definition.key]));
 
 export function Awards({ state }: { state: DynastyState }) {
   const userTeam = getUserTeam(state);
@@ -15,6 +17,8 @@ export function Awards({ state }: { state: DynastyState }) {
   const seasonAwardWatch = !state.seasonAwards && state.phase === "regular" && state.week >= 8 ? createSeasonAwards(state.teams, state.conferences, state.calendarYear).nationalAwards : undefined;
   const awardSource = state.seasonAwards?.nationalAwards ?? seasonAwardWatch ?? (state.phase === "regular" ? [] : latestHistory?.awardWinners ?? []);
   const seasonAwardsTitle = state.seasonAwards ? "Season Awards" : seasonAwardWatch ? "Season Award Watch" : state.phase !== "regular" && awardSource.length ? "Latest Season Awards" : "Season Award Watch Opens Week 8";
+  const seasonAwardCandidateBoards = state.week >= 8 || state.seasonAwards ? createSeasonAwardCandidateBoards(state.teams) : [];
+  const showSeasonAwardCandidates = Boolean(state.seasonAwards || seasonAwardWatch);
   const currentChampionName = state.playoff?.championTeamId ? state.teams.find((team) => team.id === state.playoff?.championTeamId)?.name : undefined;
   const bracketChampionName = state.playoff ? currentChampionName : latestHistory?.championName;
   const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
@@ -39,7 +43,11 @@ export function Awards({ state }: { state: DynastyState }) {
           <h2>{seasonAwardsTitle}</h2>
           <Award size={20} />
         </div>
-        {state.week >= 8 || state.seasonAwards || state.phase !== "regular" ? <AwardGrid awards={awardSource} userTeamId={state.userTeamId} /> : <p className="muted">Season award tracking unlocks after Week 8.</p>}
+        {state.week >= 8 || state.seasonAwards || state.phase !== "regular" ? (
+          <SeasonAwardShowcase awards={awardSource} candidateBoards={seasonAwardCandidateBoards} showCandidates={showSeasonAwardCandidates} userTeamId={state.userTeamId} />
+        ) : (
+          <p className="muted">Season award tracking unlocks after Week 8.</p>
+        )}
       </section>
       {state.seasonAwards && (
         <>
@@ -83,6 +91,78 @@ export function AwardGrid({ awards, limit = 12, userTeamId }: { awards: AwardWin
       ))}
     </div>
   );
+}
+
+function SeasonAwardShowcase({
+  awards,
+  candidateBoards,
+  showCandidates,
+  userTeamId,
+}: {
+  awards: AwardWinner[];
+  candidateBoards: SeasonAwardCandidateBoard[];
+  showCandidates: boolean;
+  userTeamId: string;
+}) {
+  if (!awards.length) return <p className="muted">Season award tracking unlocks after Week 8.</p>;
+
+  const boardsByName = new Map(candidateBoards.map((board) => [board.awardName, board]));
+
+  return (
+    <div className="season-award-showcase" data-testid="season-award-showcase">
+      {awards.map((award) => {
+        const key = awardKeyForName(award.awardName);
+        const board = boardsByName.get(award.awardName);
+        return (
+          <article
+            key={`${award.awardName}-${award.playerId}`}
+            className={clsx("season-award-card", award.teamId === userTeamId && "user-team-highlight")}
+            data-testid={award.teamId === userTeamId ? "user-team-award-card" : "season-award-card"}
+          >
+            <div className="season-award-main">
+              <div className="award-statue-frame">
+                <img src={`/assets/award-statues/${key}.png`} alt={`${award.awardName} bronze statue`} data-testid="award-statue-image" />
+              </div>
+              <div className="season-award-winner">
+                <p className="eyebrow">{award.awardName}</p>
+                <h3>{award.playerName}</h3>
+                <p>
+                  {award.teamName} - {award.position}
+                </p>
+                <span>{award.note}</span>
+              </div>
+            </div>
+            {showCandidates && board?.candidates.length ? (
+              <div className="award-candidate-list" data-testid="award-candidate-list" aria-label={`${award.awardName} top 8 candidates`}>
+                <div className="candidate-list-head">
+                  <strong>Top 8 Candidates</strong>
+                  <span>Score</span>
+                </div>
+                {board.candidates.map((candidate) => (
+                  <div key={`${award.awardName}-${candidate.playerId}`} className={clsx("award-candidate-row", candidate.teamId === userTeamId && "user-team-highlight")}>
+                    <span className="candidate-rank">#{candidate.rank}</span>
+                    <div>
+                      <strong>{candidate.playerName}</strong>
+                      <span>
+                        {candidate.teamName} - {candidate.position} - {candidate.year} - {candidate.overall} OVR
+                      </span>
+                    </div>
+                    <em>{candidate.score.toLocaleString()}</em>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="muted compact-note">Candidate boards are available for the active award watch and current season awards.</p>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function awardKeyForName(awardName: string): SeasonAwardKey {
+  return AWARD_KEY_BY_NAME.get(awardName) ?? "overall";
 }
 
 function AwardTeamPanel({ title: panelTitle, awards, testId, userTeamId }: { title: string; awards: AwardWinner[]; testId: string; userTeamId: string }) {

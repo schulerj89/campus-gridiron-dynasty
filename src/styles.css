@@ -999,6 +999,142 @@ select {
   margin-bottom: 6px;
 }
 
+.season-award-showcase {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.season-award-card {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.season-award-main {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 108px minmax(0, 1fr);
+}
+
+.award-statue-frame {
+  align-items: center;
+  aspect-ratio: 1;
+  background: radial-gradient(circle at 50% 28%, rgba(240, 184, 74, 0.22), rgba(94, 55, 24, 0.12) 54%, rgba(10, 17, 20, 0.78));
+  border: 1px solid rgba(240, 184, 74, 0.38);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.award-statue-frame img {
+  display: block;
+  height: 96px;
+  image-rendering: auto;
+  object-fit: contain;
+  width: 96px;
+}
+
+.season-award-winner h3 {
+  font-size: 1.12rem;
+  margin: 0 0 4px;
+}
+
+.season-award-winner p {
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+
+.season-award-winner span {
+  color: var(--text);
+  display: block;
+  font-size: 0.9rem;
+}
+
+.award-candidate-list {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+}
+
+.candidate-list-head,
+.award-candidate-row {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 42px minmax(0, 1fr) 64px;
+}
+
+.candidate-list-head {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.candidate-list-head strong {
+  grid-column: 1 / span 2;
+}
+
+.candidate-list-head span,
+.award-candidate-row em {
+  text-align: right;
+}
+
+.award-candidate-row {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 8px;
+  min-height: 48px;
+  padding: 7px 8px;
+}
+
+.award-candidate-row div {
+  min-width: 0;
+}
+
+.award-candidate-row strong,
+.award-candidate-row span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.award-candidate-row span {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.award-candidate-row em {
+  color: var(--gold);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.candidate-rank {
+  align-items: center;
+  background: rgba(240, 184, 74, 0.14);
+  border: 1px solid rgba(240, 184, 74, 0.38);
+  border-radius: 999px;
+  color: var(--gold);
+  display: inline-flex;
+  font-size: 0.78rem;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  width: 34px;
+}
+
+.compact-note {
+  margin: 0;
+}
+
 .empty-state {
   background: #0f171b;
   border: 1px dashed var(--line);
@@ -2147,6 +2283,7 @@ select {
   .player-grid,
   .recruit-grid,
   .award-grid,
+  .season-award-showcase,
   .staff-grid,
   .blueprint-grid,
   .playoff-grid,
@@ -2168,6 +2305,20 @@ select {
 
   .mobile-priority .metric strong {
     font-size: 1.35rem;
+  }
+
+  .season-award-main {
+    grid-template-columns: 82px minmax(0, 1fr);
+  }
+
+  .award-statue-frame img {
+    height: 72px;
+    width: 72px;
+  }
+
+  .candidate-list-head,
+  .award-candidate-row {
+    grid-template-columns: 38px minmax(0, 1fr) 50px;
   }
 
   .topbar-actions .secondary {

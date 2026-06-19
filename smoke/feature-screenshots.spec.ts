@@ -199,8 +199,11 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   const userSeasonAwardCard = page.getByTestId("awards-panel").getByTestId("user-team-award-card").first();
   await expect(userSeasonAwardCard).toBeVisible();
   await expect(page.getByTestId("awards-panel")).toContainText("Iron Lantern Trophy");
+  await expect(page.getByTestId("awards-panel").getByTestId("award-statue-image").first()).toBeVisible();
+  await expect(page.getByTestId("awards-panel").getByTestId("award-candidate-list").first()).toContainText("Top 8 Candidates");
   const userSeasonAwardPlayer = (await userSeasonAwardCard.locator("h3").textContent())?.trim() ?? "";
   await page.getByTestId("awards-panel").screenshot({ path: path.join(screenshotDir, "awards-desktop.png") });
+  await page.getByTestId("season-award-showcase").screenshot({ path: path.join(screenshotDir, "award-statue-candidates-desktop.png") });
   await page.getByTestId("all-american-first-panel").screenshot({ path: path.join(screenshotDir, "all-american-desktop.png") });
   await page.getByTestId("all-american-second-panel").screenshot({ path: path.join(screenshotDir, "all-american-second-desktop.png") });
   await page.getByTestId("all-conference-first-panel").screenshot({ path: path.join(screenshotDir, "all-conference-first-desktop.png") });

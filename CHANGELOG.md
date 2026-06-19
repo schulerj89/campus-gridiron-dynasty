@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.0 - 2026-06-19
+
+- Added bronze statue artwork for every national season award, including a neutral pose for the Iron Lantern Trophy.
+- Added top-eight candidate boards to active season award watch and finalized season awards.
+- Centralized season award definitions so winner selection, candidate boards, and trophy art use the same award scopes.
+- Added unit and smoke coverage for award candidate boards and trophy image rendering.
+
 ## 1.20.21 - 2026-06-19
 
 - Scoped the forced-award smoke assertion to the Season Awards panel.

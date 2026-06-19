@@ -8,6 +8,47 @@ type AwardEntry = { team: Team; player: Pick<Player, "id" | "name" | "position" 
 const OFFENSIVE_PLAYER_POSITIONS: Position[] = ["QB", "HB", "WR", "TE"];
 const DEFENSIVE_PLAYER_POSITIONS: Position[] = ["DL", "LB", "CB", "S"];
 
+export type SeasonAwardKey = "overall" | "qb" | "rb" | "wr" | "ol" | "dl" | "lb" | "db" | "kicker" | "freshman";
+
+export interface SeasonAwardDefinition {
+  key: SeasonAwardKey;
+  awardName: string;
+  positions?: Position[];
+  freshmanOnly?: boolean;
+}
+
+export interface SeasonAwardCandidate {
+  rank: number;
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  teamName: string;
+  position: Position;
+  year: Player["year"];
+  overall: number;
+  score: number;
+  note: string;
+}
+
+export interface SeasonAwardCandidateBoard {
+  key: SeasonAwardKey;
+  awardName: string;
+  candidates: SeasonAwardCandidate[];
+}
+
+export const SEASON_AWARD_DEFINITIONS: SeasonAwardDefinition[] = [
+  { key: "overall", awardName: AWARD_NAMES.overall },
+  { key: "qb", awardName: AWARD_NAMES.qb, positions: ["QB"] },
+  { key: "rb", awardName: AWARD_NAMES.rb, positions: ["HB"] },
+  { key: "wr", awardName: AWARD_NAMES.wr, positions: ["WR", "TE"] },
+  { key: "ol", awardName: AWARD_NAMES.ol, positions: ["OL"] },
+  { key: "dl", awardName: AWARD_NAMES.dl, positions: ["DL"] },
+  { key: "lb", awardName: AWARD_NAMES.lb, positions: ["LB"] },
+  { key: "db", awardName: AWARD_NAMES.db, positions: ["CB", "S"] },
+  { key: "kicker", awardName: AWARD_NAMES.kicker, positions: ["K", "P"] },
+  { key: "freshman", awardName: AWARD_NAMES.freshman, freshmanOnly: true },
+];
+
 export function rankTeams(teams: Team[]): Team[] {
   const ranked = [...teams].sort((a, b) => rankingScore(b) - rankingScore(a));
   return ranked.map((team, index) => ({
@@ -58,18 +99,10 @@ export function createWeeklyAwards(teams: Team[], conferences: Conference[], yea
 export function createSeasonAwards(teams: Team[], conferences: Conference[], year: number, forceUserTeamId?: string): SeasonAwards {
   const candidates = playersWithTeams(teams);
   const forced = forceUserTeamId ? candidates.find((entry) => entry.team.id === forceUserTeamId && entry.player.position === "QB") : undefined;
-  const nationalAwards = [
-    winner(AWARD_NAMES.overall, forced ?? topBy(candidates, playerValue, undefined)),
-    winner(AWARD_NAMES.qb, topBy(candidates, playerValue, ["QB"])),
-    winner(AWARD_NAMES.rb, topBy(candidates, playerValue, ["HB"])),
-    winner(AWARD_NAMES.wr, topBy(candidates, playerValue, ["WR", "TE"])),
-    winner(AWARD_NAMES.ol, topBy(candidates, playerValue, ["OL"])),
-    winner(AWARD_NAMES.dl, topBy(candidates, playerValue, ["DL"])),
-    winner(AWARD_NAMES.lb, topBy(candidates, playerValue, ["LB"])),
-    winner(AWARD_NAMES.db, topBy(candidates, playerValue, ["CB", "S"])),
-    winner(AWARD_NAMES.kicker, topBy(candidates, playerValue, ["K", "P"])),
-    winner(AWARD_NAMES.freshman, topBy(candidates.filter((entry) => entry.player.year === "FR"), playerValue, undefined)),
-  ].filter(Boolean) as AwardWinner[];
+  const nationalAwards = SEASON_AWARD_DEFINITIONS.map((definition) => {
+    const selected = definition.key === "overall" && forced ? forced : topBy(rankableSeasonCandidates(candidates, definition), playerValue);
+    return winner(definition.awardName, selected);
+  }).filter(Boolean) as AwardWinner[];
 
   const allAmericanFirst = allTeam(candidates);
   const allAmericans = {
@@ -95,6 +128,29 @@ export function createSeasonAwards(teams: Team[], conferences: Conference[], yea
     allAmericans,
     allConference,
   };
+}
+
+export function createSeasonAwardCandidateBoards(teams: Team[], limit = 8): SeasonAwardCandidateBoard[] {
+  const candidates = playersWithTeams(teams);
+  return SEASON_AWARD_DEFINITIONS.map((definition) => ({
+    key: definition.key,
+    awardName: definition.awardName,
+    candidates: rankableSeasonCandidates(candidates, definition)
+      .sort((a, b) => playerValue(b) - playerValue(a))
+      .slice(0, limit)
+      .map((entry, index) => ({
+        rank: index + 1,
+        playerId: entry.player.id,
+        playerName: entry.player.name,
+        teamId: entry.team.id,
+        teamName: entry.team.name,
+        position: entry.player.position,
+        year: entry.player.year,
+        overall: entry.player.overall,
+        score: Math.round(playerValue(entry)),
+        note: noteFor(entry.player),
+      })),
+  }));
 }
 
 export function recruitingClassRankings(teams: Team[], signedCounts: Record<string, number> = {}, limit = 10): { teamId: string; teamName: string; points: number }[] {
@@ -165,6 +221,14 @@ function topBy<T extends AwardEntry>(
   return entries
     .filter((entry) => !positions || positions.includes(entry.player.position))
     .sort((a, b) => score(b) - score(a))[0];
+}
+
+function rankableSeasonCandidates(entries: PlayerEntry[], definition: SeasonAwardDefinition): PlayerEntry[] {
+  return entries.filter((entry) => {
+    const matchesPosition = !definition.positions || definition.positions.includes(entry.player.position);
+    const matchesYear = !definition.freshmanOnly || entry.player.year === "FR";
+    return matchesPosition && matchesYear;
+  });
 }
 
 function allTeam(entries: PlayerEntry[], excludedIds = new Set<string>()): AwardWinner[] {
