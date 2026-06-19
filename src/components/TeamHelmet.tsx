@@ -1,8 +1,9 @@
 import type { Team } from "../sim/types";
+import { publicAsset } from "../assets";
 
 export function TeamHelmet({ team, size = "md" }: { team: Team; size?: "sm" | "md" | "lg" }) {
   const variant = (team.helmetIndex ?? fallbackHelmetIndex(team.id)) % 14;
-  const src = `/assets/team-helmets/helmet-${variant.toString().padStart(2, "0")}.png`;
+  const src = publicAsset(`assets/team-helmets/helmet-${variant.toString().padStart(2, "0")}.png`);
   return (
     <span
       className={`team-helmet helmet-${size}`}

@@ -2,6 +2,10 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.18 - 2026-06-19
+
+- Fixed public image asset URLs so helmets, portraits, coach portraits, hero art, and award statues load correctly from the GitHub Pages project path.
+
 ## 1.21.17 - 2026-06-19
 
 - Added a mobile section menu that collapses the dynasty tab rail behind a hamburger control on iPhone-sized screens.

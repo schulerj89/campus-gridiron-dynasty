@@ -63,6 +63,7 @@ import { TARGET_ROSTER, effectiveOverall, teamPower, teamUnitRatings } from "./s
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
 import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type BlueprintFocus, type Coach, type Conference, type DynastyState, type Game, type OffensiveStrategy, type PlayByPlayEvent, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
+import { publicAsset } from "./assets";
 import { PaginationControls } from "./components/PaginationControls";
 import { ProgramHistory } from "./components/ProgramHistoryView";
 import { Rankings } from "./components/RankingsView";
@@ -459,7 +460,7 @@ function HomeScreen({
 
   return (
     <div className="home">
-      <section className="hero" style={{ backgroundImage: "linear-gradient(90deg, rgba(9,13,18,.94), rgba(9,13,18,.58), rgba(9,13,18,.18)), url('/assets/dynasty-hero.png')" }}>
+      <section className="hero" style={{ backgroundImage: `linear-gradient(90deg, rgba(9,13,18,.94), rgba(9,13,18,.58), rgba(9,13,18,.18)), url("${publicAsset("assets/dynasty-hero.png")}")` }}>
         <div className="hero-copy">
           <p className="eyebrow">
             Fictional 20-year dynasty sim <span className="version-pill">{APP_VERSION}</span>
@@ -2432,13 +2433,13 @@ function Stars({ count }: { count: number }) {
 function Portrait({ index }: { index: number }) {
   const column = index % 4;
   const row = Math.floor(index / 4);
-  return <span className="portrait" style={{ backgroundPosition: `${column * 33.333}% ${row * 33.333}%` }} aria-hidden="true" />;
+  return <span className="portrait" style={{ backgroundImage: `url("${publicAsset("assets/portrait-sprite.png")}")`, backgroundPosition: `${column * 33.333}% ${row * 33.333}%` }} aria-hidden="true" />;
 }
 
 function CoachPortrait({ index }: { index: number }) {
   const column = index % 5;
   const row = Math.floor(index / 5);
-  return <span className="coach-portrait" style={{ backgroundPosition: `${column * 25}% ${row * 100}%` }} aria-hidden="true" />;
+  return <span className="coach-portrait" style={{ backgroundImage: `url("${publicAsset("assets/coach-portrait-sprite.png")}")`, backgroundPosition: `${column * 25}% ${row * 100}%` }} aria-hidden="true" />;
 }
 
 function Feature({ icon: Icon, text }: { icon: typeof Shield; text: string }) {

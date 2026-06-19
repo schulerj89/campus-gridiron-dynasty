@@ -2,6 +2,7 @@ import type { KeyboardEvent } from "react";
 import clsx from "clsx";
 import { Award, Medal, Trophy } from "lucide-react";
 import { createSeasonAwardCandidateBoards, createSeasonAwards, SEASON_AWARD_DEFINITIONS, type SeasonAwardCandidateBoard, type SeasonAwardKey } from "../sim/awards";
+import { publicAsset } from "../assets";
 import { getUserTeam } from "../sim/dynasty";
 import type { AwardWinner, DynastyState, Game, Player, Team } from "../sim/types";
 
@@ -148,7 +149,7 @@ function SeasonAwardShowcase({
           >
             <div className={clsx("season-award-main", winner && onOpenPlayer && "clickable-award-main")} {...playerOpenProps(winner, onOpenPlayer, `Open ${award.playerName} player card`)}>
               <div className="award-statue-frame">
-                <img src={`/assets/award-statues/${key}.png`} alt={`${award.awardName} bronze statue`} data-testid="award-statue-image" />
+                <img src={publicAsset(`assets/award-statues/${key}.png`)} alt={`${award.awardName} bronze statue`} data-testid="award-statue-image" />
               </div>
               <div className="season-award-winner">
                 <p className="eyebrow">{award.awardName}</p>
