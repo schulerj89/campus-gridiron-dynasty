@@ -101,6 +101,31 @@ describe("recruiting", () => {
     expect(scouted.gemBust).toMatch(/gem|solid|bust/);
   });
 
+  it("does not spend scouting points on a fully scouted recruit", () => {
+    const state = createDynasty(5674);
+    const recruit = state.recruits[0]!;
+    const prepared = {
+      ...state,
+      recruits: state.recruits.map((candidate) => (candidate.id === recruit.id ? { ...candidate, scoutProgress: 100 } : candidate)),
+      recruiting: {
+        ...state.recruiting,
+        board: [recruit.id],
+        investedByRecruit: {},
+        lastActions: ["existing action"],
+        pointsRemaining: SCOUT_COST,
+        pointsSpent: 0,
+      },
+    };
+
+    const attempted = scoutRecruit(prepared, recruit.id);
+
+    expect(attempted.recruiting.pointsRemaining).toBe(SCOUT_COST);
+    expect(attempted.recruiting.pointsSpent).toBe(0);
+    expect(attempted.recruiting.investedByRecruit).toEqual({});
+    expect(attempted.recruiting.lastActions).toEqual(["existing action"]);
+    expect(attempted.recruits.find((candidate) => candidate.id === recruit.id)?.scoutProgress).toBe(100);
+  });
+
   it("adds an off-board recruit when scouting if the board has room", () => {
     const state = createDynasty(5677);
     const recruit = state.recruits[0]!;

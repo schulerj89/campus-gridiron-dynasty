@@ -1632,7 +1632,7 @@ function recruitActionEligibility({ recruit, userTeam, onBoard, boardFull, point
   const canAdd = !onBoard && !boardBlocked && !lockedCommitment;
   const canRescind = offered && !lockedCommitment;
   const canOffer = !offered && !boardBlocked && pointsRemaining >= OFFER_COST && !lockedCommitment;
-  const canScout = !boardBlocked && pointsRemaining >= SCOUT_COST && !lockedCommitment;
+  const canScout = recruit.scoutProgress < 100 && !boardBlocked && pointsRemaining >= SCOUT_COST && !lockedCommitment;
   const canPitch = offered && !pitchedThisWeek && !boardBlocked && pointsRemaining >= PITCH_COST && !lockedCommitment;
   const statusLabel = committedElsewhere ? "Committed elsewhere" : lockedCommitment ? "Committed" : offered ? "Scholarship sent" : recruit.stage;
   const pitchStatus = committedElsewhere

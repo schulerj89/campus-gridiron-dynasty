@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.6 - 2026-06-19
+
+- Blocked manual scouting from spending points on recruits already scouted to 100%.
+- Disabled Scout actions for fully scouted recruits in the shared recruiting action eligibility helper.
+- Added regression coverage proving fully scouted manual scouts do not mutate points, investments, or action logs.
+
 ## 1.20.5 - 2026-06-19
 
 - Centralized recruit action eligibility so card and modal buttons share one Add, Offer, Scout, Pitch, and Rescind rule set.

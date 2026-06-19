@@ -112,6 +112,7 @@ export function rescindScholarship(state: DynastyState, recruitId: string): Dyna
 export function scoutRecruit(state: DynastyState, recruitId: string): DynastyState {
   const target = state.recruits.find((recruit) => recruit.id === recruitId);
   if (!target || target.stage === "signed" || target.committedTeamId) return state;
+  if (target.scoutProgress >= 100) return state;
   if (state.recruiting.pointsRemaining < SCOUT_COST) return state;
   const boardLimit = recruitingBoardLimit(state);
   const board = boardWithRecruit(state.recruiting.board, recruitId, boardLimit);
