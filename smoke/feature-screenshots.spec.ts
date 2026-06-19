@@ -196,13 +196,21 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("coach-pool-panel").screenshot({ path: path.join(screenshotDir, "coach-pool-postseason-desktop.png") });
   await page.getByRole("button", { name: "Awards" }).click();
   await expect(page.getByText("Season Awards")).toBeVisible();
-  await expect(page.getByTestId("user-team-award-card").first()).toBeVisible();
+  const userSeasonAwardCard = page.getByTestId("awards-panel").getByTestId("user-team-award-card").first();
+  await expect(userSeasonAwardCard).toBeVisible();
+  const userSeasonAwardPlayer = (await userSeasonAwardCard.locator("h3").textContent())?.trim() ?? "";
   await page.getByTestId("awards-panel").screenshot({ path: path.join(screenshotDir, "awards-desktop.png") });
   await page.getByTestId("all-american-first-panel").screenshot({ path: path.join(screenshotDir, "all-american-desktop.png") });
   await page.getByTestId("all-american-second-panel").screenshot({ path: path.join(screenshotDir, "all-american-second-desktop.png") });
   await page.getByTestId("all-conference-first-panel").screenshot({ path: path.join(screenshotDir, "all-conference-first-desktop.png") });
   await page.getByTestId("all-conference-second-panel").screenshot({ path: path.join(screenshotDir, "all-conference-second-desktop.png") });
   await page.getByTestId("playoff-panel").screenshot({ path: path.join(screenshotDir, "playoffs-desktop.png") });
+  await page.getByRole("button", { name: "Roster" }).click();
+  await page.locator(".roster-row").filter({ hasText: userSeasonAwardPlayer }).first().click();
+  await page.getByTestId("player-modal").getByRole("button", { name: "Awards" }).click();
+  await expect(page.getByTestId("player-modal")).toContainText("Iron Lantern Trophy");
+  await page.getByTestId("player-modal").screenshot({ path: path.join(screenshotDir, "player-awards-modal-desktop.png") });
+  await page.getByRole("button", { name: "Close player card" }).click();
 
   for (let round = 0; round < 3; round += 1) {
     await advanceDynasty(page);

@@ -43,6 +43,7 @@ import {
   type RecruitSigning,
   type RecruitTrait,
   type SeasonAwards,
+  type Conference,
   type Team,
   type WalkOnAddition,
 } from "./types";
@@ -432,7 +433,7 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
   }
 
   const seasonAwards = createSeasonAwards(teams, state.conferences, state.calendarYear, state.debugFlags.forceUserAward ? state.userTeamId : undefined);
-  teams = applySeasonAwardsToPlayers(teams, seasonAwards);
+  teams = applySeasonAwardsToPlayers(teams, seasonAwards, state.conferences);
   const seeds = selectPlayoffSeeds(teams, state.userTeamId, state.debugFlags.forceUserPlayoff);
   const playoffGames = createPlayoffGames(state.calendarYear, seeds);
   return {
@@ -603,7 +604,7 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
     topClasses: fullClassRankings.slice(0, 10),
     userRecruitingRank: recruitingRankByTeam.get(signedState.userTeamId),
   };
-  const currentAwardsByTeam = seasonAwardNamesByTeam(signedState.seasonAwards);
+  const currentAwardsByTeam = seasonAwardNamesByTeam(signedState.seasonAwards, signedState.conferences);
   const developmentResults = signedState.teams.map((team) =>
     recordAndDevelopTeam(rng, team, signedState.calendarYear, champion?.id === team.id, departuresByTeam.get(team.id) ?? [], recruitingRankByTeam.get(team.id), currentAwardsByTeam.get(team.id) ?? []),
   );
@@ -768,18 +769,11 @@ function mostNeededWalkOnPosition(roster: Player[]): Position {
     .sort((a, b) => b.deficit - a.deficit || TARGET_ROSTER[b.position] - TARGET_ROSTER[a.position])[0]!.position;
 }
 
-function applySeasonAwardsToPlayers(teams: Team[], seasonAwards: SeasonAwards): Team[] {
+function applySeasonAwardsToPlayers(teams: Team[], seasonAwards: SeasonAwards, conferences: Conference[]): Team[] {
   const awardsByPlayer = new Map<string, Set<string>>();
-  const awardGroups = [
-    seasonAwards.nationalAwards,
-    seasonAwards.allAmericans.first,
-    seasonAwards.allAmericans.second,
-    seasonAwards.allAmericans.freshman,
-    ...Object.values(seasonAwards.allConference).flatMap((group) => [group.first, group.second, group.freshman]),
-  ];
-  for (const award of awardGroups.flat()) {
+  for (const { award, label } of scopedSeasonAwardLabels(seasonAwards, conferences)) {
     const awards = awardsByPlayer.get(award.playerId) ?? new Set<string>();
-    awards.add(award.awardName);
+    awards.add(label);
     awardsByPlayer.set(award.playerId, awards);
   }
   return teams.map((team) => ({
@@ -847,22 +841,37 @@ function recordAndDevelopTeam(
   };
 }
 
-function seasonAwardNamesByTeam(seasonAwards?: SeasonAwards): Map<string, string[]> {
+function seasonAwardNamesByTeam(seasonAwards: SeasonAwards | undefined, conferences: Conference[]): Map<string, string[]> {
   const awardsByTeam = new Map<string, string[]>();
   if (!seasonAwards) return awardsByTeam;
-  const awardGroups = [
-    seasonAwards.nationalAwards,
-    seasonAwards.allAmericans.first,
-    seasonAwards.allAmericans.second,
-    seasonAwards.allAmericans.freshman,
-    ...Object.values(seasonAwards.allConference).flatMap((group) => [group.first, group.second, group.freshman]),
-  ];
-  for (const award of awardGroups.flat()) {
+  for (const { award, label } of scopedSeasonAwardLabels(seasonAwards, conferences)) {
     const awards = awardsByTeam.get(award.teamId) ?? [];
-    awards.push(award.awardName);
+    awards.push(label);
     awardsByTeam.set(award.teamId, awards);
   }
   return awardsByTeam;
+}
+
+function scopedSeasonAwardLabels(seasonAwards: SeasonAwards, conferences: Conference[]): { award: AwardWinner; label: string }[] {
+  const conferenceNameById = new Map(conferences.map((conference) => [conference.id, conference.name]));
+  return [
+    ...seasonAwards.nationalAwards.map((award) => ({ award, label: award.awardName })),
+    ...honorAwardLabels(seasonAwards.allAmericans.first, "All-American First Team"),
+    ...honorAwardLabels(seasonAwards.allAmericans.second, "All-American Second Team"),
+    ...honorAwardLabels(seasonAwards.allAmericans.freshman, "Freshman All-American"),
+    ...Object.entries(seasonAwards.allConference).flatMap(([conferenceId, group]) => {
+      const conferenceName = conferenceNameById.get(conferenceId) ?? "Conference";
+      return [
+        ...honorAwardLabels(group.first, `${conferenceName} First Team`),
+        ...honorAwardLabels(group.second, `${conferenceName} Second Team`),
+        ...honorAwardLabels(group.freshman, `${conferenceName} Freshman Team`),
+      ];
+    }),
+  ];
+}
+
+function honorAwardLabels(awards: AwardWinner[], scope: string): { award: AwardWinner; label: string }[] {
+  return awards.map((award) => ({ award, label: `${scope} - ${award.awardName}` }));
 }
 
 function developAndGraduate(rng: Rng, team: Team, year: number, departures: PlayerDeparture[]): { roster: Player[]; progressions: PlayerProgression[] } {

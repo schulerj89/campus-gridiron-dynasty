@@ -66,6 +66,31 @@ describe("dynasty flow", () => {
     expect(state.debugFlags.forceUserAward).toBe(true);
   });
 
+  it("scopes honor team award names in player and team history", () => {
+    let state = createDynasty(8915);
+    for (let week = 1; week <= 12; week += 1) {
+      state = advanceWeek(state);
+    }
+
+    const honor = state.seasonAwards?.allAmericans.first[0];
+    expect(honor).toBeDefined();
+    const honorLabel = `All-American First Team - ${honor!.awardName}`;
+    const honoredTeam = state.teams.find((team) => team.id === honor!.teamId)!;
+    const honoredPlayer = honoredTeam.roster.find((player) => player.id === honor!.playerId)!;
+    expect(honoredPlayer.awards).toContain(honorLabel);
+    expect(honoredPlayer.awards).not.toContain(honor!.awardName);
+
+    let guard = 0;
+    while (!(state.phase === "preseason" && state.history.length > 0) && guard < 20) {
+      state = advanceWeek(state);
+      guard += 1;
+    }
+
+    const archivedTeam = state.teams.find((team) => team.id === honor!.teamId)!;
+    expect(state.phase).toBe("preseason");
+    expect(archivedTeam.history[0]?.awards).toContain(honorLabel);
+  });
+
   it("keeps the Crown Bowl champion on a recap step before offseason opens", () => {
     let state = forceUserPlayoff(createDynasty(8913));
     for (let week = 1; week <= 12; week += 1) {

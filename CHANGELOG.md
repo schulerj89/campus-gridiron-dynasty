@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.20 - 2026-06-19
+
+- Scoped persisted honor-team award labels for player history and the program record book.
+- Preserved national trophy names while distinguishing All-American and all-conference team honors.
+- Added unit coverage plus a player awards modal screenshot for the forced award winner.
+
 ## 1.20.19 - 2026-06-19
 
 - Expanded the Awards page national weekly panel to show all four generated weekly awards.
