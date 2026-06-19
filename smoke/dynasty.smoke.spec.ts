@@ -10,6 +10,7 @@ test.beforeAll(() => {
 });
 
 test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => {
+  const isMobile = testInfo.project.name === "webkit-iphone-15-pro-max";
   await page.goto("/?seed=13002");
   await clearBrowserSave(page);
   await page.reload();
@@ -32,7 +33,7 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "dashboard-desktop.png"), fullPage: true });
   }
-  if (testInfo.project.name === "webkit-iphone-15-pro-max") {
+  if (isMobile) {
     await expect(page.getByText("Action Items")).not.toBeVisible();
     await expect(page.getByText("Latest National Awards")).not.toBeVisible();
     await expect(page.getByText("Passing")).not.toBeVisible();
@@ -42,6 +43,7 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await expect(page.locator("#dynasty-section-tabs")).toBeVisible();
     await page.screenshot({ path: path.join(screenshotDir, "mobile-section-menu.png"), fullPage: false });
     await page.getByTestId("mobile-section-menu").click();
+    await expectNoHorizontalOverflow(page, "dashboard");
     await page.screenshot({ path: path.join(screenshotDir, "mobile-dashboard.png"), fullPage: true });
   }
 
@@ -95,10 +97,11 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "recruiting-desktop.png"), fullPage: true });
   }
-  if (testInfo.project.name === "webkit-iphone-15-pro-max") {
+  if (isMobile) {
     await expect(page.getByTestId("recruiting-database")).toBeVisible();
     const databaseOverflows = await page.getByTestId("recruiting-database").evaluate((element) => element.scrollWidth > element.clientWidth + 1);
     expect(databaseOverflows).toBe(false);
+    await expectNoHorizontalOverflow(page, "recruiting");
     await page.getByTestId("recruiting-database").screenshot({ path: path.join(screenshotDir, "mobile-recruiting.png") });
   }
 
@@ -108,11 +111,22 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await page.getByTestId("sim-three-seasons").click();
   await expect(page.getByText(/Year 4 of 20/)).toBeVisible({ timeout: 90_000 });
 
+  await openDynastySection(page, testInfo, /Stats/);
+  await expect(page.getByTestId("leaderboard-panel")).toBeVisible();
+  if (isMobile) {
+    await expectNoHorizontalOverflow(page, "stats");
+    await page.screenshot({ path: path.join(screenshotDir, "mobile-stats.png"), fullPage: true });
+  }
+
   await openDynastySection(page, testInfo, /Program/);
   await expect(page.getByTestId("program-record-book-panel")).toContainText("Program Record Book");
   await expect(page.getByTestId("dynasty-history-panel")).toContainText("Dynasty History");
   if (testInfo.project.name === "chromium-desktop") {
     await page.getByTestId("program-record-book-panel").screenshot({ path: path.join(screenshotDir, "program-record-book-desktop.png") });
+  }
+  if (isMobile) {
+    await expectNoHorizontalOverflow(page, "program");
+    await page.screenshot({ path: path.join(screenshotDir, "mobile-program.png"), fullPage: true });
   }
 
   await openDynastySection(page, testInfo, /Awards/);
@@ -120,6 +134,10 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await expect(page.getByTestId("playoff-panel")).toBeVisible();
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "awards-playoff-desktop.png"), fullPage: true });
+  }
+  if (isMobile) {
+    await expectNoHorizontalOverflow(page, "awards");
+    await page.screenshot({ path: path.join(screenshotDir, "mobile-awards.png"), fullPage: true });
   }
 });
 
@@ -200,6 +218,32 @@ async function openDynastySection(page: import("@playwright/test").Page, testInf
     await mobileMenu.click();
   }
   await page.getByRole("button", { name }).click();
+}
+
+async function expectNoHorizontalOverflow(page: import("@playwright/test").Page, label: string) {
+  const overflow = await page.evaluate(() => {
+    const viewportWidth = window.innerWidth;
+    const documentWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+    if (documentWidth <= viewportWidth + 1) return null;
+    const offenders = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          tag: element.tagName.toLowerCase(),
+          className: element.className.toString(),
+          testId: element.dataset.testid ?? "",
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          width: Math.round(rect.width),
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        };
+      })
+      .filter((entry) => entry.right > viewportWidth + 1 || entry.left < -1 || entry.scrollWidth > entry.clientWidth + 1)
+      .slice(0, 8);
+    return { viewportWidth, documentWidth, offenders };
+  });
+  expect(overflow, `${label} should fit inside the mobile viewport`).toBeNull();
 }
 
 async function clearBrowserSave(page: import("@playwright/test").Page) {

@@ -2240,10 +2240,12 @@ select {
   .metric-grid,
   .unit-grid,
   .goal-grid,
+  .program-control-grid,
   .matchup-head-to-head,
   .matchup-edge-grid,
   .record-book-split,
   .champion-scoreline,
+  .box-score-grid,
   .offseason-grid,
   .offseason-steps {
     grid-template-columns: 1fr;
@@ -2281,6 +2283,11 @@ select {
 
   .table-row {
     grid-template-columns: 1fr;
+  }
+
+  .table-row.record-book-row {
+    min-width: 0;
+    grid-template-columns: 58px 76px 52px minmax(0, 1fr) 54px 58px;
   }
 
   .recruit-table .table-row {
@@ -2327,6 +2334,10 @@ select {
   }
 
   .depth-player-row {
+    grid-template-columns: 1fr;
+  }
+
+  .box-player-row {
     grid-template-columns: 1fr;
   }
 
@@ -2428,6 +2439,7 @@ select {
 
   .panel,
   .offseason-column {
+    min-width: 0;
     padding: 12px;
   }
 
@@ -2500,6 +2512,98 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .filter-grid,
+  .filter-grid.compact-filters,
+  .filter-grid.stats-filters,
+  .program-control-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .program-control-grid {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  [data-testid="strategy-panel"] .panel-head .muted,
+  [data-testid="program-blueprint-panel"] .panel-head .muted,
+  .program-control-grid > p.muted,
+  .blueprint-card p,
+  .goal-card p,
+  .stats-leaderboard-panel .panel-head .muted,
+  .compact-note {
+    display: none;
+  }
+
+  .strategy-summary {
+    gap: 8px;
+  }
+
+  .strategy-summary .metric {
+    padding: 10px 8px;
+  }
+
+  .strategy-summary .metric span {
+    font-size: 0.7rem;
+  }
+
+  .strategy-summary .metric strong {
+    font-size: 1.2rem;
+  }
+
+  .blueprint-summary,
+  .record-book-metrics,
+  .investment-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .record-book-metrics .metric small {
+    display: none;
+  }
+
+  .investment {
+    gap: 4px;
+    min-height: 70px;
+    padding: 10px;
+  }
+
+  .investment span {
+    font-size: 0.76rem;
+  }
+
+  .investment strong {
+    font-size: 1.3rem;
+  }
+
+  .coach-card {
+    gap: 8px;
+  }
+
+  .coach-card .card-title {
+    margin-bottom: 0;
+  }
+
+  .coach-card .coach-portrait {
+    height: 46px;
+    width: 46px;
+  }
+
+  .coach-card .mini-metrics span {
+    font-size: 0.7rem;
+    padding: 6px 7px;
+  }
+
+  .coach-card .secondary {
+    min-height: 34px;
+    padding: 0 8px;
+  }
+
+  .blueprint-card,
+  .goal-card,
+  .season-award-card,
+  .card {
+    min-width: 0;
+  }
+
   .metric-grid.mobile-priority {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2524,6 +2628,14 @@ select {
   .candidate-list-head,
   .award-candidate-row {
     grid-template-columns: 38px minmax(0, 1fr) 50px;
+  }
+
+  .candidate-list-head {
+    display: none;
+  }
+
+  .award-candidate-row .candidate-rank {
+    justify-self: center;
   }
 
   .need-command-legend {
@@ -2613,6 +2725,49 @@ select {
   .leaderboard-row .selected-stat {
     display: block;
     justify-self: end;
+  }
+
+  .record-book-table {
+    overflow: visible;
+  }
+
+  .table-row.record-book-header {
+    display: none;
+  }
+
+  .table-row.record-book-row {
+    gap: 6px 8px;
+    grid-template-columns: 52px minmax(0, 1fr) 44px;
+    min-height: auto;
+    min-width: 0;
+  }
+
+  .record-book-row strong,
+  .record-book-row span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .record-book-row span:nth-child(3) {
+    justify-self: end;
+  }
+
+  .record-book-row span:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  .record-book-row span:nth-child(5)::before {
+    content: "Class ";
+  }
+
+  .record-book-row span:nth-child(6) {
+    grid-column: 2 / -1;
+  }
+
+  .record-book-row span:nth-child(6)::before {
+    content: "Awards ";
   }
 
   .pagination {

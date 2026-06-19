@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.19 - 2026-06-19
+
+- Simplified mobile Program layouts by collapsing wide control grids, hiding explanatory copy, and compacting blueprint/goals sections for phone screens.
+- Reworked mobile Program Record Book rows so they fit the viewport instead of carrying a desktop table minimum width.
+- Added iPhone smoke coverage and screenshots for Stats, Program, and Awards with document-level horizontal overflow checks.
+
 ## 1.21.18 - 2026-06-19
 
 - Fixed public image asset URLs so helmets, portraits, coach portraits, hero art, and award statues load correctly from the GitHub Pages project path.
