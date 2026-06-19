@@ -433,6 +433,16 @@ export interface WalkOnAddition {
   potential: number;
 }
 
+export interface RosterCut {
+  playerId: string;
+  playerName: string;
+  position: Position;
+  year: CollegeYear;
+  overall: number;
+  potential: number;
+  note: string;
+}
+
 export interface PlayerProgression {
   playerId: string;
   playerName: string;
@@ -459,6 +469,7 @@ export interface TeamOffseasonReport {
   departures: PlayerDeparture[];
   signees: RecruitSigning[];
   walkOns: WalkOnAddition[];
+  cuts: RosterCut[];
   progressions: PlayerProgression[];
   programChanges: ProgramChange[];
   recruitingRank?: number;

@@ -15,6 +15,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Position-specific attribute caps in `src/sim/ratings.ts` limit unrelated skills for each position.
 - Recruit hidden trait bands live in `src/sim/ratings.ts`; elite recruit entry cap is 83.
 - WR and CB recruit speed may exceed the recruit entry cap as an athletic exception up to 93, but recruit overall and non-speed attributes must stay inside the trait cap.
+- Four-star recruits must start at 68+ overall and five-star recruits must start at 74+ overall.
 - Each recruiting class should include thousands of recruits with about 2-4% five-stars and 10-20% four-stars.
 - Recruiting scholarships are tracked per recruit, add prospects to the board, and gate one-pitch-per-week recruiting actions.
 - Recruiting action points are tracked per recruit and return when a board prospect commits.
@@ -31,6 +32,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Signing day class rows should paginate and open read-only recruit detail modals for signed prospects.
 - Signing day must not remove returning players before the offseason departure report is applied.
 - Teams must be restored to the 85-player roster floor after offseason turnover; emergency walk-ons should be labeled and initially capped around 60 overall.
+- Preseason roster cutdown must cap teams at 105 players without cutting a position below its `TARGET_ROSTER` minimum, and cut players must be removed from manual depth-chart order.
 - Player offseason progression must not regress attributes or overall.
 - Elite and high-potential returning players should have a real chance for breakout development above +4 OVR, capped by potential and driven by actual attribute gains.
 - Signing-day recruits are incoming freshmen and must be excluded from preseason development/year progression until kickoff clears the marker.
@@ -65,7 +67,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Completed team-history entries should use current-season award names only; do not re-count cumulative player career awards.
 - Legacy save loading should normalize missing debug, recruiting, history, weekly award, and poll movement fields before rendering or advancing.
 - Legacy save loading should sanitize stale user-team, recruit offer, recruit interest, commitment, board, and investment IDs before simulation code uses them.
-- Legacy offseason report loading should default missing topClasses, departures, signees, walk-ons, progressions, and program changes.
+- Legacy offseason report loading should default missing topClasses, departures, signees, walk-ons, cuts, progressions, and program changes.
 - Active save loading should recover the newest IndexedDB dynasty if the active localStorage pointer is missing or stale.
 - Smoke tests should use `scripts/run-smoke.mjs` and fixed seed query params instead of reusing an arbitrary preview server.
 - Hiring from the coach pool should return the displaced user coach to the pool with no `hiredBy` assignment.

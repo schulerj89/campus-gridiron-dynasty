@@ -48,6 +48,14 @@ const POSITION_ATTRIBUTE_FOCUS: Record<Position, readonly (keyof Attributes)[]> 
   P: ["kickPower", "kickAccuracy"],
 };
 
+const RECRUIT_STAR_OVERALL_FLOORS: Record<Recruit["stars"], number> = {
+  1: 42,
+  2: 50,
+  3: 58,
+  4: 68,
+  5: 74,
+};
+
 export function createDynasty(seed = Date.now(), userTeamId?: string): DynastyState {
   const rng = new Rng(seed);
   const conferences = createConferences();
@@ -207,12 +215,13 @@ export function createRecruitClass(rng: Rng, teams: Team[], count = 2600): Recru
     const hiddenTrait = rollTrait(rng, stars);
     const band = RECRUIT_TRAIT_BANDS[hiddenTrait];
     const starBoost = (stars - 1) * 4;
-    const targetOverall = clamp(rng.nextInt(band.entryMin, band.entryMax) + starBoost - 5, 42, band.entryMax);
+    const starFloor = RECRUIT_STAR_OVERALL_FLOORS[stars];
+    const targetOverall = clamp(rng.nextInt(band.entryMin, band.entryMax) + starBoost - 5, starFloor, band.entryMax);
     const profileIndex = rng.nextInt(0, 13);
     const state = `${rng.pick(STATES)}`;
     const hometown = `${rng.pick(CITIES)}, ${state}`;
-    const attributes = createAttributes(rng, position, targetOverall, 83);
-    const overall = clamp(calculateOverall(position, attributes), 20, band.entryMax);
+    const attributes = createRecruitAttributes(rng, position, targetOverall, 83, starFloor);
+    const overall = clamp(calculateOverall(position, attributes), starFloor, band.entryMax);
     const potential = rng.nextInt(band.potentialMin, band.potentialMax);
     const interest = createRecruitInterest(rng, teams, state, stars);
     const topSchools = sortSchoolsByInterest(interest).slice(0, stars === 5 ? 14 : 10);
@@ -422,6 +431,27 @@ function createAttributes(rng: Rng, position: Position, targetOverall: number, c
   return applyGenerationCaps(position, applyAthleticArchetype(rng, position, capped, targetOverall, cap), cap);
 }
 
+function createRecruitAttributes(rng: Rng, position: Position, targetOverall: number, cap: number, overallFloor: number): Attributes {
+  const attributes = createAttributes(rng, position, targetOverall, cap);
+  return liftAttributesToOverallFloor(position, attributes, overallFloor, cap);
+}
+
+function liftAttributesToOverallFloor(position: Position, attributes: Attributes, overallFloor: number, cap: number): Attributes {
+  let next = attributes;
+  let guard = 0;
+  while (calculateOverall(position, next) < overallFloor && guard < 16) {
+    const deficit = overallFloor - calculateOverall(position, next);
+    const boost = Math.max(1, Math.ceil(deficit / 2));
+    const boosted = { ...next };
+    for (const key of [...POSITION_ATTRIBUTE_FOCUS[position], ...ATTRIBUTE_KEYS]) {
+      boosted[key] = clamp(boosted[key] + boost, 20, key === "speed" ? athleticSpeedCap(position, cap) : cap);
+    }
+    next = applyGenerationCaps(position, normalizeAttributesForPosition(position, boosted, overallFloor), cap);
+    guard += 1;
+  }
+  return next;
+}
+
 function applyAthleticArchetype(rng: Rng, position: Position, attributes: Attributes, targetOverall: number, cap: number): Attributes {
   const speedCap = athleticSpeedCap(position, cap);
   if (position !== "WR" && position !== "CB") return attributes;
@@ -500,9 +530,24 @@ function rollPosition(rng: Rng): Position {
 }
 
 function rollTrait(rng: Rng, stars: 1 | 2 | 3 | 4 | 5): RecruitTrait {
+  if (stars === 5) {
+    return rng.weighted<RecruitTrait>([
+      { value: "elite", weight: 56 },
+      { value: "starter", weight: 34 },
+      { value: "rotation", weight: 10 },
+    ]);
+  }
+  if (stars === 4) {
+    return rng.weighted<RecruitTrait>([
+      { value: "elite", weight: 16 },
+      { value: "starter", weight: 42 },
+      { value: "rotation", weight: 34 },
+      { value: "depth", weight: 8 },
+    ]);
+  }
   const eliteBoost = stars * stars;
   return rng.weighted<RecruitTrait>([
-    { value: "elite", weight: stars === 5 ? 22 : eliteBoost * 0.35 },
+    { value: "elite", weight: eliteBoost * 0.35 },
     { value: "starter", weight: 10 + stars * 4 },
     { value: "rotation", weight: 30 },
     { value: "depth", weight: 28 - stars * 2 },

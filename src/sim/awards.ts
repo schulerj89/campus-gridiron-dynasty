@@ -75,8 +75,6 @@ export function createWeeklyAwards(teams: Team[], conferences: Conference[], yea
   const national = [
     winner("National Offensive Player of the Week", topBy(awardCandidates, weeklyOffenseValue, OFFENSIVE_PLAYER_POSITIONS)),
     winner("National Defensive Player of the Week", topBy(awardCandidates, weeklyDefenseValue, DEFENSIVE_PLAYER_POSITIONS)),
-    winner("Ground Surge", topBy(awardCandidates, (entry) => entry.player.stats.rushYards + entry.player.stats.rushTd * 75, ["HB"])),
-    winner("Sky Route", topBy(awardCandidates, (entry) => entry.player.stats.receivingYards + entry.player.stats.receivingTd * 80, ["WR", "TE"])),
   ].filter(Boolean) as AwardWinner[];
 
   const conference: Record<string, AwardWinner[]> = {};

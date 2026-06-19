@@ -87,6 +87,8 @@ describe("world generation", () => {
     expect(fiveStarRate).toBeLessThanOrEqual(0.04);
     expect(fourStarRate).toBeGreaterThanOrEqual(0.1);
     expect(fourStarRate).toBeLessThanOrEqual(0.2);
+    expect(Math.min(...state.recruits.filter((recruit) => recruit.stars === 4).map((recruit) => recruit.overall))).toBeGreaterThanOrEqual(68);
+    expect(Math.min(...state.recruits.filter((recruit) => recruit.stars === 5).map((recruit) => recruit.overall))).toBeGreaterThanOrEqual(74);
   });
 
   it("creates regular-season schedules without duplicate opponent pairs", () => {

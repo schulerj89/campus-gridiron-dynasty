@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints, createDynasty } from "../generate";
-import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "../dynasty";
+import { ROSTER_LIMIT, advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "../dynasty";
 import { buildDepthChart, moveDepthChartPlayer } from "../depthChart";
 import { effectiveOverall, TARGET_ROSTER } from "../ratings";
 import { blueprintRemaining, blueprintSpent, emptyBlueprintAllocations } from "../blueprint";
@@ -60,9 +60,11 @@ describe("dynasty flow", () => {
   });
 
   it("forces a dashboard-visible weekly award for the user team", () => {
-    const state = forceUserAward(createDynasty(8914));
+    const state = forceUserAward(advanceWeek(createDynasty(8914)));
     expect(state.weeklyAwards[0]?.national[0]?.teamId).toBe(state.userTeamId);
     expect(state.weeklyAwards[0]?.national[0]?.awardName).toBe("National Offensive Player of the Week");
+    expect(state.weeklyAwards[0]?.national).toHaveLength(2);
+    expect(state.weeklyAwards[0]?.national[1]?.awardName).toBe("National Defensive Player of the Week");
     expect(state.debugFlags.forceUserAward).toBe(true);
   });
 
@@ -387,6 +389,7 @@ describe("dynasty flow", () => {
     expect(preseasonReport?.progressions.every((progression) => progression.afterOverall >= progression.beforeOverall)).toBe(true);
     expect(state.offseasonReport?.teams.every((report) => report.walkOns.length >= 0)).toBe(true);
     expect(state.teams.every((team) => team.roster.length >= ROSTER_FLOOR)).toBe(true);
+    expect(state.teams.every((team) => team.roster.length <= ROSTER_LIMIT)).toBe(true);
     expect(preseasonTeam.lastBlueprint?.resolved).toBe(true);
     expect(preseasonTeam.lastBlueprint?.goals).toHaveLength(3);
     expect(preseasonTeam.blueprint?.year).toBe(state.calendarYear);
@@ -482,6 +485,54 @@ describe("dynasty flow", () => {
     expect(userReport?.walkOns.every((walkOn) => walkOn.overall <= 60)).toBe(true);
   }, 20_000);
 
+  it("cuts surplus preseason players without dropping a position below its minimum", () => {
+    const base = createDynasty(8937);
+    const userTeam = base.teams.find((team) => team.id === base.userTeamId)!;
+    const surplusReceivers = Array.from({ length: 28 }, (_, index) => ({
+      ...userTeam.roster.find((player) => player.position === "WR")!,
+      id: `surplus-wr-${index}`,
+      name: `Surplus Receiver ${index}`,
+      overall: 42 + (index % 4),
+      potential: 60 + (index % 5),
+      incomingFreshman: true,
+      walkOn: index % 2 === 0,
+    }));
+    const cutDepthIds = ["surplus-wr-0", "surplus-wr-4", "surplus-wr-8"];
+    const oversizedTeams = base.teams.map((team) =>
+      team.id === base.userTeamId
+        ? {
+            ...team,
+            roster: [...team.roster, ...surplusReceivers],
+            depthChart: {
+              ...team.depthChart,
+              WR: [...cutDepthIds, ...(team.depthChart?.WR ?? [])],
+            },
+          }
+        : team,
+    );
+    const state: DynastyState = {
+      ...base,
+      phase: "offseason",
+      week: 21,
+      teams: oversizedTeams,
+      offseasonReport: developmentReadyReport(base, oversizedTeams),
+    };
+
+    const advanced = advanceWeek(state);
+    const advancedTeam = advanced.teams.find((team) => team.id === base.userTeamId)!;
+    const report = advanced.offseasonReport?.teams.find((teamReport) => teamReport.teamId === base.userTeamId)!;
+
+    expect(advancedTeam.roster.length).toBe(ROSTER_LIMIT);
+    expect(report.cuts.length).toBeGreaterThan(0);
+    for (const [position, target] of Object.entries(TARGET_ROSTER) as [keyof typeof TARGET_ROSTER, number][]) {
+      expect(advancedTeam.roster.filter((player) => player.position === position).length).toBeGreaterThanOrEqual(target);
+    }
+    expect(report.cuts.every((cut) => cut.position === "WR" && cut.overall <= 45)).toBe(true);
+    for (const cut of report.cuts) {
+      expect(advancedTeam.depthChart?.[cut.position] ?? []).not.toContain(cut.playerId);
+    }
+  });
+
   it("keeps signing-day report player ids linked to roster players", () => {
     let state = forceUserPlayoff(createDynasty(8936));
     for (let week = 1; week <= 16; week += 1) {
@@ -519,6 +570,7 @@ describe("dynasty flow", () => {
           departures: [],
           signees: [],
           walkOns: [],
+          cuts: [],
           progressions: [],
           programChanges: [],
         })),
@@ -694,6 +746,7 @@ function developmentReadyReport(base: DynastyState, teams: Team[]): DynastyState
       departures: [],
       signees: [],
       walkOns: [],
+      cuts: [],
       progressions: [],
       programChanges: [],
     })),

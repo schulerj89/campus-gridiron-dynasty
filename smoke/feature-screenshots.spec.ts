@@ -137,8 +137,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("player-of-week-panel")).toBeVisible();
   await expect(page.getByTestId("player-of-week-panel")).toContainText("National Offensive Player of the Week");
   await expect(page.getByTestId("player-of-week-panel")).toContainText("National Defensive Player of the Week");
-  await expect(page.getByTestId("player-of-week-panel")).toContainText("Ground Surge");
-  await expect(page.getByTestId("player-of-week-panel")).toContainText("Sky Route");
+  await expect(page.getByTestId("player-of-week-panel").locator(".award-grid > .card")).toHaveCount(2);
   await page.getByTestId("player-of-week-panel").screenshot({ path: path.join(screenshotDir, "player-of-week-desktop.png") });
   await expect(page.getByTestId("conference-player-of-week-panel")).toBeVisible();
   await page.getByTestId("conference-player-of-week-panel").screenshot({ path: path.join(screenshotDir, "conference-player-of-week-desktop.png") });
@@ -287,9 +286,11 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await advanceDynasty(page);
   await expect(page.getByText(/preseason development results/)).toBeVisible({ timeout: 90_000 });
   await expect(page.getByTestId("preseason-progression-panel")).toBeVisible();
+  await expect(page.getByTestId("preseason-progression-panel")).not.toContainText("Incoming FR");
+  await expect(page.getByTestId("preseason-cutdown-panel")).toBeVisible();
   await expect(page.getByTestId("program-review-panel")).not.toBeVisible();
   await page.getByTestId("preseason-progression-panel").screenshot({ path: path.join(screenshotDir, "preseason-progression-desktop.png") });
-  await page.getByTestId("preseason-progression-panel").screenshot({ path: path.join(screenshotDir, "offseason-walk-ons-desktop.png") });
+  await page.getByTestId("preseason-cutdown-panel").screenshot({ path: path.join(screenshotDir, "preseason-cutdown-desktop.png") });
 
   await advanceDynasty(page);
   await expect(page.getByText(/preseason program review/)).toBeVisible({ timeout: 90_000 });

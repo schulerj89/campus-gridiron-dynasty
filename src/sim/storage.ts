@@ -468,6 +468,7 @@ function normalizeOffseasonReport(report: DynastyState["offseasonReport"], phase
       departures: teamReport.departures ?? [],
       signees: teamReport.signees ?? [],
       walkOns: teamReport.walkOns ?? [],
+      cuts: teamReport.cuts ?? [],
       progressions: teamReport.progressions ?? [],
       programChanges: teamReport.programChanges ?? [],
     })),

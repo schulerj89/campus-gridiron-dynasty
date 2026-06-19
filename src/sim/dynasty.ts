@@ -42,6 +42,7 @@ import {
   type Recruit,
   type RecruitSigning,
   type RecruitTrait,
+  type RosterCut,
   type SeasonAwards,
   type Conference,
   type Team,
@@ -74,6 +75,7 @@ const OFFSEASON_RECRUITING_START_WEEK = 16;
 const OFFSEASON_RECRUITING_END_WEEK = 19;
 const PRESEASON_DEVELOPMENT_WEEK = 21;
 const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
+export const ROSTER_LIMIT = 105;
 
 export function advanceWeek(input: DynastyState): DynastyState {
   if (input.phase === "complete") return input;
@@ -134,11 +136,13 @@ function forceUserWeeklyAward(state: DynastyState): DynastyState["weeklyAwards"]
     position: player.position,
     note: `${player.overall} overall debug award candidate`,
   };
-  const currentAwards = state.weeklyAwards.find((entry) => entry.year === state.calendarYear && entry.week === state.week);
-  const national = [forcedAward, ...(currentAwards?.national ?? []).filter((award) => award.playerId !== player.id).slice(0, 3)];
+  const currentAwards = state.weeklyAwards.find((entry) => entry.year === state.calendarYear && entry.week === state.week) ?? state.weeklyAwards[0];
+  const existingNational = (currentAwards?.national ?? []).filter((award) => award.playerId !== player.id);
+  const secondaryAward = existingNational.find((award) => award.awardName === "National Defensive Player of the Week") ?? existingNational.find((award) => award.awardName !== forcedAward.awardName) ?? existingNational[0];
+  const national = secondaryAward ? [forcedAward, secondaryAward] : [forcedAward];
   const weeklyAward = {
-    year: state.calendarYear,
-    week: state.week,
+    year: currentAwards?.year ?? state.calendarYear,
+    week: currentAwards?.week ?? state.week,
     national,
     conference: currentAwards?.conference ?? {},
   };
@@ -616,9 +620,17 @@ function runPreseasonDevelopment(state: DynastyState): DynastyState {
       walkOns: filled.walkOns,
     };
   });
-  const reportUpdates = new Map(rosterFloorResults.map((result) => [result.team.id, { progressions: result.progressions, programChanges: result.programChanges, walkOns: result.walkOns }]));
+  const rosterLimitResults = rosterFloorResults.map((result) => {
+    const cutdown = enforceRosterLimit(result.team);
+    return {
+      ...result,
+      team: cutdown.team,
+      cuts: cutdown.cuts,
+    };
+  });
+  const reportUpdates = new Map(rosterLimitResults.map((result) => [result.team.id, { progressions: result.progressions, programChanges: result.programChanges, walkOns: result.walkOns, cuts: result.cuts }]));
   const offseasonReport = completeDevelopmentReport(baseReport, reportUpdates);
-  const carousel = runCoachCarousel(rng, rosterFloorResults.map((result) => result.team), signedState.coachPool);
+  const carousel = runCoachCarousel(rng, rosterLimitResults.map((result) => result.team), signedState.coachPool);
   if (signedState.year >= signedState.maxYears) {
     return {
       ...signedState,
@@ -758,6 +770,56 @@ function ensureRosterFloor(rng: Rng, team: Team, year: number): { team: Team; wa
     },
     walkOns,
   };
+}
+
+function enforceRosterLimit(team: Team): { team: Team; cuts: RosterCut[] } {
+  if (team.roster.length <= ROSTER_LIMIT) return { team, cuts: [] };
+  const roster = [...team.roster];
+  const cuts: RosterCut[] = [];
+  const positionCounts = countRosterPositions(roster);
+  const candidates = [...roster].sort((a, b) => a.overall - b.overall || a.potential - b.potential || a.name.localeCompare(b.name));
+
+  for (const player of candidates) {
+    if (roster.length <= ROSTER_LIMIT) break;
+    const target = TARGET_ROSTER[player.position];
+    const currentCount = positionCounts[player.position] ?? 0;
+    if (currentCount <= target) continue;
+    const index = roster.findIndex((candidate) => candidate.id === player.id);
+    if (index < 0) continue;
+    roster.splice(index, 1);
+    positionCounts[player.position] = currentCount - 1;
+    cuts.push({
+      playerId: player.id,
+      playerName: player.name,
+      position: player.position,
+      year: player.year,
+      overall: player.overall,
+      potential: player.potential,
+      note: `Cut to meet the ${ROSTER_LIMIT}-player roster limit without dropping below the ${player.position} minimum.`,
+    });
+  }
+
+  return {
+    team: {
+      ...team,
+      roster,
+      depthChart: pruneDepthChart(team.depthChart, roster),
+    },
+    cuts,
+  };
+}
+
+function countRosterPositions(roster: Player[]): Record<Position, number> {
+  return (Object.keys(TARGET_ROSTER) as Position[]).reduce<Record<Position, number>>((counts, position) => {
+    counts[position] = roster.filter((player) => player.position === position).length;
+    return counts;
+  }, {} as Record<Position, number>);
+}
+
+function pruneDepthChart(depthChart: Team["depthChart"], roster: Player[]): Team["depthChart"] {
+  if (!depthChart) return depthChart;
+  const rosterIds = new Set(roster.map((player) => player.id));
+  return Object.fromEntries(Object.entries(depthChart).map(([position, playerIds]) => [position, playerIds?.filter((playerId) => rosterIds.has(playerId)) ?? []])) as Team["depthChart"];
 }
 
 function mostNeededWalkOnPosition(roster: Player[]): Position {
@@ -1011,6 +1073,7 @@ function createOffseasonReport(teams: Team[], year: number): OffseasonReport {
       departures: team.roster.map((player) => playerDeparture(player, team)).filter((departure): departure is PlayerDeparture => Boolean(departure)),
       signees: [],
       walkOns: [],
+      cuts: [],
       progressions: [],
       programChanges: [],
     })),
@@ -1039,12 +1102,13 @@ function enrichOffseasonReport(
       ...teamReport,
       signees: signeesByTeam.get(teamReport.teamId) ?? teamReport.signees ?? [],
       walkOns: teamReport.walkOns ?? [],
+      cuts: teamReport.cuts ?? [],
       recruitingRank: recruitingRankByTeam.get(teamReport.teamId),
     })),
   };
 }
 
-function completeDevelopmentReport(report: OffseasonReport, updates: Map<string, { progressions: PlayerProgression[]; programChanges: ProgramChange[]; walkOns: WalkOnAddition[] }>): OffseasonReport {
+function completeDevelopmentReport(report: OffseasonReport, updates: Map<string, { progressions: PlayerProgression[]; programChanges: ProgramChange[]; walkOns: WalkOnAddition[]; cuts: RosterCut[] }>): OffseasonReport {
   return {
     ...report,
     signingComplete: true,
@@ -1058,6 +1122,7 @@ function completeDevelopmentReport(report: OffseasonReport, updates: Map<string,
         progressions: update?.progressions ?? teamReport.progressions ?? [],
         programChanges: update?.programChanges ?? teamReport.programChanges ?? [],
         walkOns: update?.walkOns ?? teamReport.walkOns ?? [],
+        cuts: update?.cuts ?? teamReport.cuts ?? [],
       };
     }),
   };

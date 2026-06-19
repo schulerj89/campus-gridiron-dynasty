@@ -241,6 +241,7 @@ describe("storage migration", () => {
     expect(reportTeam?.departures).toEqual([]);
     expect(reportTeam?.signees).toEqual([]);
     expect(reportTeam?.walkOns).toEqual([]);
+    expect(reportTeam?.cuts).toEqual([]);
     expect(reportTeam?.progressions).toEqual([]);
     expect(reportTeam?.programChanges).toEqual([]);
   });

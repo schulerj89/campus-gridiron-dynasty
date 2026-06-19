@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.10 - 2026-06-19
+
+- Raised high-star recruit starting floors so four-stars enter at 68+ overall and five-stars enter at 74+ overall while preserving the 83 recruit entry cap.
+- Added preseason roster cutdown enforcement at the 105-player limit, including reportable cuts and depth-chart pruning without dropping positions below their roster minimums.
+- Simplified the preseason development view by sorting returning players by largest overall gain and excluding incoming freshmen from that scan.
+- Fixed award and offseason display issues: national players of the week now show only offensive and defensive winners, candidate rank badges stay centered, and departures sort highest overall first.
+
 ## 1.21.9 - 2026-06-19
 
 - Split the Roster Room render into focused roster picker, roster list, and depth-chart panel components.

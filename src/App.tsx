@@ -54,11 +54,11 @@ import {
   scoutRecruit,
 } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
-import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
+import { ROSTER_LIMIT, advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
 import { clearDynasty, loadActiveDynasty, loadActiveDynastySummary, saveDynasty, summarizeDynastyState, type DynastySaveSummary } from "./sim/storage";
 import { createDynastySaveQueue } from "./sim/saveQueue";
 import { buildDepthChart, moveDepthChartPlayer } from "./sim/depthChart";
-import { effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
+import { TARGET_ROSTER, effectiveOverall, teamPower, teamUnitRatings } from "./sim/ratings";
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
 import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type BlueprintFocus, type Coach, type Conference, type DynastyState, type Game, type OffensiveStrategy, type PlayByPlayEvent, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
@@ -93,6 +93,7 @@ const RECRUIT_PAGE_SIZE = 25;
 const BOARD_PAGE_SIZE = 8;
 const SIGNEE_PAGE_SIZE = 14;
 const ROSTER_DEPTH_LIMIT = 3;
+const ROSTER_FLOOR_TOTAL = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
 
 const ATTRIBUTE_KEYS_FOR_UI: AttributeKey[] = [
   "throwPower",
@@ -631,7 +632,6 @@ function OffseasonRecap({
 }) {
   const graduates = teamReport.departures.filter((departure) => departure.reason === "graduated");
   const proDepartures = teamReport.departures.filter((departure) => departure.reason === "pro");
-  const walkOns = teamReport.walkOns ?? [];
   const topClasses = report.topClasses;
   const stage = offseasonStage(state, report);
   const team = state.teams.find((candidate) => candidate.id === teamReport.teamId);
@@ -661,7 +661,12 @@ function OffseasonRecap({
             <RecruitingRankingPanel topClasses={topClasses} />
           </>
         )}
-        {stage === "development" && <ProgressionGroup team={team} progressions={teamReport.progressions} walkOns={walkOns} />}
+        {stage === "development" && (
+          <>
+            <ProgressionGroup team={team} progressions={teamReport.progressions} />
+            <RosterCutdownGroup team={team} cuts={teamReport.cuts ?? []} />
+          </>
+        )}
         {stage === "programReview" && <ProgramChangeGroup changes={teamReport.programChanges} />}
       </div>
     </section>
@@ -880,17 +885,14 @@ function SignedRecruitModal({ signee, recruit, teamName, teams, onClose }: { sig
 function ProgressionGroup({
   team,
   progressions,
-  walkOns,
 }: {
   team?: Team;
   progressions: PlayerProgression[];
-  walkOns: NonNullable<DynastyState["offseasonReport"]>["teams"][number]["walkOns"];
 }) {
   const progressionByPlayer = new Map(progressions.map((progression) => [progression.playerId, progression]));
-  const walkOnIds = new Set(walkOns.map((walkOn) => walkOn.playerId));
   const rosterRows = team
     ? [...team.roster]
-        .sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || b.overall - a.overall || a.name.localeCompare(b.name))
+        .filter((player) => !player.incomingFreshman)
         .map((player) => {
           const progression = progressionByPlayer.get(player.id);
           return {
@@ -902,12 +904,13 @@ function ProgressionGroup({
             afterOverall: progression?.afterOverall ?? player.overall,
             delta: progression ? progression.afterOverall - progression.beforeOverall : 0,
             potential: progression?.potential ?? player.potential,
-            status: player.incomingFreshman ? (walkOnIds.has(player.id) || player.walkOn ? "Walk-on" : "Incoming FR") : title(player.development),
-            gains: progression ? attributeGainText(progression.attributeGains) : player.incomingFreshman ? "Joins roster after signing day" : "No reported movement",
+            status: player.walkOn ? "Walk-on" : title(player.development),
+            gains: progression ? attributeGainText(progression.attributeGains) : "No reported movement",
           };
         })
+        .sort((a, b) => b.delta - a.delta || b.afterOverall - a.afterOverall || POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.name.localeCompare(b.name))
     : [...progressions]
-        .sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || b.afterOverall - a.afterOverall || a.playerName.localeCompare(b.playerName))
+        .sort((a, b) => (b.afterOverall - b.beforeOverall) - (a.afterOverall - a.beforeOverall) || b.afterOverall - a.afterOverall || POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.playerName.localeCompare(b.playerName))
         .map((progression) => ({
           id: progression.playerId,
           name: progression.playerName,
@@ -924,7 +927,7 @@ function ProgressionGroup({
     <section className="offseason-column" data-testid="preseason-progression-panel">
       <div className="panel-head compact">
         <h3>Preseason Development</h3>
-        <span className="muted">{rosterRows.length} players</span>
+        <span className="muted">{rosterRows.length} returning players</span>
       </div>
       {rosterRows.length ? (
         <div className="table-list progression-list full-roster-development">
@@ -958,6 +961,38 @@ function ProgressionGroup({
   );
 }
 
+function RosterCutdownGroup({ team, cuts }: { team?: Team; cuts: NonNullable<DynastyState["offseasonReport"]>["teams"][number]["cuts"] }) {
+  return (
+    <section className="offseason-column" data-testid="preseason-cutdown-panel">
+      <div className="panel-head compact">
+        <h3>Roster Cutdown</h3>
+        <span className="muted">{team ? `${team.roster.length}/${ROSTER_LIMIT} players` : `${ROSTER_LIMIT} player limit`}</span>
+      </div>
+      <div className="metric-grid compact-metrics">
+        <Metric label="Roster" value={team ? `${team.roster.length}/${ROSTER_LIMIT}` : "-"} />
+        <Metric label="Cuts" value={cuts.length} />
+        <Metric label="Position Floor" value={ROSTER_FLOOR_TOTAL} />
+      </div>
+      {cuts.length ? (
+        <div className="table-list cut-list">
+          {cuts.map((cut) => (
+            <div key={cut.playerId} className="table-row cut-row">
+              <strong>{cut.playerName}</strong>
+              <span>{cut.position}</span>
+              <span>{cut.year}</span>
+              <span>OVR {cut.overall}</span>
+              <span>Pot {cut.potential}</span>
+              <span>{cut.note}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">No cuts needed. The roster is at or below the {ROSTER_LIMIT}-player limit.</p>
+      )}
+    </section>
+  );
+}
+
 function ProgramChangeGroup({ changes }: { changes: ProgramChange[] }) {
   return (
     <section className="offseason-column" data-testid="program-review-panel">
@@ -981,12 +1016,13 @@ function ProgramChangeGroup({ changes }: { changes: ProgramChange[] }) {
 }
 
 function DepartureGroup({ title: groupTitle, departures }: { title: string; departures: PlayerDeparture[] }) {
+  const sortedDepartures = [...departures].sort((a, b) => b.overall - a.overall || a.playerName.localeCompare(b.playerName));
   return (
     <section className="offseason-column" data-testid={groupTitle === "Graduated" ? "graduated-panel" : "pro-departures-panel"}>
       <h3>{groupTitle}</h3>
       {departures.length ? (
         <div className="table-list departure-list">
-          {departures.slice(0, 12).map((departure) => (
+          {sortedDepartures.slice(0, 12).map((departure) => (
             <div key={departure.playerId} className="table-row departure-row">
               <strong>{departure.playerName}</strong>
               <span>{departure.position}</span>

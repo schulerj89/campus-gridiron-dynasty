@@ -1149,6 +1149,12 @@ select {
   width: 34px;
 }
 
+.award-candidate-row .candidate-rank {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
 .compact-note {
   margin: 0;
 }
@@ -1879,6 +1885,14 @@ select {
   grid-template-columns: minmax(130px, 1fr) 48px 78px 78px;
 }
 
+.cut-row {
+  grid-template-columns: minmax(130px, 1fr) 48px 54px 78px 78px minmax(220px, 1.2fr);
+}
+
+.cut-row span:last-child {
+  grid-column: auto;
+}
+
 .positive {
   color: #a8f0c4 !important;
   font-weight: 900;
@@ -2274,6 +2288,7 @@ select {
   .movement-row,
   .signee-row,
   .progression-row,
+  .cut-row,
   .program-change-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
   }
@@ -2282,7 +2297,8 @@ select {
     display: none;
   }
 
-  .progression-row span:last-child {
+  .progression-row span:last-child,
+  .cut-row span:last-child {
     grid-column: 1 / -1;
   }
 
