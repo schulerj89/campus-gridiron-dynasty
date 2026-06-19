@@ -42,20 +42,16 @@ import {
   autoRecruit,
   gemBustFor,
   isPipelineRecruit,
-  liveOfferCountForPosition,
   MIN_RECRUITING_ACTION_COST,
   OFFER_COST,
   offerScholarship,
   pitchRecruit,
   PITCH_COST,
-  positionNeedsWithPledges,
   rankedRecruitSchoolInterests,
-  recruitingNeedCoveragePercent,
   removeRecruitFromBoard,
   rescindScholarship,
   SCOUT_COST,
   scoutRecruit,
-  userPledgeCountForPosition,
 } from "./sim/recruiting";
 import { createDynasty } from "./sim/generate";
 import { advanceWeek, allocateBlueprintPoint, autoAllocateProgramBlueprint, canEditProgramBlueprint, forceUserAward, forceUserPlayoff, forceUserWalkOnNeed, getUserTeam, hireCoach, investProgramPoint, setProgramBlueprintFocus, setUserOffensiveStrategy, simulateSeasons, spendCoachPoint } from "./sim/dynasty";
@@ -71,16 +67,13 @@ import { ProgramHistory } from "./components/ProgramHistoryView";
 import { Rankings } from "./components/RankingsView";
 import { Stats } from "./components/StatsView";
 import { TeamHelmet } from "./components/TeamHelmet";
+import { buildRecruitingViewModel, type RecruitCommitmentFilter, type RecruitPositionFilter, type RecruitSort, type RecruitStarsFilter } from "./components/recruitingViewModel";
 import { APP_VERSION } from "./version";
 import { BLUEPRINT_CATEGORY_META, MAX_BLUEPRINT_CATEGORY_POINTS, blueprintRemaining, blueprintSpent, ensureProgramBlueprint, evaluateProgramBlueprint } from "./sim/blueprint";
 
 type Tab = "overview" | "rankings" | "roster" | "recruiting" | "schedule" | "stats" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
-type RecruitPositionFilter = "ALL" | Position;
-type RecruitStarsFilter = "ALL" | "1" | "2" | "3" | "4" | "5";
-type RecruitSort = "rank" | "interest" | "stars" | "need";
-type RecruitCommitmentFilter = "all" | "open" | "committed";
 type OffseasonStage = "departures" | "recruiting" | "signing" | "development" | "programReview";
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
@@ -1243,49 +1236,25 @@ function Recruiting({ state, onUpdate }: { state: DynastyState; onUpdate: (recip
   const [boardPage, setBoardPage] = useState(1);
   const [recruitPage, setRecruitPage] = useState(1);
   const [selectedRecruitId, setSelectedRecruitId] = useState<string>();
-  const needs = positionNeedsWithPledges(userTeam, state.recruits);
   const seasonBudget = state.recruiting.seasonBudget ?? state.recruiting.weeklyPoints;
   const pointsSpent = state.recruiting.pointsSpent ?? Math.max(0, seasonBudget - state.recruiting.pointsRemaining);
   const boardLimit = state.recruiting.boardLimit ?? 35;
-  const teamNameById = new Map(state.teams.map((team) => [team.id, team.name]));
-  const board = state.recruiting.board
-    .map((id) => state.recruits.find((recruit) => recruit.id === id))
-    .filter((recruit): recruit is Recruit => recruit !== undefined)
-    .filter((recruit) => recruit.stage !== "signed" && !recruit.committedTeamId);
-  const boardFull = board.length >= boardLimit;
+  const { teamNameById, board, boardFull, needCommandRows, stateOptions, matchingRecruits } = buildRecruitingViewModel({
+    userTeam,
+    teams: state.teams,
+    recruits: state.recruits,
+    boardIds: state.recruiting.board,
+    boardLimit,
+    positionFilter,
+    stateFilter,
+    starsFilter,
+    commitmentFilter,
+    pipelineOnly,
+    sortBy,
+  });
   const boardPageCount = Math.max(1, Math.ceil(board.length / BOARD_PAGE_SIZE));
   const currentBoardPage = Math.min(boardPage, boardPageCount);
   const visibleBoard = board.slice((currentBoardPage - 1) * BOARD_PAGE_SIZE, currentBoardPage * BOARD_PAGE_SIZE);
-  const needsByPosition = new Map(needs.map((need) => [need.position, need]));
-  const needCommandRows = POSITIONS.map((position) => {
-    const need = needsByPosition.get(position) ?? { position, need: 0, target: 0, current: 0, pledged: 0, projected: 0 };
-    const boardCount = board.filter((recruit) => recruit.position === position).length;
-    const offerCount = liveOfferCountForPosition(state.recruits, userTeam.id, position);
-    const committedCount = userPledgeCountForPosition(state.recruits, userTeam.id, position);
-    return {
-      ...need,
-      boardCount,
-      offerCount,
-      committedCount,
-      meterPercent: recruitingNeedCoveragePercent({ target: need.target, current: need.current, boardCount, committedCount }),
-    };
-  });
-  const stateOptions = Array.from(new Set(state.recruits.map((recruit) => recruit.state))).sort();
-  const matchingRecruits = state.recruits
-    .filter((recruit) => recruit.stage !== "signed" && !state.recruiting.board.includes(recruit.id))
-    .filter((recruit) => positionFilter === "ALL" || recruit.position === positionFilter)
-    .filter((recruit) => stateFilter === "ALL" || recruit.state === stateFilter)
-    .filter((recruit) => starsFilter === "ALL" || recruit.stars === Number(starsFilter))
-    .filter((recruit) => commitmentFilter === "all" || (commitmentFilter === "open" ? !recruit.committedTeamId : Boolean(recruit.committedTeamId)))
-    .filter((recruit) => !pipelineOnly || isPipelineRecruit(userTeam, recruit))
-    .sort((a, b) => {
-      const needA = needs.find((need) => need.position === a.position)?.need ?? 0;
-      const needB = needs.find((need) => need.position === b.position)?.need ?? 0;
-      if (sortBy === "interest") return (b.interest[userTeam.id] ?? 0) - (a.interest[userTeam.id] ?? 0) || a.nationalRank - b.nationalRank;
-      if (sortBy === "stars") return b.stars - a.stars || a.nationalRank - b.nationalRank;
-      if (sortBy === "need") return needB - needA || a.nationalRank - b.nationalRank;
-      return a.nationalRank - b.nationalRank;
-    });
   const recruitPageCount = Math.max(1, Math.ceil(matchingRecruits.length / RECRUIT_PAGE_SIZE));
   const currentRecruitPage = Math.min(recruitPage, recruitPageCount);
   const visibleRecruits = matchingRecruits.slice((currentRecruitPage - 1) * RECRUIT_PAGE_SIZE, currentRecruitPage * RECRUIT_PAGE_SIZE);

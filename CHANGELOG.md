@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.4 - 2026-06-19
+
+- Extracted Recruiting page derived data into a pure view-model helper.
+- Added unit coverage for active board filtering, position filtering, and rank sorting.
+- Kept Recruiting page rendering and mechanics unchanged while reducing component complexity.
+
 ## 1.21.3 - 2026-06-19
 
 - Added pagination to the active Recruiting Board so auto-filled boards no longer render every card at once.
