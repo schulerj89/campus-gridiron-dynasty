@@ -71,19 +71,21 @@ export function createSeasonAwards(teams: Team[], conferences: Conference[], yea
     winner(AWARD_NAMES.freshman, topBy(candidates.filter((entry) => entry.player.year === "FR"), playerValue, undefined)),
   ].filter(Boolean) as AwardWinner[];
 
+  const allAmericanFirst = allTeam(candidates);
   const allAmericans = {
-    first: allTeam(candidates, 1),
-    second: allTeam(candidates, 2),
-    freshman: allTeam(candidates.filter((entry) => entry.player.year === "FR"), 1),
+    first: allAmericanFirst,
+    second: allTeam(candidates, awardIds(allAmericanFirst)),
+    freshman: allTeam(candidates.filter((entry) => entry.player.year === "FR")),
   };
 
   const allConference: SeasonAwards["allConference"] = {};
   for (const conf of conferences) {
     const confCandidates = candidates.filter((entry) => entry.team.conferenceId === conf.id);
+    const first = allTeam(confCandidates);
     allConference[conf.id] = {
-      first: allTeam(confCandidates, 1),
-      second: allTeam(confCandidates, 2),
-      freshman: allTeam(confCandidates.filter((entry) => entry.player.year === "FR"), 1),
+      first,
+      second: allTeam(confCandidates, awardIds(first)),
+      freshman: allTeam(confCandidates.filter((entry) => entry.player.year === "FR")),
     };
   }
 
@@ -165,21 +167,25 @@ function topBy<T extends AwardEntry>(
     .sort((a, b) => score(b) - score(a))[0];
 }
 
-function allTeam(entries: PlayerEntry[], tier: 1 | 2): AwardWinner[] {
+function allTeam(entries: PlayerEntry[], excludedIds = new Set<string>()): AwardWinner[] {
   const groups: Position[][] = [["QB"], ["HB"], ["WR"], ["WR"], ["TE"], ["OL"], ["OL"], ["DL"], ["DL"], ["LB"], ["CB"], ["S"], ["K"]];
-  const used = new Set<string>();
+  const used = new Set(excludedIds);
   const winners: AwardWinner[] = [];
   for (const positions of groups) {
     const ranked = entries
       .filter((entry) => positions.includes(entry.player.position) && !used.has(entry.player.id))
       .sort((a, b) => playerValue(b) - playerValue(a));
-    const entry = ranked[tier - 1] ?? ranked[0];
+    const entry = ranked[0];
     if (!entry) continue;
     used.add(entry.player.id);
     const award = winner(POSITION_LABELS[entry.player.position], entry);
     if (award) winners.push(award);
   }
   return winners;
+}
+
+function awardIds(awards: AwardWinner[]): Set<string> {
+  return new Set(awards.map((award) => award.playerId));
 }
 
 function playerValue(entry: { player: Player }): number {

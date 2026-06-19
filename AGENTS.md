@@ -51,6 +51,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - National poll snapshots live on `DynastyState.rankings` and should preserve Top 25 entries, full 1-70 all-team rankings, votes, first-place votes, and movement history.
 - The Rankings tab should display the full 1-70 national board; Top 25 status still controls matchup ranked labels and moved-in/out panels.
 - Rankings, awards, honor teams, and stat leaderboards should visually highlight the user's program when it appears.
+- All-American and all-conference first and second honor teams must not duplicate player IDs within a team or overlap across first/second teams.
 - Stat leaderboards belong on the Stats tab, support National, every conference, and User Team scopes, and should derive completion percentage from attempts and completions.
 - Weekly matchup previews should be derived from pending user games, poll ranks, team power, and unit ratings; they should not alter simulation results.
 - Matchup previews should only display ranked labels for teams currently in the Top 25 poll entries.

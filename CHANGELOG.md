@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.19.3 - 2026-06-18
+
+- Fixed honor-team selection so All-American and all-conference second teams cannot reuse first-team players.
+- Kept freshman honor teams independent while making first and second teams disjoint within each award scope.
+- Added awards regression coverage for duplicate IDs within teams and overlaps between first and second teams.
+
 ## 1.19.2 - 2026-06-18
 
 - Fixed game usage selection so saved manual depth-chart order is honored within each position.
