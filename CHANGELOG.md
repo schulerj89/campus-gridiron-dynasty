@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.12 - 2026-06-19
+
+- Made play-by-play calls honor air raid identity in normal, red-zone, stalled, and fourth-down situations.
+- Prevented trailing offenses from punting on late fourth-and-manageable end-game possessions.
+- Replaced vague stalled-drive text with concrete incomplete-pass or no-gain play descriptions and added regression coverage.
+
 ## 1.21.11 - 2026-06-19
 
 - Let Stats leaderboard rows open the selected player's card directly on the stats tab.

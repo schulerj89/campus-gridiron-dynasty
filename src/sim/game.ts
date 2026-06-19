@@ -70,6 +70,13 @@ interface DriveState {
   yardLine: number;
 }
 
+interface GameFlow {
+  homeScore: number;
+  awayScore: number;
+  playIndex: number;
+  totalPlaysEstimate: number;
+}
+
 interface ScriptedPlay {
   teamId: string;
   teamName: string;
@@ -762,13 +769,21 @@ function buildPlayByPlay(rng: Rng, home: Team, away: Team, homeProfile: TeamGame
   const homeContext = createPlayContext(rng, home, away, homeProfile, "home");
   const awayContext = createPlayContext(rng, away, home, awayProfile, "away");
   const scripted: ScriptedPlay[] = [];
+  const totalPlaysEstimate = estimatedPlayCount(homeProfile, awayProfile);
+  let homeScore = 0;
+  let awayScore = 0;
   let offense = rng.chance(0.5) ? homeContext : awayContext;
   let driveGuard = 0;
 
   while ((hasPlayableEvents(homeContext) || hasPlayableEvents(awayContext)) && driveGuard < 420) {
     if (!hasPlayableEvents(offense)) offense = offense.side === "home" ? awayContext : homeContext;
     if (!hasPlayableEvents(offense)) break;
-    scripted.push(...buildDrive(rng, offense));
+    const drive = buildDrive(rng, offense, { homeScore, awayScore, playIndex: scripted.length, totalPlaysEstimate });
+    scripted.push(...drive);
+    for (const play of drive) {
+      if (play.side === "home") homeScore += play.points;
+      else awayScore += play.points;
+    }
     offense = offense.side === "home" ? awayContext : homeContext;
     driveGuard += 1;
   }
@@ -802,11 +817,16 @@ function createPlayContext(rng: Rng, team: Team, opponent: Team, profile: TeamGa
   };
 }
 
+function estimatedPlayCount(homeProfile: TeamGameProfile, awayProfile: TeamGameProfile): number {
+  const profileTotal = (profile: TeamGameProfile) => profile.passAttempts + profile.rushAttempts + profile.scoringEvents.length + profile.extraPointEvents.length + profile.missedExtraPointEvents.length;
+  return Math.max(1, profileTotal(homeProfile) + profileTotal(awayProfile) + 14);
+}
+
 function hasPlayableEvents(context: PlayContext): boolean {
   return context.passRemaining + context.rushRemaining + context.scoringEvents.length > 0;
 }
 
-function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
+function buildDrive(rng: Rng, context: PlayContext, flow: GameFlow): ScriptedPlay[] {
   const events: ScriptedPlay[] = [];
   let state: DriveState = {
     down: 1,
@@ -832,8 +852,8 @@ function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
     if (state.down === 4) {
       if (nextScore?.type === "fieldGoal" || nextScore?.type === "missedFieldGoal") {
         events.push(...consumeScoringPlay(rng, context, state));
-      } else if (state.yardLine >= 65) {
-        events.push(buildTurnoverOnDownsPlay(context, state));
+      } else if (shouldAttemptFourthDown(context, state, flow, events.length)) {
+        events.push(buildFourthDownAttempt(rng, context, state, flow, events.length));
       } else {
         events.push(buildPuntPlay(rng, context, state));
       }
@@ -857,7 +877,7 @@ function buildDrive(rng: Rng, context: PlayContext): ScriptedPlay[] {
     const nextScore = context.scoringEvents[0];
     return isFieldGoalEvent(nextScore) && state.down !== 4 ? consumeFieldGoalAfterStall(rng, context, state) : consumeScoringPlay(rng, context, state);
   }
-  return finishDriveIfNeeded(rng, context, state, events);
+  return finishDriveIfNeeded(rng, context, state, events, flow);
 }
 
 function isFieldGoalEvent(event: ScoringEvent | undefined): boolean {
@@ -871,34 +891,104 @@ function consumeFieldGoalAfterStall(rng: Rng, context: PlayContext, state: Drive
   return plays;
 }
 
-function finishDriveIfNeeded(rng: Rng, context: PlayContext, state: DriveState, events: ScriptedPlay[]): ScriptedPlay[] {
+function finishDriveIfNeeded(rng: Rng, context: PlayContext, state: DriveState, events: ScriptedPlay[], flow: GameFlow): ScriptedPlay[] {
   const last = events.at(-1);
   if (!last || isTerminalPlay(last)) return events;
-  events.push(...terminalDriveSequence(rng, context, state));
+  events.push(...terminalDriveSequence(rng, context, state, events, flow));
   return events;
 }
 
-function terminalDriveSequence(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay[] {
+function terminalDriveSequence(rng: Rng, context: PlayContext, state: DriveState, events: ScriptedPlay[], flow: GameFlow): ScriptedPlay[] {
   const nextScore = context.scoringEvents[0];
   if (nextScore) {
     return isFieldGoalEvent(nextScore) && state.down !== 4 ? consumeFieldGoalAfterStall(rng, context, state) : consumeScoringPlay(rng, context, state);
   }
   const plays: ScriptedPlay[] = [];
   const fourthDownState = appendDriveStallsToFourth(context, state, plays);
-  plays.push(fourthDownState.yardLine >= 65 ? buildTurnoverOnDownsPlay(context, fourthDownState) : buildPuntPlay(rng, context, fourthDownState));
+  plays.push(shouldAttemptFourthDown(context, fourthDownState, flow, events.length + plays.length) ? buildFourthDownAttempt(rng, context, fourthDownState, flow, events.length + plays.length) : buildPuntPlay(rng, context, fourthDownState));
   return plays;
 }
 
 function appendDriveStallsToFourth(context: PlayContext, state: DriveState, plays: ScriptedPlay[]): DriveState {
   let stalled = state;
   while (stalled.down < 4) {
-    plays.push({
-      ...basePlay(context, "driveStall", 0, stalled, 0),
-      description: `${context.team.name} could not create space as the drive stalled.`,
-    });
+    plays.push(buildDriveStallPlay(context, stalled));
     stalled = advanceDriveState(stalled, 0);
   }
   return stalled;
+}
+
+function buildDriveStallPlay(context: PlayContext, state: DriveState): ScriptedPlay {
+  const shouldPass = context.profile.strategy === "airRaid" || context.profile.strategy === "spreadTempo" || state.down === 3 || state.distance >= 7;
+  if (shouldPass) {
+    const passer = context.qb?.name ?? "The quarterback";
+    const target = context.targets[0]?.name ?? "the receiver";
+    return {
+      ...basePlay(context, "driveStall", 0, state, 0),
+      description: `${passer} threw incomplete for ${target}.`,
+    };
+  }
+  const runner = context.backs[0]?.name ?? context.qb?.name ?? "The runner";
+  return {
+    ...basePlay(context, "driveStall", 0, state, 0),
+    description: `${runner} was bottled up for no gain.`,
+  };
+}
+
+function shouldAttemptFourthDown(context: PlayContext, state: DriveState, flow: GameFlow, additionalPlays: number): boolean {
+  if (state.yardLine >= 65) return true;
+  if (state.yardLine >= 50 && state.distance <= 2) return true;
+  const margin = scoreMargin(context, flow);
+  const clock = projectedGameClock(flow, additionalPlays);
+  const remainingInventory = context.passRemaining + context.rushRemaining + context.scoringEvents.length;
+  const endGamePressure = margin < 0 && (clock.quarter === 4 || flow.playIndex + additionalPlays >= flow.totalPlaysEstimate * 0.68 || remainingInventory <= 16);
+  const lateTrailing = margin < 0 && clock.quarter === 4 && clock.secondsRemaining <= 300;
+  const urgentTrailing = margin <= -8 && clock.quarter === 4 && clock.secondsRemaining <= 480;
+  if ((lateTrailing || urgentTrailing || endGamePressure) && state.distance <= 20) return true;
+  return context.profile.strategy === "airRaid" && margin < 0 && clock.quarter === 4 && state.distance <= 7;
+}
+
+function buildFourthDownAttempt(rng: Rng, context: PlayContext, state: DriveState, flow: GameFlow, additionalPlays: number): ScriptedPlay {
+  const shouldPass = fourthDownPassCall(context, state, flow, additionalPlays);
+  if (shouldPass) {
+    const passer = context.qb?.name ?? "The quarterback";
+    const target = selectTarget(rng, context)?.name ?? "the receiver";
+    return {
+      ...basePlay(context, "turnoverOnDowns", 0, { ...state, down: 4 }, 0),
+      description: `${passer}'s fourth-down throw for ${target} fell incomplete.`,
+    };
+  }
+  const runner = selectRunner(rng, context)?.name ?? context.qb?.name ?? "The runner";
+  const yards = state.distance <= 1 ? 0 : rng.nextInt(0, Math.max(0, state.distance - 1));
+  return {
+    ...basePlay(context, "turnoverOnDowns", 0, { ...state, down: 4 }, yards),
+    description: `${runner} was stopped ${yards > 0 ? `${state.distance - yards} ${state.distance - yards === 1 ? "yard" : "yards"} short` : "at the line"} on fourth down.`,
+  };
+}
+
+function fourthDownPassCall(context: PlayContext, state: DriveState, flow: GameFlow, additionalPlays: number): boolean {
+  const margin = scoreMargin(context, flow);
+  const clock = projectedGameClock(flow, additionalPlays);
+  if (context.profile.strategy === "airRaid") return true;
+  if (state.distance >= 3) return true;
+  if (margin < 0 && (clock.quarter === 4 || context.passRemaining + context.rushRemaining + context.scoringEvents.length <= 16) && clock.secondsRemaining <= 420) return true;
+  return context.profile.strategy === "spreadTempo" && state.yardLine >= 80;
+}
+
+function scoreMargin(context: PlayContext, flow: GameFlow): number {
+  return context.side === "home" ? flow.homeScore - flow.awayScore : flow.awayScore - flow.homeScore;
+}
+
+function projectedGameClock(flow: GameFlow, additionalPlays: number): { quarter: number; secondsRemaining: number } {
+  const total = Math.max(1, flow.totalPlaysEstimate);
+  const index = clamp(flow.playIndex + additionalPlays, 0, total - 1);
+  const progress = index / total;
+  const quarter = clamp(Math.floor(progress * 4) + 1, 1, 4);
+  const quarterProgress = progress * 4 - (quarter - 1);
+  return {
+    quarter,
+    secondsRemaining: clamp(895 - Math.floor(quarterProgress * 850), 5, 895),
+  };
 }
 
 function isTerminalPlay(play: ScriptedPlay): boolean {
@@ -984,10 +1074,31 @@ function buildNormalPlay(rng: Rng, context: PlayContext, state: DriveState): Scr
   const openPasses = openPassAttempts(context);
   const openRushes = openRushAttempts(context);
   if (openPasses + openRushes <= 0) return undefined;
-  const passBias = state.down === 3 || state.distance >= 8 ? 0.14 : state.down === 1 && state.distance <= 10 ? -0.06 : 0;
+  const passBias = normalPlayPassBias(context, state);
   const passRate = openPasses / (openPasses + openRushes);
-  const shouldPass = openPasses > 0 && (openRushes === 0 || rng.chance(clamp(passRate + passBias, 0.28, 0.76)));
+  const [minPass, maxPass] = normalPlayPassBounds(context.profile.strategy);
+  const shouldPass = openPasses > 0 && (openRushes === 0 || rng.chance(clamp(passRate + passBias, minPass, maxPass)));
   return shouldPass ? buildPassPlay(rng, context, state) : buildRushPlay(rng, context, state);
+}
+
+function normalPlayPassBias(context: PlayContext, state: DriveState): number {
+  const strategyBias: Record<OffensiveStrategy, number> = {
+    balanced: 0,
+    airRaid: 0.18,
+    runHeavy: -0.14,
+    proStyle: 0.04,
+    spreadTempo: 0.1,
+  };
+  const downBias = state.down === 3 || state.distance >= 8 ? 0.14 : state.down === 1 && state.distance <= 10 ? -0.04 : 0;
+  const redZoneBias = state.yardLine >= 80 && context.profile.strategy === "airRaid" ? 0.16 : state.yardLine >= 90 && state.distance <= 3 && context.profile.strategy !== "runHeavy" ? 0.08 : 0;
+  return strategyBias[context.profile.strategy] + downBias + redZoneBias;
+}
+
+function normalPlayPassBounds(strategy: OffensiveStrategy): [number, number] {
+  if (strategy === "airRaid") return [0.5, 0.92];
+  if (strategy === "spreadTempo") return [0.42, 0.86];
+  if (strategy === "runHeavy") return [0.16, 0.58];
+  return [0.28, 0.8];
 }
 
 function buildPassPlay(rng: Rng, context: PlayContext, state: DriveState): ScriptedPlay {
@@ -1040,13 +1151,6 @@ function buildRushPlay(rng: Rng, context: PlayContext, state: DriveState): Scrip
   return {
     ...basePlay(context, "rush", 0, state, yards),
     description: `${runner} rushed for ${yardPhrase(yards)}${pancakeBlocker ? ` behind ${pancakeBlocker}'s pancake block` : ""}.`,
-  };
-}
-
-function buildTurnoverOnDownsPlay(context: PlayContext, state: DriveState): ScriptedPlay {
-  return {
-    ...basePlay(context, "turnoverOnDowns", 0, { ...state, down: 4 }, 0),
-    description: `${context.team.name} was stopped short on fourth down.`,
   };
 }
 

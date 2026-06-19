@@ -81,6 +81,7 @@ describe("game simulation stat pacing", () => {
     expect(events.some((event) => event.type === "punt" && /punted \d+ yards (to .+, returned \d+ yards|with no return)/.test(event.description))).toBe(true);
     expect(events.some((event) => event.type === "turnover" && /intercepted by .+, returned \d+ yards/.test(event.description))).toBe(true);
     expect(events.some((event) => event.type === "rush" && event.description.includes("pancake block"))).toBe(true);
+    expect(events.some((event) => event.description.includes("could not create space"))).toBe(false);
     for (const teamBox of [box.home, box.away]) {
       const teamEvents = events.filter((event) => event.teamId === teamBox.teamId);
       const playByPlayPassAttempts = teamEvents.filter((event) => event.type === "pass" || event.type === "sack" || event.type === "passTd" || event.type === "turnover").length;
@@ -135,6 +136,41 @@ describe("game simulation stat pacing", () => {
     expect(airBox.totals.passAttempts).toBe(airBox.passAttempts);
     expect(runBox.totals.rushAttempts).toBe(runBox.rushAttempts);
     expect(airBox.totals.passTd).toBeGreaterThanOrEqual(runBox.totals.passTd);
+  });
+
+  it("keeps air raid red-zone play-by-play pass first", () => {
+    const setup = controlledReceivingSetup(7141);
+    const teams = withUserStrategy(setup.teams, setup.userTeamId, "airRaid");
+    const teamAbbreviation = teams.find((team) => team.id === setup.userTeamId)?.abbreviation;
+    let passCalls = 0;
+    let runCalls = 0;
+
+    for (let seed = 7142; seed < 7182; seed += 1) {
+      const result = simulateGame(new Rng(seed), setup.game, teams);
+      for (const event of result.game.result?.playByPlay ?? []) {
+        if (event.teamId !== setup.userTeamId || !isOpponentRedZone(event, teamAbbreviation)) continue;
+        if (isPassCall(event)) passCalls += 1;
+        if (isRunCall(event)) runCalls += 1;
+      }
+    }
+
+    expect(passCalls).toBeGreaterThan(0);
+    expect(passCalls).toBeGreaterThan(runCalls);
+  });
+
+  it("does not punt while trailing late in the fourth quarter", () => {
+    const setup = controlledReceivingSetup(7183);
+    const teams = withUserStrategy(setup.teams, setup.userTeamId, "airRaid");
+    const lateTrailingPunts: PlayByPlayEvent[] = [];
+
+    for (let seed = 7184; seed < 7244; seed += 1) {
+      const result = simulateGame(new Rng(seed), setup.game, teams);
+      lateTrailingPunts.push(
+        ...((result.game.result?.playByPlay ?? []).filter((event) => event.type === "punt" && event.quarter === 4 && clockSeconds(event.clock) <= 300 && isTrailing(event, result.game))),
+      );
+    }
+
+    expect(lateTrailingPunts).toHaveLength(0);
   });
 
   it("uses manual depth chart starters for simulated game usage", () => {
@@ -217,6 +253,30 @@ function isPositiveNonTouchdownAtOpponentOne(event: PlayByPlayEvent, teamAbbrevi
 
 function isTerminalPlay(event: PlayByPlayEvent): boolean {
   return ["punt", "passTd", "rushTd", "fieldGoal", "missedFieldGoal", "extraPoint", "missedExtraPoint", "turnover", "turnoverOnDowns"].includes(event.type);
+}
+
+function isOpponentRedZone(event: PlayByPlayEvent, teamAbbreviation: string | undefined): boolean {
+  if (!event.yardLine || !teamAbbreviation) return false;
+  if (event.yardLine.startsWith(teamAbbreviation)) return false;
+  const yard = Number(event.yardLine.split(" ").at(-1));
+  return Number.isFinite(yard) && yard <= 20;
+}
+
+function isPassCall(event: PlayByPlayEvent): boolean {
+  return ["pass", "sack", "passTd", "turnover"].includes(event.type) || event.description.includes("throw") || event.description.includes("incomplete");
+}
+
+function isRunCall(event: PlayByPlayEvent): boolean {
+  return event.type === "rush" || event.type === "rushTd" || event.description.includes("rushed") || event.description.includes("bottled up");
+}
+
+function clockSeconds(clock: string): number {
+  const [minutes = "0", seconds = "0"] = clock.split(":");
+  return Number(minutes) * 60 + Number(seconds);
+}
+
+function isTrailing(event: PlayByPlayEvent, game: Game): boolean {
+  return event.teamId === game.homeTeamId ? event.homeScore < event.awayScore : event.awayScore < event.homeScore;
 }
 
 function controlledReceivingSetup(seed: number): { teams: Team[]; game: Game; userGames: Game[]; userTeamId: string; eliteReceiverId: string } {

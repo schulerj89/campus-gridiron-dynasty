@@ -40,6 +40,7 @@ Campus Gridiron Dynasty is a fictional browser-based college football dynasty si
 - Receiving stat distribution should keep 5-7 targets involved while giving WR1 and elite WRs realistic usage shares.
 - Individual receiver matchups should pair top WRs against top CBs and influence target share, yards, touchdowns, and play-by-play outcomes.
 - Offensive strategies should affect pass/run volume while still adjusting toward roster strength and game state.
+- Play-by-play call selection should visibly honor offensive strategy, red-zone context, and late-game fourth-down urgency; avoid vague stalled-drive filler text.
 - QB completion rates should be centered on accuracy, awareness, receivers, pass protection, opposing coverage, and strategy; do not let average passers get pushed into an automatic high-completion clamp.
 - Offensive line quality must materially affect rushing output, pass efficiency, and sack prevention in both box scores and down-by-down play-by-play.
 - Passing touchdown share should reflect offensive strategy and roster fit while preserving total scoring-plan touchdowns.
