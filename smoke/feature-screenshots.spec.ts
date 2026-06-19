@@ -198,6 +198,7 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByText("Season Awards")).toBeVisible();
   const userSeasonAwardCard = page.getByTestId("awards-panel").getByTestId("user-team-award-card").first();
   await expect(userSeasonAwardCard).toBeVisible();
+  await expect(page.getByTestId("awards-panel")).toContainText("Iron Lantern Trophy");
   const userSeasonAwardPlayer = (await userSeasonAwardCard.locator("h3").textContent())?.trim() ?? "";
   await page.getByTestId("awards-panel").screenshot({ path: path.join(screenshotDir, "awards-desktop.png") });
   await page.getByTestId("all-american-first-panel").screenshot({ path: path.join(screenshotDir, "all-american-desktop.png") });

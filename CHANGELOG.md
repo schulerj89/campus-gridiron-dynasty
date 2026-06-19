@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.20.21 - 2026-06-19
+
+- Scoped the forced-award smoke assertion to the Season Awards panel.
+- Added an explicit Iron Lantern Trophy assertion so weekly award cards cannot satisfy the season-award check.
+- Refreshed the Awards page screenshot artifacts.
+
 ## 1.20.20 - 2026-06-19
 
 - Scoped persisted honor-team award labels for player history and the program record book.
