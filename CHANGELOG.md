@@ -2,6 +2,10 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.31 - 2026-06-20
+
+- Reintroduced the playoff bracket on the Awards tab as "Playoff Center" with per-round dropdown sections so all postseason rounds can be reviewed from one place.
+
 ## 1.21.30 - 2026-06-20
 
 - Fixed the offseason Program Review mobile panel so change rows no longer appear scrunched and reasons now wrap cleanly without collapsing the layout.

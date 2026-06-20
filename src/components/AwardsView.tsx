@@ -17,6 +17,7 @@ export function Awards({ state, onOpenPlayer }: { state: DynastyState; onOpenPla
   const latestHistory = state.history[0];
   const latestWeeklyAwards = state.weeklyAwards[0]?.national ?? [];
   const latestConferenceWeeklyAwards = userConference ? state.weeklyAwards[0]?.conference[userConference.id] ?? [] : [];
+  const championName = state.teams.find((team) => team.id === state.playoff?.championTeamId)?.name;
   const seasonAwardWatch = !state.seasonAwards && state.phase === "regular" && state.week >= 8 ? createSeasonAwards(state.teams, state.conferences, state.calendarYear).nationalAwards : undefined;
   const awardSource = state.seasonAwards?.nationalAwards ?? seasonAwardWatch ?? (state.phase === "regular" ? [] : latestHistory?.awardWinners ?? []);
   const seasonAwardsTitle = state.seasonAwards ? "Season Awards" : seasonAwardWatch ? "Season Award Watch" : state.phase !== "regular" && awardSource.length ? "Latest Season Awards" : "Season Award Watch Opens Week 8";
@@ -24,6 +25,15 @@ export function Awards({ state, onOpenPlayer }: { state: DynastyState; onOpenPla
   const showSeasonAwardCandidates = Boolean(state.seasonAwards || seasonAwardWatch);
   return (
     <>
+      {state.phase === "postseason" && state.playoff && (
+        <section className="panel span-2" data-testid="playoff-center-panel">
+          <div className="panel-head compact">
+            <h2>Playoff Center</h2>
+            <Trophy size={20} />
+          </div>
+          <PostseasonPlayoffCenter games={state.playoff.games} teams={state.teams} championName={championName} />
+        </section>
+      )}
       <section className="panel span-2" data-testid="player-of-week-panel">
         <div className="panel-head compact">
           <h2>National Players of the Week</h2>
@@ -251,6 +261,47 @@ function AwardTeamPanel({
         <HonorGrid awards={awards} limit={16} userTeamId={userTeamId} playerById={playerById} onOpenPlayer={onOpenPlayer} />
       </details>
     </section>
+  );
+}
+
+function PostseasonPlayoffCenter({
+  games,
+  teams,
+  championName,
+}: {
+  games: Game[];
+  teams: Team[];
+  championName?: string;
+}) {
+  const rounds: { key: PlayoffBracketRound; label: string }[] = [
+    { key: "quarter", label: "Quarterfinals" },
+    { key: "semi", label: "Semifinals" },
+    { key: "final", label: "Crown Bowl" },
+  ];
+
+  return (
+    <div className="playoff-round-accordion" data-testid="playoff-center-rounds">
+      {rounds.map((round, index) => {
+        const roundGames = games.filter((game) => game.playoffRound === round.key);
+        const playedGames = roundGames.filter((game) => Boolean(game.result)).length;
+        const totalGames = roundGames.length;
+        const headerCopy = totalGames ? `${playedGames}/${totalGames} games complete` : "Pending prior round";
+        const hasGames = totalGames > 0;
+        return (
+          <details key={round.key} className="playoff-round-details" open={index === 0 || hasGames} data-round={round.key}>
+            <summary>
+              <span>{round.label}</span>
+              <strong>{hasGames ? headerCopy : "Pending"} </strong>
+            </summary>
+            {hasGames ? (
+              <PlayoffBracket games={games} teams={teams} priorPlayoffTeams={[]} championName={championName} activeRound={round.key} />
+            ) : (
+              <p className="muted">Bracket will appear after earlier rounds complete.</p>
+            )}
+          </details>
+        );
+      })}
+    </div>
   );
 }
 

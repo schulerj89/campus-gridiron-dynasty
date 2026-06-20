@@ -2123,6 +2123,66 @@ select {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.playoff-round-accordion {
+  display: grid;
+  gap: 8px;
+}
+
+.playoff-round-details {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.playoff-round-details summary {
+  align-items: center;
+  cursor: pointer;
+  display: grid;
+  font-weight: 800;
+  gap: 2px 8px;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  list-style: none;
+  padding: 6px;
+}
+
+.playoff-round-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.playoff-round-details summary::after {
+  align-items: center;
+  background: rgba(240, 184, 74, 0.12);
+  border: 1px solid rgba(240, 184, 74, 0.35);
+  border-radius: 999px;
+  color: var(--gold);
+  content: "+";
+  display: inline-flex;
+  font-weight: 900;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.playoff-round-details[open] summary::after {
+  content: "-";
+}
+
+.playoff-round-details summary span {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.playoff-round-details summary strong {
+  color: var(--muted);
+  font-size: 0.74rem;
+  justify-self: end;
+}
+
+.playoff-round-details > .playoff-bracket {
+  margin-top: 8px;
+}
+
 .playoff-champion-banner {
   align-items: center;
   background: rgba(240, 184, 74, 0.12);
