@@ -206,10 +206,7 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
 
     await advanceDynasty(page);
     await expect(page.getByTestId("offseason-stage-recruiting")).toBeVisible({ timeout: 90_000 });
-    for (let week = 0; week < 4; week += 1) {
-      await advanceDynasty(page);
-    }
-    await expect(page.getByTestId("advance-week")).toContainText("Run Signing Day");
+    await expect(page.getByTestId("advance-week")).toContainText("Run Auto Recruiting");
     await advanceDynasty(page);
     await expect(page.getByTestId("offseason-stage-signing")).toBeVisible({ timeout: 90_000 });
     await advanceDynasty(page);
@@ -254,13 +251,9 @@ test("focused offseason stage smoke screenshots", async ({ page }, testInfo) => 
 
   await advanceDynasty(page);
   await expect(page.getByTestId("offseason-stage-recruiting")).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByTestId("advance-week")).toContainText("Advance Recruiting Week");
+  await expect(page.getByTestId("advance-week")).toContainText("Run Auto Recruiting");
   await page.screenshot({ path: path.join(screenshotDir, "offseason-recruiting-focus-desktop.png"), fullPage: true });
 
-  for (let week = 0; week < 4; week += 1) {
-    await advanceDynasty(page);
-  }
-  await expect(page.getByTestId("advance-week")).toContainText("Run Signing Day");
   await advanceDynasty(page);
   await expect(page.getByTestId("offseason-stage-signing")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByTestId("offseason-all-classes-panel")).toContainText("All Team Classes");

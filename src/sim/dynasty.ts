@@ -75,6 +75,7 @@ const OFFSEASON_RECRUITING_START_WEEK = 16;
 const OFFSEASON_RECRUITING_END_WEEK = 19;
 const PRESEASON_DEVELOPMENT_WEEK = 21;
 const ROSTER_FLOOR = Object.values(TARGET_ROSTER).reduce((sum, count) => sum + count, 0);
+const PRO_OVERALL_FLOOR = 88;
 export const ROSTER_LIMIT = 105;
 
 export function advanceWeek(input: DynastyState): DynastyState {
@@ -534,6 +535,7 @@ function openOffseasonAfterChampionship(state: DynastyState): DynastyState {
 function advanceOffseasonWeek(state: DynastyState): DynastyState {
   if (state.offseasonReport && !state.offseasonReport.departuresReviewed && !state.offseasonReport.signingComplete && !state.offseasonReport.developmentComplete) return completeDeparturesReview(state);
   if (!state.offseasonReport?.signingComplete) {
+    if (state.recruiting.autoEnabled && state.week <= OFFSEASON_RECRUITING_END_WEEK) return runAutomatedOffseasonRecruitingWindow(state);
     if (state.week <= OFFSEASON_RECRUITING_END_WEEK) return advanceOffseasonRecruitingWeek(state);
     return runSigningDay(state);
   }
@@ -593,6 +595,20 @@ function advanceOffseasonRecruitingWeek(state: DynastyState): DynastyState {
     ...advanced,
     week: beforeWeek + 1,
     debugLog: [`Offseason recruiting week ${Math.max(1, beforeWeek - OFFSEASON_RECRUITING_START_WEEK + 1)} of 4 completed.`, ...advanced.debugLog].slice(0, 20),
+  };
+}
+
+function runAutomatedOffseasonRecruitingWindow(state: DynastyState): DynastyState {
+  let next = state;
+  let completedWeeks = 0;
+  while (!next.offseasonReport?.signingComplete && next.week <= OFFSEASON_RECRUITING_END_WEEK) {
+    next = advanceOffseasonRecruitingWeek(next);
+    completedWeeks += 1;
+  }
+  const signed = runSigningDay(next);
+  return {
+    ...signed,
+    debugLog: [`Auto-recruit completed ${completedWeeks} offseason recruiting week${completedWeeks === 1 ? "" : "s"} and advanced to signing day.`, ...signed.debugLog].slice(0, 20),
   };
 }
 
@@ -877,10 +893,12 @@ function recordAndDevelopTeam(
   const conferencePeers = 10;
   const conferenceFinish = Math.min(conferencePeers, team.season.confLosses + 1);
   const postseason = champion ? "Crown Bowl Champion" : team.season.rank && team.season.rank <= 8 ? "Summit Eight" : team.season.wins >= 7 ? "Bowl Eligible" : "Missed Bowls";
-  const pointsEarned = 2 + Math.floor(team.season.wins / 3) + (champion ? 5 : 0) + (team.season.rank && team.season.rank <= 10 ? 2 : 0);
+  const proDepartures = departures.filter((departure) => departure.reason === "pro");
+  const proPipelinePoints = Math.min(3, proDepartures.length);
+  const pointsEarned = 2 + Math.floor(team.season.wins / 3) + (champion ? 5 : 0) + (team.season.rank && team.season.rank <= 10 ? 2 : 0) + proPipelinePoints;
   const resolvedBlueprint = resolveProgramBlueprint(team, year, recruitingClassRank);
   const developed = developAndGraduate(rng, team, year, departures);
-  const review = reviewProgramPerformance(team, champion);
+  const review = reviewProgramPerformance(team, champion, departures);
   return {
     team: {
       ...team,
@@ -1000,6 +1018,15 @@ function developPlayer(rng: Rng, team: Team, player: Player, year: number): { pl
     applyAttributeGain(key, gain);
   }
 
+  const trainingStaffPoints = blueprintAllocation(team, "trainingStaff");
+  const blueprintTrainingGain = growthBudget > 0 && trainingStaffPoints >= 4 ? Math.min(2, Math.floor(trainingStaffPoints / 4)) : 0;
+  if (blueprintTrainingGain > 0) {
+    // Training-heavy blueprints should create a small reliable development edge, not only better random odds.
+    for (const key of rng.shuffle(focus).slice(0, blueprintTrainingGain)) {
+      applyAttributeGain(key, 1);
+    }
+  }
+
   const nextYear: CollegeYear = player.year === "FR" ? "SO" : player.year === "SO" ? "JR" : "SR";
   const recalculatedOverall = calculateOverall(player.position, attributes);
   const focusGainTotal = focus.reduce((sum, key) => sum + (attributeGains[key] ?? 0), 0);
@@ -1042,7 +1069,7 @@ function developPlayer(rng: Rng, team: Team, player: Player, year: number): { pl
   };
 }
 
-function reviewProgramPerformance(team: Team, champion: boolean): { program: ProgramRatings; changes: ProgramChange[] } {
+function reviewProgramPerformance(team: Team, champion: boolean, departures: PlayerDeparture[] = []): { program: ProgramRatings; changes: ProgramChange[] } {
   const coachCulture = (team.coaches.head.culture + team.coaches.offense.culture + team.coaches.defense.culture) / 3;
   const developmentStaff = (team.coaches.head.development + team.coaches.offense.development + team.coaches.defense.development) / 3;
   const changes: ProgramChange[] = [];
@@ -1067,6 +1094,11 @@ function reviewProgramPerformance(team: Team, champion: boolean): { program: Pro
   applyChange("recruitingReach", blueprintAllocation(team, "recruitingReach") >= 4 ? 1 : 0, "Program Blueprint recruiting reach expanded the footprint");
   applyChange("academics", blueprintAllocation(team, "academicSupport") >= 4 ? 1 : 0, "Program Blueprint academic support strengthened standards");
   applyChange("fanSupport", blueprintAllocation(team, "playerTrust") >= 4 ? 1 : 0, "Program Blueprint player trust stabilized public confidence");
+  const proDepartures = departures.filter((departure) => departure.reason === "pro");
+  const eliteProDepartures = proDepartures.filter((departure) => departure.overall >= 90);
+  applyChange("recruitingReach", proDepartures.length ? Math.min(2, proDepartures.length) : 0, "Pro pipeline visibility boosted recruiting reach");
+  applyChange("prestige", eliteProDepartures.length || proDepartures.length >= 2 ? 1 : 0, "Pro departures lifted national player-development reputation");
+  applyChange("fanSupport", proDepartures.length >= 2 ? 1 : 0, "Fans rallied around pro pipeline momentum");
   return { program, changes };
 }
 
@@ -1184,7 +1216,7 @@ function playerDeparture(player: Player, team: Team): PlayerDeparture | undefine
   const proScore = player.overall + production + awardBoost + rankBoost;
   const proEligible = player.year === "SR" || player.year === "JR";
   const proThreshold = (player.year === "SR" ? 87 : 91) + blueprintRetentionBonus(team);
-  if (proEligible && proScore >= proThreshold) {
+  if (proEligible && player.overall >= PRO_OVERALL_FLOOR && proScore >= proThreshold) {
     return {
       playerId: player.id,
       playerName: player.name,

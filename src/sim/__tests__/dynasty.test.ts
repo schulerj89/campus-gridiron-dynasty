@@ -406,6 +406,13 @@ describe("dynasty flow", () => {
 
   it("creates offseason departures and records recruiting class rank", () => {
     let state = forceUserPlayoff(forceUserAward(createDynasty(8933)));
+    state = {
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        autoEnabled: false,
+      },
+    };
     for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
     }
@@ -570,6 +577,13 @@ describe("dynasty flow", () => {
 
   it("adds labeled walk-ons when the user roster drops below the floor", () => {
     let state = forceUserPlayoff(forceUserWalkOnNeed(createDynasty(8934)));
+    state = {
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        autoEnabled: false,
+      },
+    };
     expect(state.teams.find((team) => team.id === state.userTeamId)?.roster.length).toBeLessThan(ROSTER_FLOOR);
     for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
@@ -638,6 +652,13 @@ describe("dynasty flow", () => {
 
   it("keeps signing-day report player ids linked to roster players", () => {
     let state = forceUserPlayoff(createDynasty(8936));
+    state = {
+      ...state,
+      recruiting: {
+        ...state.recruiting,
+        autoEnabled: false,
+      },
+    };
     for (let week = 1; week <= 16; week += 1) {
       state = advanceWeek(state);
     }

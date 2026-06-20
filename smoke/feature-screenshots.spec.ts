@@ -267,17 +267,12 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("offseason-report-panel").screenshot({ path: path.join(screenshotDir, "offseason-departures-desktop.png") });
 
   await advanceDynasty(page);
-  await expect(page.getByText(/offseason recruiting week 1 of 4/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByText(/offseason auto recruiting ready/)).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByTestId("advance-week")).toContainText("Run Auto Recruiting");
   await expect(page.getByTestId("offseason-steps")).toContainText("Recruiting 1/4");
   await expect(page.getByTestId("offseason-recruiting-focus-panel")).toBeVisible();
   await expect(page.getByTestId("graduated-panel")).not.toBeVisible();
   await page.screenshot({ path: path.join(screenshotDir, "offseason-extra-recruiting-desktop.png"), fullPage: true });
-
-  for (let week = 0; week < 4; week += 1) {
-    await advanceDynasty(page);
-  }
-
-  await expect(page.getByText(/offseason signing day - ready/)).toBeVisible({ timeout: 90_000 });
 
   await advanceDynasty(page);
   await expect(page.getByText(/offseason signing day - classes posted/)).toBeVisible({ timeout: 90_000 });

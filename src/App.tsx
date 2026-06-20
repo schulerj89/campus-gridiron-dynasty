@@ -2479,10 +2479,16 @@ function tabAfterAdvance(_previous: DynastyState, _next: DynastyState): Tab {
   return "overview";
 }
 
+function isOffseasonAutoRecruitReady(state: DynastyState): boolean {
+  const report = state.offseasonReport;
+  return state.phase === "offseason" && Boolean(report?.departuresReviewed) && !report?.signingComplete && state.week <= 19 && state.recruiting.autoEnabled;
+}
+
 function phaseWeekLabel(state: DynastyState): string {
   if (state.phase === "postseason" && state.playoff?.championTeamId) return "postseason - championship recap";
   if (state.phase === "offseason") {
     if (state.offseasonReport && !state.offseasonReport.departuresReviewed) return "offseason departures";
+    if (isOffseasonAutoRecruitReady(state)) return "offseason auto recruiting ready";
     if (!state.offseasonReport?.signingComplete && state.week <= 19) return `offseason recruiting week ${Math.max(1, state.week - 15)} of 4`;
     if (!state.offseasonReport?.signingComplete) return "offseason signing day - ready";
     if (state.offseasonReport?.signingComplete && !state.offseasonReport.developmentComplete) return "offseason signing day - classes posted";
@@ -2502,6 +2508,7 @@ function advanceActionLabel(state: DynastyState): string {
   if (state.phase === "offseason") {
     const report = state.offseasonReport;
     if (report && !report.departuresReviewed) return "Advance to Recruiting";
+    if (isOffseasonAutoRecruitReady(state)) return "Run Auto Recruiting";
     if (!report?.signingComplete && state.week <= 19) return "Advance Recruiting Week";
     if (!report?.signingComplete) return "Run Signing Day";
     if (report.signingComplete && !report.developmentComplete) return "Run Player Development";
@@ -2517,6 +2524,7 @@ function advanceActionLabel(state: DynastyState): string {
 function offseasonStageLabel(state: DynastyState, report: NonNullable<DynastyState["offseasonReport"]>): string {
   const stage = offseasonStage(state, report);
   if (stage === "departures") return "Offseason Departures";
+  if (stage === "recruiting" && state.recruiting.autoEnabled) return "Offseason Auto Recruiting Ready";
   if (stage === "recruiting") return `Offseason Recruiting Week ${Math.min(4, Math.max(1, state.week - 15))} of 4`;
   if (stage === "signing") return report.signingComplete ? "Offseason Signing Day" : "Offseason Signing Day Ready";
   if (stage === "development") return "Preseason Development";

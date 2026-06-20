@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.25 - 2026-06-20
+
+- Raised pro-departure logic with an 88 OVR floor so lower-rated high-production players no longer declare for the pro draft.
+- Added pro-pipeline program rewards: pro departures now add offseason program points and can lift recruiting reach, prestige, and fan support.
+- Made development-focused Program Blueprints provide a small reliable training-staff attribute-growth edge, and added regression tests comparing recruiting, development, and academics focus effects.
+- Let auto-recruit run all four offseason recruiting weeks and signing day from one offseason click, with labels that make the auto window explicit.
+
 ## 1.21.24 - 2026-06-20
 
 - Simplified the active and signed recruiting modals on mobile into a full-width sheet with a large close target, immediate recruiting actions, tighter summary chips, and compact school-interest rows.
