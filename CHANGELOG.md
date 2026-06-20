@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.32 - 2026-06-20
+
+- Removed the playoff accordion from the Awards tab and moved it into a dedicated Playoff Center view with its own tab and dropdown round controls.
+- Hooked postseason "Playoff Center" navigation in Overview and championship recap directly to the new Playoff Center screen.
+
 ## 1.21.31 - 2026-06-20
 
 - Reintroduced the playoff bracket on the Awards tab as "Playoff Center" with per-round dropdown sections so all postseason rounds can be reviewed from one place.

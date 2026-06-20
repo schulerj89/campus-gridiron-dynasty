@@ -64,6 +64,7 @@ import { TARGET_ROSTER, effectiveOverall, teamPower, teamUnitRatings } from "./s
 import { buildMatchupPreview, type MatchupPreview as MatchupPreviewData } from "./sim/matchup";
 import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey, type BlueprintCategory, type BlueprintFocus, type Coach, type Conference, type DynastyState, type Game, type OffensiveStrategy, type PlayByPlayEvent, type Player, type PlayerDeparture, type PlayerGameStats, type PlayerProgression, type PlayerStats, type Position, type ProgramChange, type ProgramRatings, type Recruit, type RecruitSigning, type Team, type TeamBoxScore } from "./sim/types";
 import { Awards, AwardGrid, PlayoffBracket } from "./components/AwardsView";
+import { PlayoffCenter } from "./components/PlayoffCenterView";
 import { publicAsset } from "./assets";
 import { PaginationControls } from "./components/PaginationControls";
 import { ProgramHistory } from "./components/ProgramHistoryView";
@@ -75,7 +76,7 @@ import { buildRecruitingViewModel, type RecruitCommitmentFilter, type RecruitPos
 import { APP_VERSION } from "./version";
 import { BLUEPRINT_CATEGORY_META, MAX_BLUEPRINT_CATEGORY_POINTS, blueprintRemaining, blueprintSpent, ensureProgramBlueprint, evaluateProgramBlueprint } from "./sim/blueprint";
 
-type Tab = "overview" | "rankings" | "standings" | "roster" | "recruiting" | "schedule" | "stats" | "awards" | "program" | "debug";
+type Tab = "overview" | "rankings" | "standings" | "roster" | "recruiting" | "schedule" | "stats" | "awards" | "playoffCenter" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
 type RosterView = "roster" | "depth";
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
@@ -91,6 +92,7 @@ const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "schedule", label: "Schedule", icon: CalendarDays },
   { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "awards", label: "Awards", icon: Trophy },
+  { id: "playoffCenter", label: "Playoff Center", icon: Trophy },
   { id: "program", label: "Program", icon: GraduationCap },
   { id: "debug", label: "Debug", icon: Wrench },
 ];
@@ -423,6 +425,7 @@ export default function App() {
         {activeTab === "schedule" && <Schedule state={state} />}
         {activeTab === "stats" && <Stats state={state} onOpenPlayer={(player) => openPlayer(player, "stats")} />}
         {activeTab === "awards" && <Awards state={state} onOpenPlayer={(player) => openPlayer(player, "awards")} />}
+        {activeTab === "playoffCenter" && <PlayoffCenter state={state} />}
         {activeTab === "program" && <Program state={state} onUpdate={update} />}
         {activeTab === "debug" && <Debug state={state} onUpdate={update} onReset={resetAll} />}
       </main>
@@ -579,7 +582,7 @@ function Overview({
                 <ChevronsRight size={16} />
                 {isAdvancing ? "Advancing..." : advanceLabel}
               </button>
-              <button className="secondary" onClick={() => onNavigate("awards")}>
+              <button className="secondary" onClick={() => onNavigate("playoffCenter")}>
                 <Trophy size={16} />
                 Playoff Center
               </button>
@@ -692,7 +695,7 @@ function ChampionshipRecap({ state, onAdvance, isAdvancing, onNavigate }: { stat
             <ChevronsRight size={16} />
             {isAdvancing ? "Advancing..." : "Advance to Offseason"}
           </button>
-          <button className="secondary" onClick={() => onNavigate("awards")}>
+          <button className="secondary" onClick={() => onNavigate("playoffCenter")}>
             <Trophy size={16} />
             Playoff Center
           </button>
