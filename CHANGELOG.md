@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.21 - 2026-06-20
+
+- Fixed mobile offseason departure rows so player names and departure notes wrap in a dedicated compact layout instead of being squeezed into generic table columns.
+- Routed topbar advance actions to the relevant next view: postseason rounds open the Awards playoff view, while regular/offseason advances return to Overview.
+- Added smoke coverage for advance navigation, mobile playoff routing, and the mobile departures screenshot.
+
 ## 1.21.20 - 2026-06-19
 
 - Consolidated mobile season-award cards with smaller preserved award statues, tighter winner text, and collapsed candidate drawers.

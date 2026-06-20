@@ -305,7 +305,10 @@ export default function App() {
     setSaveStatus(status);
     window.setTimeout(() => {
       try {
-        setState((current) => (current ? recipe(current) : current));
+        const nextState = recipe(state);
+        setState(nextState);
+        setActiveTab(tabAfterAdvance(state, nextState));
+        setMobileNavOpen(false);
       } catch {
         setSaveStatus("Advance failed");
       } finally {
@@ -2466,6 +2469,11 @@ function advanceMultipleWeeks(state: DynastyState, weeks: number): DynastyState 
     next = advanceWeek(next);
   }
   return next;
+}
+
+function tabAfterAdvance(_previous: DynastyState, next: DynastyState): Tab {
+  if (next.phase === "postseason" && next.playoff && !next.playoff.championTeamId) return "awards";
+  return "overview";
 }
 
 function phaseWeekLabel(state: DynastyState): string {

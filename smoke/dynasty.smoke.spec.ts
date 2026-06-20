@@ -137,6 +137,11 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
       await advanceDynasty(page);
     }
     await expect(page.getByTestId("phase-week-label")).toContainText("postseason", { timeout: 90_000 });
+    await openDynastySection(page, testInfo, /Stats/);
+    await expect(page.getByTestId("leaderboard-panel")).toBeVisible();
+    await advanceDynasty(page);
+    await expect(page.getByTestId("mobile-section-menu")).toContainText("Awards");
+    await expect(page.getByTestId("playoff-panel")).toBeVisible();
   }
 
   await openDynastySection(page, testInfo, /Awards/);
@@ -160,6 +165,21 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await page.evaluate(() => window.scrollTo(0, 0));
     await expectNoHorizontalOverflow(page, "awards");
     await page.screenshot({ path: path.join(screenshotDir, "mobile-awards.png"), fullPage: true });
+  }
+
+  if (isMobile) {
+    for (let round = 0; round < 2; round += 1) {
+      await advanceDynasty(page);
+    }
+    await expect(page.getByTestId("phase-week-label")).toContainText("championship recap", { timeout: 90_000 });
+    await openDynastySection(page, testInfo, /Stats/);
+    await expect(page.getByTestId("leaderboard-panel")).toBeVisible();
+    await advanceDynasty(page);
+    await expect(page.getByTestId("mobile-section-menu")).toContainText("Overview");
+    await expect(page.getByTestId("offseason-stage-departures")).toBeVisible({ timeout: 90_000 });
+    await expect(page.locator(".departure-row").first()).toBeVisible();
+    await expectNoHorizontalOverflow(page, "departures");
+    await page.screenshot({ path: path.join(screenshotDir, "mobile-departures.png"), fullPage: true });
   }
 });
 
@@ -239,7 +259,7 @@ async function openDynastySection(page: import("@playwright/test").Page, testInf
   if (testInfo.project.name === "webkit-iphone-15-pro-max" && (await mobileMenu.isVisible())) {
     await mobileMenu.click();
   }
-  await page.getByRole("button", { name }).click();
+  await page.locator("#dynasty-section-tabs").getByRole("button", { name }).click();
 }
 
 async function expectNoHorizontalOverflow(page: import("@playwright/test").Page, label: string) {

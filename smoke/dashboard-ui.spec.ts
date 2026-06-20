@@ -45,6 +45,24 @@ test("dashboard latest national awards highlight the user team", async ({ page }
   await awardsPanel.screenshot({ path: path.join(screenshotDir, "dashboard-awards-highlight-desktop.png") });
 });
 
+test("topbar advance returns regular weeks to overview", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium-desktop", "Navigation regression coverage runs once on desktop Chromium.");
+
+  await page.goto("/?seed=13043");
+  await clearBrowserSave(page);
+  await page.reload();
+  await page.getByTestId("new-dynasty").click();
+  await expect(page.getByText("Dynasty Command")).toBeVisible({ timeout: 40_000 });
+
+  await page.getByRole("button", { name: "Stats" }).click();
+  await expect(page.getByTestId("leaderboard-panel")).toBeVisible();
+  const topbarAdvance = page.getByTestId("advance-week");
+  await topbarAdvance.click();
+  await expect(topbarAdvance).toBeEnabled({ timeout: 90_000 });
+  await expect(page.getByTestId("phase-week-label")).toContainText("Week 2");
+  await expect(page.getByTestId("dashboard-command-panel")).toBeVisible();
+});
+
 async function clearBrowserSave(page: import("@playwright/test").Page) {
   await page.evaluate(async () => {
     localStorage.clear();

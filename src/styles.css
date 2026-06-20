@@ -2322,7 +2322,6 @@ select {
 
   .compact-table .table-row,
   .roster-row,
-  .departure-row,
   .class-rank-row,
   .movement-row,
   .signee-row,
@@ -2330,6 +2329,48 @@ select {
   .cut-row,
   .program-change-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
+  }
+
+  .departure-row {
+    gap: 7px 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-width: 0;
+  }
+
+  .departure-row strong,
+  .departure-row span:last-child {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .departure-row strong {
+    overflow-wrap: anywhere;
+  }
+
+  .departure-row span {
+    min-width: 0;
+  }
+
+  .departure-row span:nth-child(2),
+  .departure-row span:nth-child(3),
+  .departure-row span:nth-child(4) {
+    background: #172229;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #dce8e2;
+    font-size: 0.75rem;
+    font-weight: 850;
+    justify-self: stretch;
+    padding: 5px 7px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .departure-row span:last-child {
+    font-size: 0.78rem;
+    line-height: 1.32;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .development-header {
