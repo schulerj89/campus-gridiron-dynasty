@@ -1664,7 +1664,8 @@ select {
 
 .recruit-table,
 .leaderboard-list,
-.rankings-table {
+.rankings-table,
+.standings-table {
   overflow-x: auto;
 }
 
@@ -1758,6 +1759,85 @@ select {
 
 .movement-row {
   grid-template-columns: 84px minmax(140px, 1fr) 78px 64px;
+}
+
+.standings-mobile-focus {
+  display: none;
+}
+
+.conference-standings-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.conference-standings-card {
+  background: #0f171b;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.conference-card-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.conference-card-head h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.conference-card-head span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.standings-row,
+.standings-header {
+  grid-template-columns: 58px minmax(180px, 1.2fr) 64px 74px 70px 62px 58px;
+}
+
+[data-testid="standings-playoff-panel"] .standings-row,
+[data-testid="standings-playoff-panel"] .standings-header {
+  grid-template-columns: 58px minmax(220px, 1.2fr) 74px 78px 76px 64px;
+}
+
+.standings-header {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  min-height: auto;
+  padding-bottom: 0;
+  text-transform: uppercase;
+}
+
+.standings-team {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.standings-team .team-helmet {
+  flex: 0 0 auto;
+}
+
+.standings-team,
+.standings-row span {
+  min-width: 0;
+}
+
+.standings-place,
+.standings-seed {
+  color: var(--gold) !important;
+  font-weight: 900;
 }
 
 .movement-chip {
@@ -2324,6 +2404,7 @@ select {
   .roster-row,
   .class-rank-row,
   .movement-row,
+  .standings-row,
   .signee-row,
   .program-change-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
@@ -2531,6 +2612,22 @@ select {
   .rank-list em {
     grid-column: 2;
   }
+
+  .conference-standings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .standings-row,
+  .standings-header {
+    grid-template-columns: 58px minmax(170px, 1fr) 64px 74px 70px 62px 58px;
+    min-width: 650px;
+  }
+
+  [data-testid="standings-playoff-panel"] .standings-row,
+  [data-testid="standings-playoff-panel"] .standings-header {
+    grid-template-columns: 58px minmax(190px, 1fr) 74px 78px 76px 64px;
+    min-width: 620px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -2638,6 +2735,79 @@ select {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .standings-mobile-focus {
+    display: block;
+  }
+
+  .standings-all-conferences {
+    display: none;
+  }
+
+  .standings-header {
+    display: none;
+  }
+
+  .standings-row,
+  [data-testid="standings-playoff-panel"] .standings-row {
+    align-items: stretch;
+    gap: 8px;
+    grid-template-columns: 42px minmax(0, 1fr) 64px;
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .standings-place {
+    align-items: center;
+    background: rgba(240, 184, 74, 0.1);
+    border: 1px solid rgba(240, 184, 74, 0.35);
+    border-radius: 999px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .standings-team {
+    grid-column: 2 / -1;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .standings-team .team-helmet {
+    height: 28px;
+    width: 34px;
+  }
+
+  .standings-conf,
+  .standings-record,
+  .standings-diff,
+  .standings-national-rank,
+  .standings-seed {
+    align-items: center;
+    background: #172229;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #dce8e2;
+    display: flex;
+    font-size: 0.72rem;
+    font-weight: 850;
+    justify-content: center;
+    min-height: 28px;
+    overflow: hidden;
+    padding: 4px 7px;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .standings-conf::before,
+  .standings-record::before,
+  .standings-diff::before,
+  .standings-national-rank::before,
+  .standings-seed::before {
+    color: var(--muted);
+    content: attr(data-label) " ";
+    margin-right: 3px;
   }
 
   .player-grid,

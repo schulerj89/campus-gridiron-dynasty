@@ -48,7 +48,7 @@ export function buildProgramRecordBook(state: DynastyState): ProgramRecordBook |
     teamName: team.name,
     seasonsLogged: history.length,
     crownBowlTitles: history.filter((entry) => entry.postseason === "Crown Bowl Champion").length,
-    summitFourTrips: history.filter((entry) => entry.postseason === "Crown Bowl Champion" || entry.postseason === "Summit Four").length,
+    summitFourTrips: history.filter((entry) => entry.postseason === "Crown Bowl Champion" || entry.postseason === "Summit Eight" || entry.postseason === "Summit Four").length,
     bowlTrips: history.filter((entry) => entry.postseason !== "Missed Bowls").length,
     topTenFinishes: history.filter((entry) => entry.finalRank !== undefined && entry.finalRank <= 10).length,
     individualAwards: history.reduce((sum, entry) => sum + entry.awards.length, 0),

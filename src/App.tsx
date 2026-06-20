@@ -20,6 +20,7 @@ import {
   Handshake,
   Heart,
   Flame,
+  ListOrdered,
   LineChart,
   MapPinned,
   Menu,
@@ -67,13 +68,14 @@ import { publicAsset } from "./assets";
 import { PaginationControls } from "./components/PaginationControls";
 import { ProgramHistory } from "./components/ProgramHistoryView";
 import { Rankings } from "./components/RankingsView";
+import { Standings } from "./components/StandingsView";
 import { Stats } from "./components/StatsView";
 import { TeamHelmet } from "./components/TeamHelmet";
 import { buildRecruitingViewModel, type RecruitCommitmentFilter, type RecruitPositionFilter, type RecruitSort, type RecruitStarsFilter } from "./components/recruitingViewModel";
 import { APP_VERSION } from "./version";
 import { BLUEPRINT_CATEGORY_META, MAX_BLUEPRINT_CATEGORY_POINTS, blueprintRemaining, blueprintSpent, ensureProgramBlueprint, evaluateProgramBlueprint } from "./sim/blueprint";
 
-type Tab = "overview" | "rankings" | "roster" | "recruiting" | "schedule" | "stats" | "awards" | "program" | "debug";
+type Tab = "overview" | "rankings" | "standings" | "roster" | "recruiting" | "schedule" | "stats" | "awards" | "program" | "debug";
 type RosterFilter = "ALL" | Position;
 type RosterView = "roster" | "depth";
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
@@ -82,6 +84,7 @@ type OffseasonStage = "departures" | "recruiting" | "signing" | "development" | 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
   { id: "rankings", label: "Rankings", icon: TrendingUp },
+  { id: "standings", label: "Standings", icon: ListOrdered },
   { id: "roster", label: "Roster", icon: Users },
   { id: "recruiting", label: "Recruiting", icon: Search },
   { id: "schedule", label: "Schedule", icon: CalendarDays },
@@ -412,6 +415,7 @@ export default function App() {
       <main className="content-grid">
         {activeTab === "overview" && <Overview state={state} onAdvance={() => runAdvance(advanceWeek, `${advanceLabel}...`)} advanceLabel={advanceLabel} isAdvancing={isAdvancing} onNavigate={setActiveTab} />}
         {activeTab === "rankings" && <Rankings state={state} />}
+        {activeTab === "standings" && <Standings state={state} />}
         {activeTab === "roster" && <Roster state={state} onUpdate={update} onOpenPlayer={(player) => openPlayer(player)} />}
         {activeTab === "recruiting" && <Recruiting state={state} onUpdate={update} />}
         {activeTab === "schedule" && <Schedule state={state} />}
@@ -563,7 +567,7 @@ function Overview({
           <div className="panel-head">
             <div>
               <p className="eyebrow">Postseason Command</p>
-              <h2>Summit Four Playoff</h2>
+              <h2>Summit Eight Playoff</h2>
               <p className="muted">The dashboard follows the playoff bracket until the Crown Bowl is complete.</p>
             </div>
             <div className="button-row compact-row">

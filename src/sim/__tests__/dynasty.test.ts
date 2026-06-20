@@ -59,6 +59,17 @@ describe("dynasty flow", () => {
     expect(userTeam.roster.some((player) => player.awards.length > 0)).toBe(true);
   });
 
+  it("uses the final national poll top eight as the playoff field", () => {
+    let state = createDynasty(8916);
+    for (let week = 1; week <= 12; week += 1) {
+      state = advanceWeek(state);
+    }
+    const finalPollTopEight = state.rankings[0]!.allEntries.slice(0, 8).map((entry) => entry.teamId);
+
+    expect(state.phase).toBe("postseason");
+    expect(state.playoff?.seeds).toEqual(finalPollTopEight);
+  });
+
   it("forces a dashboard-visible weekly award for the user team", () => {
     const state = forceUserAward(advanceWeek(createDynasty(8914)));
     expect(state.weeklyAwards[0]?.national[0]?.teamId).toBe(state.userTeamId);

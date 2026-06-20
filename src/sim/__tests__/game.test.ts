@@ -146,6 +146,16 @@ describe("game simulation stat pacing", () => {
     expect(airBox.totals.passTd).toBeGreaterThanOrEqual(runBox.totals.passTd);
   });
 
+  it("lets air raid concentrate elite receiver usage more than balanced", () => {
+    const setup = controlledReceivingSetup(7151);
+    const balanced = eliteReceiverSeasonShare({ ...setup, teams: withUserStrategy(setup.teams, setup.userTeamId, "balanced") }, 7250);
+    const airRaid = eliteReceiverSeasonShare({ ...setup, teams: withUserStrategy(setup.teams, setup.userTeamId, "airRaid") }, 7250);
+
+    expect(airRaid.targetShare).toBeGreaterThan(balanced.targetShare + 0.025);
+    expect(airRaid.yardShare).toBeGreaterThan(balanced.yardShare + 0.025);
+    expect(airRaid.receivingYards).toBeGreaterThan(balanced.receivingYards);
+  });
+
   it("prices interception risk by passing volume without runaway pick rates", () => {
     const setup = controlledReceivingSetup(7126);
     const airTeams = withUserStrategy(setup.teams, setup.userTeamId, "airRaid");
@@ -256,7 +266,7 @@ describe("game simulation stat pacing", () => {
 
   it("lets an elite receiver produce a realistic 12-game season without changing team passing totals", () => {
     const setup = controlledReceivingSetup(7103);
-    let teams = setup.teams;
+    let teams = withUserStrategy(setup.teams, setup.userTeamId, "airRaid");
 
     for (const [index, game] of setup.userGames.entries()) {
       const result = simulateGame(new Rng(7200 + index), game, teams);
@@ -269,9 +279,9 @@ describe("game simulation stat pacing", () => {
 
     expect(setup.userGames).toHaveLength(12);
     expect(eliteReceiver.stats.receivingYards).toBeGreaterThanOrEqual(950);
-    expect(eliteReceiver.stats.receivingYards).toBeLessThanOrEqual(1650);
-    expect(eliteReceiver.stats.receivingYards / quarterback.stats.passYards).toBeGreaterThanOrEqual(0.28);
-    expect(eliteReceiver.stats.receivingTargets / userTeam.roster.reduce((sum, player) => sum + player.stats.receivingTargets, 0)).toBeGreaterThanOrEqual(0.25);
+    expect(eliteReceiver.stats.receivingYards).toBeLessThanOrEqual(1900);
+    expect(eliteReceiver.stats.receivingYards / quarterback.stats.passYards).toBeGreaterThanOrEqual(0.32);
+    expect(eliteReceiver.stats.receivingTargets / userTeam.roster.reduce((sum, player) => sum + player.stats.receivingTargets, 0)).toBeGreaterThanOrEqual(0.29);
     expect(quarterback.stats.passYards / setup.userGames.length).toBeGreaterThanOrEqual(180);
     expect(quarterback.stats.passYards / setup.userGames.length).toBeLessThanOrEqual(420);
   });
@@ -469,6 +479,22 @@ function receiverMatchupTotals(setup: { teams: Team[]; game: Game; userTeamId: s
     },
     { eliteTargets: 0, eliteYards: 0, teamTargets: 0, teamYards: 0 },
   );
+}
+
+function eliteReceiverSeasonShare(setup: { teams: Team[]; userGames: Game[]; userTeamId: string; eliteReceiverId: string }, seed: number): { targetShare: number; yardShare: number; receivingYards: number } {
+  let teams = setup.teams;
+  for (const [index, game] of setup.userGames.entries()) {
+    teams = simulateGame(new Rng(seed + index), game, teams).teams;
+  }
+  const userTeam = teams.find((team) => team.id === setup.userTeamId)!;
+  const eliteReceiver = userTeam.roster.find((player) => player.id === setup.eliteReceiverId)!;
+  const teamTargets = userTeam.roster.reduce((sum, player) => sum + player.stats.receivingTargets, 0);
+  const teamYards = userTeam.roster.reduce((sum, player) => sum + player.stats.receivingYards, 0);
+  return {
+    targetShare: eliteReceiver.stats.receivingTargets / Math.max(1, teamTargets),
+    yardShare: eliteReceiver.stats.receivingYards / Math.max(1, teamYards),
+    receivingYards: eliteReceiver.stats.receivingYards,
+  };
 }
 
 function controlledLineSetup(seed: number, line: "strong" | "weak"): { teams: Team[]; games: Game[]; userTeamId: string } {

@@ -51,7 +51,7 @@ function ProgramRecordBookPanel({ recordBook }: { recordBook?: ProgramRecordBook
     { label: "Best Final Rank", value: recordBook.bestFinalRank ? `#${recordBook.bestFinalRank.rank}` : "-", detail: recordBook.bestFinalRank ? `${recordBook.bestFinalRank.year}` : "No ranked finish" },
     { label: "Best Class", value: recordBook.bestRecruitingClass ? `#${recordBook.bestRecruitingClass.rank}` : "-", detail: recordBook.bestRecruitingClass ? `${recordBook.bestRecruitingClass.year}` : "No class rank" },
     { label: "Crown Bowl Titles", value: recordBook.crownBowlTitles.toString(), detail: "Championship seasons" },
-    { label: "Summit Four Trips", value: recordBook.summitFourTrips.toString(), detail: `${recordBook.bowlTrips} bowl trips` },
+    { label: "Summit Eight Trips", value: recordBook.summitFourTrips.toString(), detail: `${recordBook.bowlTrips} bowl trips` },
     { label: "Top 10 Finishes", value: recordBook.topTenFinishes.toString(), detail: "Final poll" },
     { label: "Individual Awards", value: recordBook.individualAwards.toString(), detail: "Player honors" },
   ];

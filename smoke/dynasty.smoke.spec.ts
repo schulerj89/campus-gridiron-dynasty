@@ -118,6 +118,15 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await page.screenshot({ path: path.join(screenshotDir, "mobile-stats.png"), fullPage: true });
   }
 
+  await openDynastySection(page, testInfo, /Standings/);
+  await expect(page.getByTestId("standings-playoff-panel")).toBeVisible();
+  if (isMobile) {
+    await expect(page.getByTestId("standings-selected-conference-panel")).toBeVisible();
+    await expect(page.getByTestId("standings-conference-select")).toBeVisible();
+    await expectNoHorizontalOverflow(page, "standings");
+    await page.screenshot({ path: path.join(screenshotDir, "mobile-standings.png"), fullPage: true });
+  }
+
   await openDynastySection(page, testInfo, /Program/);
   await expect(page.getByTestId("program-record-book-panel")).toContainText("Program Record Book");
   await expect(page.getByTestId("dynasty-history-panel")).toContainText("Dynasty History");

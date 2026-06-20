@@ -315,8 +315,8 @@ function applyPlayerStats(rng: Rng, team: Team, opponent: Team, scoring: Scoring
     });
   }
   const receiverMatchups = receiverCoverageMatchups(targets, opponent);
-  const receivingWeights = receivingUsageWeights(targets, receiverMatchups);
-  const targetWeights = targetUsageWeights(targets, receiverMatchups);
+  const receivingWeights = receivingUsageWeights(targets, receiverMatchups, strategy);
+  const targetWeights = targetUsageWeights(targets, receiverMatchups, strategy);
   for (const [playerId, value] of splitAmount(targets, targetAttempts, (player) => targetWeights.get(player.id) ?? receivingSkill(player))) {
     mutateActivePlayer(updated, appeared, playerId, (player) => {
       player.stats.receivingTargets += value;
@@ -479,28 +479,41 @@ function orderedPlayers(teamOrRoster: Team | Player[], positions: Position[]): P
     });
 }
 
-function receivingUsageWeights(targets: Player[], matchups = new Map<string, ReceiverMatchup>()): Map<string, number> {
-  const roleMultipliers = [1.85, 1.35, 1, 0.78, 0.62, 0.5, 0.42];
+function receivingUsageWeights(targets: Player[], matchups = new Map<string, ReceiverMatchup>(), strategy: OffensiveStrategy = "balanced"): Map<string, number> {
+  const roleMultipliers = receiverRoleMultipliers(strategy, "yards");
   const ranked = [...targets].sort((a, b) => receivingSkill(b) - receivingSkill(a));
   return new Map(
     ranked.map((player, index) => {
-      const eliteBonus = player.position === "WR" && effectiveOverall(player) >= 90 ? 1.12 : 1;
+      const eliteBonus = player.position === "WR" && effectiveOverall(player) >= 90 ? (strategy === "airRaid" ? 1.2 : 1.12) : 1;
       const matchup = matchups.get(player.id);
       return [player.id, receivingSkill(player) * (roleMultipliers[index] ?? 0.42) * eliteBonus * (matchup?.yardMultiplier ?? 1)];
     }),
   );
 }
 
-function targetUsageWeights(targets: Player[], matchups = new Map<string, ReceiverMatchup>()): Map<string, number> {
-  const roleMultipliers = [1.58, 1.28, 1, 0.86, 0.72, 0.6, 0.52];
+function targetUsageWeights(targets: Player[], matchups = new Map<string, ReceiverMatchup>(), strategy: OffensiveStrategy = "balanced"): Map<string, number> {
+  const roleMultipliers = receiverRoleMultipliers(strategy, "targets");
   const ranked = [...targets].sort((a, b) => receivingSkill(b) - receivingSkill(a));
   return new Map(
     ranked.map((player, index) => {
-      const eliteBonus = player.position === "WR" && effectiveOverall(player) >= 90 ? 1.04 : 1;
+      const eliteBonus = player.position === "WR" && effectiveOverall(player) >= 90 ? (strategy === "airRaid" ? 1.12 : 1.04) : 1;
       const matchup = matchups.get(player.id);
       return [player.id, receivingSkill(player) * (roleMultipliers[index] ?? 0.52) * eliteBonus * (matchup?.targetMultiplier ?? 1)];
     }),
   );
+}
+
+function receiverRoleMultipliers(strategy: OffensiveStrategy, usage: "targets" | "yards"): number[] {
+  if (strategy === "airRaid") {
+    return usage === "targets" ? [2.05, 1.38, 1.04, 0.78, 0.6, 0.46, 0.38] : [2.25, 1.42, 1.04, 0.76, 0.58, 0.46, 0.38];
+  }
+  if (strategy === "runHeavy") {
+    return usage === "targets" ? [1.42, 1.18, 1, 0.92, 0.82, 0.72, 0.62] : [1.56, 1.24, 1, 0.86, 0.72, 0.62, 0.54];
+  }
+  if (strategy === "spreadTempo") {
+    return usage === "targets" ? [1.72, 1.34, 1.06, 0.88, 0.72, 0.58, 0.48] : [1.92, 1.38, 1.04, 0.82, 0.66, 0.54, 0.46];
+  }
+  return usage === "targets" ? [1.58, 1.28, 1, 0.86, 0.72, 0.6, 0.52] : [1.85, 1.35, 1, 0.78, 0.62, 0.5, 0.42];
 }
 
 function receivingSkill(player: Player): number {
@@ -1293,7 +1306,8 @@ function selectRunner(rng: Rng, context: PlayContext): Player | undefined {
 }
 
 function selectTarget(rng: Rng, context: PlayContext): Player | undefined {
-  return weightedPlayer(rng, context.targets, (player) => receivingSkill(player) * (context.receiverMatchups.get(player.id)?.targetMultiplier ?? 1));
+  const targetWeights = targetUsageWeights(context.targets, context.receiverMatchups, context.profile.strategy);
+  return weightedPlayer(rng, context.targets, (player) => targetWeights.get(player.id) ?? receivingSkill(player));
 }
 
 function selectDefender(rng: Rng, context: PlayContext): Player | undefined {

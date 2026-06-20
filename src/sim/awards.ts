@@ -60,9 +60,9 @@ export function rankTeams(teams: Team[]): Team[] {
   }));
 }
 
-export function selectPlayoffSeeds(teams: Team[], userTeamId: string, forceUser = false): string[] {
-  const ranked = rankTeams(teams).slice(0, 16);
-  let seeds = ranked.slice(0, 8).map((team) => team.id);
+export function selectPlayoffSeeds(teams: Team[], userTeamId: string, forceUser = false, rankedTeamIds?: string[]): string[] {
+  const rankedIds = rankedTeamIds?.length ? rankedTeamIds : rankTeams(teams).map((team) => team.id);
+  let seeds = rankedIds.slice(0, 8);
   if (forceUser && !seeds.includes(userTeamId)) {
     seeds = [userTeamId, ...seeds.filter((id) => id !== userTeamId)].slice(0, 8);
   }

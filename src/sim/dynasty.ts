@@ -438,7 +438,12 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
 
   const seasonAwards = createSeasonAwards(teams, state.conferences, state.calendarYear, state.debugFlags.forceUserAward ? state.userTeamId : undefined);
   teams = applySeasonAwardsToPlayers(teams, seasonAwards, state.conferences);
-  const seeds = selectPlayoffSeeds(teams, state.userTeamId, state.debugFlags.forceUserPlayoff);
+  const seeds = selectPlayoffSeeds(
+    teams,
+    state.userTeamId,
+    state.debugFlags.forceUserPlayoff,
+    pollUpdate.poll.allEntries.map((entry) => entry.teamId),
+  );
   const playoffGames = createPlayoffGames(state.calendarYear, seeds);
   return {
     ...nextState,
@@ -455,7 +460,7 @@ function advanceRegularWeek(state: DynastyState): DynastyState {
       ...state.debugFlags,
       forceUserAward: false,
     },
-    debugLog: [`Regular season complete. Summit Four playoff field selected.`, ...state.debugLog].slice(0, 20),
+    debugLog: [`Regular season complete. Summit Eight playoff field selected.`, ...state.debugLog].slice(0, 20),
   };
 }
 
@@ -871,7 +876,7 @@ function recordAndDevelopTeam(
   const awards = currentSeasonAwards;
   const conferencePeers = 10;
   const conferenceFinish = Math.min(conferencePeers, team.season.confLosses + 1);
-  const postseason = champion ? "Crown Bowl Champion" : team.season.rank && team.season.rank <= 8 ? "Summit Four" : team.season.wins >= 7 ? "Bowl Eligible" : "Missed Bowls";
+  const postseason = champion ? "Crown Bowl Champion" : team.season.rank && team.season.rank <= 8 ? "Summit Eight" : team.season.wins >= 7 ? "Bowl Eligible" : "Missed Bowls";
   const pointsEarned = 2 + Math.floor(team.season.wins / 3) + (champion ? 5 : 0) + (team.season.rank && team.season.rank <= 10 ? 2 : 0);
   const resolvedBlueprint = resolveProgramBlueprint(team, year, recruitingClassRank);
   const developed = developAndGraduate(rng, team, year, departures);

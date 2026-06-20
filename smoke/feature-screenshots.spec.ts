@@ -67,6 +67,12 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await expect(page.getByTestId("rankings-pagination")).toContainText("Page 3");
   await page.screenshot({ path: path.join(screenshotDir, "rankings-full-board-desktop.png"), fullPage: true });
 
+  await page.getByRole("button", { name: "Standings" }).click();
+  await expect(page.getByTestId("standings-playoff-panel")).toContainText("Playoff");
+  await expect(page.getByTestId("conference-standings-panel")).toContainText("All Conferences");
+  await expect(page.getByTestId("conference-standings-panel").getByTestId("user-team-standings-row").first()).toBeVisible();
+  await page.screenshot({ path: path.join(screenshotDir, "standings-desktop.png"), fullPage: true });
+
   await page.getByRole("button", { name: "Recruiting", exact: true }).click();
   await expect(page.getByTestId("recruit-filter-panel")).toBeVisible();
   await expect(page.getByTestId("recruiting-needs-panel")).toContainText("Board");

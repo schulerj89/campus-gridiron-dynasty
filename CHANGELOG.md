@@ -2,6 +2,13 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.23 - 2026-06-20
+
+- Added a Standings tab with the top-eight playoff watch, all desktop conference standings, and a mobile conference selector for compact standings review.
+- Aligned playoff seeds to the visible final Week 12 national poll top eight and renamed visible playoff labels from Summit Four to Summit Eight.
+- Made Air Raid receiver usage strategy-aware so elite WR1s earn a larger target and yardage share without inflating total team passing production.
+- Added regression coverage for final-poll playoff seeding and Air Raid elite-receiver concentration.
+
 ## 1.21.22 - 2026-06-20
 
 - Routed every topbar advance action, including postseason rounds, back to Overview so simulation context is not hidden behind Awards.
