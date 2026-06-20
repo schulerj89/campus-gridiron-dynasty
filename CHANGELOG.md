@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.26 - 2026-06-20
+
+- Added 20 more fictional city names and 20 more mascot/team-name suffixes to reduce repeated generated team identities.
+- Updated world generation to use each mascot once before repeating, and added regression coverage for expanded mascot variety.
+
 ## 1.21.25 - 2026-06-20
 
 - Raised pro-departure logic with an 88 OVR floor so lower-rated high-production players no longer declare for the pro draft.

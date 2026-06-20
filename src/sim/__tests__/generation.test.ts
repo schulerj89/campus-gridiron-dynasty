@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createDynasty } from "../generate";
+import { MASCOTS } from "../names";
 import { POSITION_ATTRIBUTE_CAPS } from "../ratings";
 
 describe("world generation", () => {
@@ -13,6 +14,7 @@ describe("world generation", () => {
     expect(state.teams.every((team) => team.coaches.head && team.coaches.offense && team.coaches.defense)).toBe(true);
     expect(state.teams.every((team) => team.helmetIndex >= 0 && team.helmetIndex < 14)).toBe(true);
     expect(new Set(state.teams.map((team) => team.city)).size).toBe(state.teams.length);
+    expect(new Set(state.teams.map((team) => team.mascot)).size).toBe(Math.min(MASCOTS.length, state.teams.length));
     expect(state.coachPool.length).toBeGreaterThanOrEqual(60);
   });
 

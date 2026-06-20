@@ -127,16 +127,17 @@ function createTeams(rng: Rng, conferences: Conference[], coachPool: Coach[]): T
   const teams: Team[] = [];
   const usedNames = new Set<string>();
   const availableCities = [...CITIES];
+  const availableMascots = [...MASCOTS];
 
   for (let index = 0; index < 70; index += 1) {
     const conference = conferences[index % conferences.length]!;
     const cityIndex = availableCities.length ? rng.nextInt(0, availableCities.length - 1) : -1;
     const city = `${cityIndex >= 0 ? availableCities.splice(cityIndex, 1)[0] : rng.pick(CITIES)}`;
     const state = `${rng.pick(STATES)}`;
-    let mascot = `${rng.pick(MASCOTS)}`;
+    let mascot = `${pickUniqueMascot(rng, availableMascots)}`;
     let name = `${city} ${mascot}`;
     while (usedNames.has(name)) {
-      mascot = `${rng.pick(MASCOTS)}`;
+      mascot = `${pickUniqueMascot(rng, availableMascots)}`;
       name = `${city} ${mascot}`;
     }
     usedNames.add(name);
@@ -185,6 +186,12 @@ function createTeams(rng: Rng, conferences: Conference[], coachPool: Coach[]): T
   }
 
   return teams.sort((a, b) => teamPower(b.roster) + b.program.prestige * 0.08 - (teamPower(a.roster) + a.program.prestige * 0.08));
+}
+
+function pickUniqueMascot(rng: Rng, availableMascots: string[]): string {
+  if (!availableMascots.length) return `${rng.pick(MASCOTS)}`;
+  const index = rng.nextInt(0, availableMascots.length - 1);
+  return `${availableMascots.splice(index, 1)[0]}`;
 }
 
 function chooseOffensiveStrategy(rng: Rng, scheme: string, program: { prestige: number; training: number; facilities: number }): OffensiveStrategy {
