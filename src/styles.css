@@ -1788,6 +1788,38 @@ select {
   grid-template-columns: 84px minmax(140px, 1fr) 78px 64px;
 }
 
+.rankings-table-mobile .table-row.rankings-row {
+  gap: 8px 10px;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  min-height: 44px;
+}
+
+.rankings-table-mobile .rankings-row .ranking-record {
+  color: var(--muted);
+  font-size: 0.74rem;
+  grid-column: 1 / -1;
+  margin-top: -3px;
+}
+
+.rankings-table-mobile .rankings-row .ranking-metrics {
+  color: var(--muted);
+  font-size: 0.72rem;
+  grid-column: 2 / -1;
+}
+
+.rankings-table-mobile .rankings-header {
+  display: none;
+}
+
+.movement-list-mobile .movement-row {
+  grid-template-columns: 56px minmax(0, 1fr) 78px;
+}
+
+.movement-list-mobile .movement-row strong,
+.movement-list-mobile .movement-row span:last-child {
+  white-space: nowrap;
+}
+
 .standings-mobile-focus {
   display: none;
 }

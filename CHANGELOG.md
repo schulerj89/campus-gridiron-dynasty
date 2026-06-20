@@ -2,6 +2,10 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.34 - 2026-06-20
+
+- Condensed the rankings page on mobile by reducing per-page density, hiding nonessential header copy, simplifying each row layout, and shortening movement lists.
+
 ## 1.21.33 - 2026-06-20
 
 - Added mobile-only Playoff Center round selection with a dropdown so Quarterfinals/Semifinals/Crown Bowl can be viewed without scrolling.
