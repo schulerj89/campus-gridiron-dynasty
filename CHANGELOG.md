@@ -2,6 +2,10 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.30 - 2026-06-20
+
+- Fixed the offseason Program Review mobile panel so change rows no longer appear scrunched and reasons now wrap cleanly without collapsing the layout.
+
 ## 1.21.29 - 2026-06-20
 
 - Simplified the mobile postseason dashboard so it shows only the active playoff round: Quarterfinals, Semifinals, or Crown Bowl.
