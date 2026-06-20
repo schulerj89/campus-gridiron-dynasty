@@ -4,6 +4,8 @@ import { scoringPlan, simulateGame } from "../game";
 import { Rng } from "../rng";
 import type { Game, PlayByPlayEvent, Player, Team } from "../types";
 
+const OFFENSIVE_STRATEGIES: Team["offensiveStrategy"][] = ["balanced", "airRaid", "runHeavy", "proStyle", "spreadTempo"];
+
 describe("game simulation stat pacing", () => {
   it("prefers conventional touchdown and extra-point scoring plans", () => {
     expect(scoringPlan(24)).toMatchObject({ score: 24, offensiveTd: 3, fieldGoals: 1, extraPoints: 3, extraPointAttempts: 3 });
@@ -154,6 +156,28 @@ describe("game simulation stat pacing", () => {
     expect(airRaid.targetShare).toBeGreaterThan(balanced.targetShare + 0.025);
     expect(airRaid.yardShare).toBeGreaterThan(balanced.yardShare + 0.025);
     expect(airRaid.receivingYards).toBeGreaterThan(balanced.receivingYards);
+  });
+
+  it("keeps each offensive strategy aligned to its intended usage identity", () => {
+    const setup = controlledStrategyUsageSetup(7154);
+    const totals = Object.fromEntries(OFFENSIVE_STRATEGIES.map((strategy) => [strategy, strategyUsageTotals(setup, strategy, 7355)])) as Record<Team["offensiveStrategy"], StrategyUsageTotals>;
+
+    for (const strategy of OFFENSIVE_STRATEGIES) {
+      expect(totals[strategy].games).toBe(24);
+      expect(totals[strategy].qbPassAttempts).toBe(totals[strategy].passAttempts);
+      expect(totals[strategy].featureBackRushShare).toBeGreaterThanOrEqual(0.44);
+      expect(totals[strategy].eliteReceiverTargetShare).toBeGreaterThanOrEqual(0.24);
+      expect(totals[strategy].eliteReceiverYardShare).toBeGreaterThanOrEqual(0.28);
+    }
+
+    expect(totals.airRaid.passRate).toBeGreaterThan(totals.spreadTempo.passRate);
+    expect(totals.spreadTempo.passRate).toBeGreaterThan(totals.proStyle.passRate);
+    expect(totals.proStyle.passRate).toBeGreaterThan(totals.balanced.passRate);
+    expect(totals.balanced.passRate).toBeGreaterThan(totals.runHeavy.passRate);
+    expect(totals.runHeavy.rushAttempts).toBeGreaterThan(totals.balanced.rushAttempts);
+    expect(totals.runHeavy.featureBackRushAttempts).toBeGreaterThan(totals.balanced.featureBackRushAttempts);
+    expect(totals.airRaid.eliteReceiverTargetShare).toBeGreaterThan(totals.runHeavy.eliteReceiverTargetShare + 0.05);
+    expect(totals.spreadTempo.eliteReceiverTargetShare).toBeGreaterThan(totals.runHeavy.eliteReceiverTargetShare);
   });
 
   it("prices interception risk by passing volume without runaway pick rates", () => {
@@ -333,6 +357,26 @@ function isTrailing(event: PlayByPlayEvent, game: Game): boolean {
   return event.teamId === game.homeTeamId ? event.homeScore < event.awayScore : event.awayScore < event.homeScore;
 }
 
+interface StrategyUsageSetup {
+  teams: Team[];
+  game: Game;
+  userTeamId: string;
+  eliteReceiverId: string;
+  featureBackId: string;
+}
+
+interface StrategyUsageTotals {
+  games: number;
+  passAttempts: number;
+  rushAttempts: number;
+  qbPassAttempts: number;
+  featureBackRushAttempts: number;
+  featureBackRushShare: number;
+  eliteReceiverTargetShare: number;
+  eliteReceiverYardShare: number;
+  passRate: number;
+}
+
 function controlledReceivingSetup(seed: number): { teams: Team[]; game: Game; userGames: Game[]; userTeamId: string; eliteReceiverId: string } {
   const state = createDynasty(seed, "team-1");
   const userTeamId = state.userTeamId;
@@ -358,6 +402,26 @@ function controlledReceivingSetup(seed: number): { teams: Team[]; game: Game; us
   });
 
   return { teams, game: userGames[0]!, userGames, userTeamId, eliteReceiverId };
+}
+
+function controlledStrategyUsageSetup(seed: number): StrategyUsageSetup {
+  const setup = controlledReceivingSetup(seed);
+  const userTeam = setup.teams.find((team) => team.id === setup.userTeamId)!;
+  const featureBackId = [...userTeam.roster].filter((player) => player.position === "HB").sort((a, b) => b.overall - a.overall)[0]!.id;
+  const teams = setup.teams.map((team) => {
+    if (team.id !== setup.userTeamId) return team;
+    const halfBackIds = team.roster.filter((player) => player.position === "HB").map((player) => player.id);
+    return {
+      ...team,
+      depthChart: {
+        ...team.depthChart,
+        HB: [featureBackId, ...halfBackIds.filter((id) => id !== featureBackId)],
+      },
+      roster: team.roster.map((player) => tuneStrategyUsagePlayer(player, setup.eliteReceiverId, featureBackId)),
+    };
+  });
+
+  return { teams, game: setup.game, userTeamId: setup.userTeamId, eliteReceiverId: setup.eliteReceiverId, featureBackId };
 }
 
 function controlledPassingStressSetup(seed: number): { teams: Team[]; game: Game; userTeamId: string } {
@@ -481,6 +545,58 @@ function receiverMatchupTotals(setup: { teams: Team[]; game: Game; userTeamId: s
   );
 }
 
+function strategyUsageTotals(setup: StrategyUsageSetup, strategy: Team["offensiveStrategy"], seed: number): StrategyUsageTotals {
+  const teams = withUserStrategy(setup.teams, setup.userTeamId, strategy);
+  const totals = Array.from({ length: 24 }, (_, index) => index).reduce(
+    (summary, _, index) => {
+      const result = simulateGame(new Rng(seed + index), setup.game, teams);
+      const box = teamBoxFor(result.game, setup.userTeamId)!;
+      const userTeam = result.teams.find((team) => team.id === setup.userTeamId)!;
+      const quarterback = userTeam.roster.find((player) => player.position === "QB" && player.stats.passAttempts > 0)!;
+      const featureBack = userTeam.roster.find((player) => player.id === setup.featureBackId)!;
+      const eliteReceiver = userTeam.roster.find((player) => player.id === setup.eliteReceiverId)!;
+      const teamBackRushAttempts = userTeam.roster.filter((player) => player.position === "HB").reduce((sum, player) => sum + player.stats.rushAttempts, 0);
+
+      return {
+        games: summary.games + 1,
+        passAttempts: summary.passAttempts + box.passAttempts,
+        rushAttempts: summary.rushAttempts + box.rushAttempts,
+        qbPassAttempts: summary.qbPassAttempts + quarterback.stats.passAttempts,
+        featureBackRushAttempts: summary.featureBackRushAttempts + featureBack.stats.rushAttempts,
+        teamBackRushAttempts: summary.teamBackRushAttempts + teamBackRushAttempts,
+        eliteReceiverTargets: summary.eliteReceiverTargets + eliteReceiver.stats.receivingTargets,
+        eliteReceiverYards: summary.eliteReceiverYards + eliteReceiver.stats.receivingYards,
+        teamTargets: summary.teamTargets + box.totals.receivingTargets,
+        teamReceivingYards: summary.teamReceivingYards + box.totals.receivingYards,
+      };
+    },
+    {
+      games: 0,
+      passAttempts: 0,
+      rushAttempts: 0,
+      qbPassAttempts: 0,
+      featureBackRushAttempts: 0,
+      teamBackRushAttempts: 0,
+      eliteReceiverTargets: 0,
+      eliteReceiverYards: 0,
+      teamTargets: 0,
+      teamReceivingYards: 0,
+    },
+  );
+
+  return {
+    games: totals.games,
+    passAttempts: totals.passAttempts,
+    rushAttempts: totals.rushAttempts,
+    qbPassAttempts: totals.qbPassAttempts,
+    featureBackRushAttempts: totals.featureBackRushAttempts,
+    featureBackRushShare: totals.featureBackRushAttempts / Math.max(1, totals.teamBackRushAttempts),
+    eliteReceiverTargetShare: totals.eliteReceiverTargets / Math.max(1, totals.teamTargets),
+    eliteReceiverYardShare: totals.eliteReceiverYards / Math.max(1, totals.teamReceivingYards),
+    passRate: totals.passAttempts / Math.max(1, totals.passAttempts + totals.rushAttempts),
+  };
+}
+
 function eliteReceiverSeasonShare(setup: { teams: Team[]; userGames: Game[]; userTeamId: string; eliteReceiverId: string }, seed: number): { targetShare: number; yardShare: number; receivingYards: number } {
   let teams = setup.teams;
   for (const [index, game] of setup.userGames.entries()) {
@@ -598,6 +714,34 @@ function tuneUserPlayer(player: Player, eliteReceiverId: string): Player {
     };
   }
   return player;
+}
+
+function tuneStrategyUsagePlayer(player: Player, eliteReceiverId: string, featureBackId: string): Player {
+  if (player.id === featureBackId) {
+    return {
+      ...player,
+      overall: 91,
+      attributes: {
+        ...player.attributes,
+        speed: 92,
+        awareness: 90,
+        catching: 78,
+      },
+    };
+  }
+  if (player.position === "HB") {
+    return {
+      ...player,
+      overall: 71,
+      attributes: {
+        ...player.attributes,
+        speed: 71,
+        awareness: 70,
+        catching: 66,
+      },
+    };
+  }
+  return tuneUserPlayer(player, eliteReceiverId);
 }
 
 function tuneOpponentPlayer(player: Player): Player {
