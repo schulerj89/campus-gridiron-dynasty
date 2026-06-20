@@ -129,6 +129,16 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await page.screenshot({ path: path.join(screenshotDir, "mobile-program.png"), fullPage: true });
   }
 
+  if (isMobile) {
+    await openDynastySection(page, testInfo, /Debug/);
+    await page.getByRole("button", { name: "Force User Award" }).click();
+    await openDynastySection(page, testInfo, /Overview/);
+    for (let week = 0; week < 12; week += 1) {
+      await advanceDynasty(page);
+    }
+    await expect(page.getByTestId("phase-week-label")).toContainText("postseason", { timeout: 90_000 });
+  }
+
   await openDynastySection(page, testInfo, /Awards/);
   await expect(page.getByTestId("awards-panel")).toBeVisible();
   await expect(page.getByTestId("playoff-panel")).toBeVisible();
@@ -136,6 +146,18 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await page.screenshot({ path: path.join(screenshotDir, "awards-playoff-desktop.png"), fullPage: true });
   }
   if (isMobile) {
+    await expect(page.getByTestId("awards-panel").getByTestId("award-statue-image").first()).toBeVisible();
+    const candidateDrawer = page.getByTestId("mobile-award-candidate-list").first();
+    await expect(candidateDrawer).toBeVisible();
+    await candidateDrawer.locator("summary").click();
+    await expect(candidateDrawer.locator(".award-candidate-row").first()).toBeVisible();
+    await candidateDrawer.locator("summary").click();
+    const honorDrawer = page.locator(".mobile-honor-details").first();
+    await expect(honorDrawer).toBeVisible();
+    await honorDrawer.locator("summary").click();
+    await expect(honorDrawer.locator(".card").first()).toBeVisible();
+    await honorDrawer.locator("summary").click();
+    await page.evaluate(() => window.scrollTo(0, 0));
     await expectNoHorizontalOverflow(page, "awards");
     await page.screenshot({ path: path.join(screenshotDir, "mobile-awards.png"), fullPage: true });
   }

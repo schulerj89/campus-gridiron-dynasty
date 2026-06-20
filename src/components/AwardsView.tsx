@@ -7,6 +7,7 @@ import { getUserTeam } from "../sim/dynasty";
 import type { AwardWinner, DynastyState, Game, Player, Team } from "../sim/types";
 
 const AWARD_KEY_BY_NAME = new Map(SEASON_AWARD_DEFINITIONS.map((definition) => [definition.awardName, definition.key]));
+type AwardCandidate = SeasonAwardCandidateBoard["candidates"][number];
 
 export function Awards({ state, onOpenPlayer }: { state: DynastyState; onOpenPlayer?: (player: Player) => void }) {
   const userTeam = getUserTeam(state);
@@ -140,6 +141,7 @@ function SeasonAwardShowcase({
       {awards.map((award) => {
         const key = awardKeyForName(award.awardName);
         const board = boardsByName.get(award.awardName);
+        const candidates = board?.candidates ?? [];
         const winner = playerById.get(award.playerId);
         return (
           <article
@@ -160,29 +162,25 @@ function SeasonAwardShowcase({
                 <span>{award.note}</span>
               </div>
             </div>
-            {showCandidates && board?.candidates.length ? (
-              <div className="award-candidate-list" data-testid="award-candidate-list" aria-label={`${award.awardName} top 8 candidates`}>
-                <div className="candidate-list-head">
-                  <strong>Top 8 Candidates</strong>
-                  <span>Score</span>
-                </div>
-                {board.candidates.map((candidate) => (
-                  <div
-                    key={`${award.awardName}-${candidate.playerId}`}
-                    className={clsx("award-candidate-row", playerById.get(candidate.playerId) && onOpenPlayer && "clickable-award-row", candidate.teamId === userTeamId && "user-team-highlight")}
-                    {...playerOpenProps(playerById.get(candidate.playerId), onOpenPlayer, `Open ${candidate.playerName} player card`)}
-                  >
-                    <span className="candidate-rank">#{candidate.rank}</span>
-                    <div>
-                      <strong>{candidate.playerName}</strong>
-                      <span>
-                        {candidate.teamName} - {candidate.position} - {candidate.year} - {candidate.overall} OVR
-                      </span>
-                    </div>
-                    <em>{candidate.score.toLocaleString()}</em>
+            {showCandidates && candidates.length ? (
+              <>
+                <div className="award-candidate-list desktop-candidate-list" data-testid="award-candidate-list" aria-label={`${award.awardName} top 8 candidates`}>
+                  <div className="candidate-list-head">
+                    <strong>Top 8 Candidates</strong>
+                    <span>Score</span>
                   </div>
-                ))}
-              </div>
+                  <CandidateRows awardName={award.awardName} candidates={candidates} userTeamId={userTeamId} playerById={playerById} onOpenPlayer={onOpenPlayer} />
+                </div>
+                <details className="mobile-candidate-list" data-testid="mobile-award-candidate-list">
+                  <summary>
+                    <span>Top 8 Candidates</span>
+                    <strong>{candidates[0] ? `#1 ${candidates[0].playerName}` : "Candidates"}</strong>
+                  </summary>
+                  <div className="award-candidate-list compact-candidate-list" aria-label={`${award.awardName} top 8 candidates`}>
+                    <CandidateRows awardName={award.awardName} candidates={candidates} userTeamId={userTeamId} playerById={playerById} onOpenPlayer={onOpenPlayer} />
+                  </div>
+                </details>
+              </>
             ) : (
               <p className="muted compact-note">Candidate boards are available for the active award watch and current season awards.</p>
             )}
@@ -190,6 +188,41 @@ function SeasonAwardShowcase({
         );
       })}
     </div>
+  );
+}
+
+function CandidateRows({
+  awardName,
+  candidates,
+  userTeamId,
+  playerById,
+  onOpenPlayer,
+}: {
+  awardName: string;
+  candidates: AwardCandidate[];
+  userTeamId: string;
+  playerById: Map<string, Player>;
+  onOpenPlayer?: (player: Player) => void;
+}) {
+  return (
+    <>
+      {candidates.map((candidate) => (
+        <div
+          key={`${awardName}-${candidate.playerId}`}
+          className={clsx("award-candidate-row", playerById.get(candidate.playerId) && onOpenPlayer && "clickable-award-row", candidate.teamId === userTeamId && "user-team-highlight")}
+          {...playerOpenProps(playerById.get(candidate.playerId), onOpenPlayer, `Open ${candidate.playerName} player card`)}
+        >
+          <span className="candidate-rank">#{candidate.rank}</span>
+          <div>
+            <strong>{candidate.playerName}</strong>
+            <span>
+              {candidate.teamName} - {candidate.position} - {candidate.year} - {candidate.overall} OVR
+            </span>
+          </div>
+          <em>{candidate.score.toLocaleString()}</em>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -213,12 +246,21 @@ function AwardTeamPanel({
   onOpenPlayer?: (player: Player) => void;
 }) {
   return (
-    <section className="panel span-2" data-testid={testId}>
-      <div className="panel-head compact">
+    <section className="panel span-2 award-team-panel" data-testid={testId}>
+      <div className="panel-head compact award-team-desktop-head">
         <h2>{panelTitle}</h2>
         <Medal size={20} />
       </div>
-      <HonorGrid awards={awards} limit={16} userTeamId={userTeamId} playerById={playerById} onOpenPlayer={onOpenPlayer} />
+      <div className="desktop-honor-grid">
+        <HonorGrid awards={awards} limit={16} userTeamId={userTeamId} playerById={playerById} onOpenPlayer={onOpenPlayer} />
+      </div>
+      <details className="mobile-honor-details">
+        <summary>
+          <span>{panelTitle}</span>
+          <strong>{awards.length} honorees</strong>
+        </summary>
+        <HonorGrid awards={awards} limit={16} userTeamId={userTeamId} playerById={playerById} onOpenPlayer={onOpenPlayer} />
+      </details>
     </section>
   );
 }

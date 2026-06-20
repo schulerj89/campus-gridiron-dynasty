@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.20 - 2026-06-19
+
+- Consolidated mobile season-award cards with smaller preserved award statues, tighter winner text, and collapsed candidate drawers.
+- Tightened mobile weekly award cards, honor-team drawers, and playoff field spacing on the Awards page to reduce vertical scrolling.
+- Updated the iPhone smoke screenshot to capture a real season-awards state with statue art and mobile candidate controls.
+
 ## 1.21.19 - 2026-06-19
 
 - Simplified mobile Program layouts by collapsing wide control grids, hiding explanatory copy, and compacting blueprint/goals sections for phone screens.

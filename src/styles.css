@@ -1107,6 +1107,14 @@ select {
   padding-top: 10px;
 }
 
+.mobile-candidate-list {
+  display: none;
+}
+
+.mobile-honor-details {
+  display: none;
+}
+
 .candidate-list-head,
 .award-candidate-row {
   align-items: center;
@@ -2616,26 +2624,285 @@ select {
     font-size: 1.35rem;
   }
 
+  [data-testid="player-of-week-panel"],
+  [data-testid="conference-player-of-week-panel"],
+  [data-testid="awards-panel"],
+  [data-testid="playoff-panel"],
+  .award-team-panel {
+    padding: 10px;
+  }
+
+  [data-testid="player-of-week-panel"] .panel-head,
+  [data-testid="conference-player-of-week-panel"] .panel-head,
+  [data-testid="awards-panel"] .panel-head,
+  [data-testid="playoff-panel"] .panel-head {
+    align-items: center;
+    flex-direction: row;
+    min-height: 0;
+  }
+
+  [data-testid="player-of-week-panel"] .panel-head h2,
+  [data-testid="conference-player-of-week-panel"] .panel-head h2,
+  [data-testid="awards-panel"] .panel-head h2,
+  [data-testid="playoff-panel"] .panel-head h2 {
+    font-size: 1rem;
+  }
+
+  .award-grid {
+    gap: 8px;
+  }
+
+  .award-grid .card {
+    padding: 10px;
+  }
+
+  .award-grid .card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 3px;
+  }
+
+  .award-grid .card p:not(.eyebrow),
+  .award-grid .card span {
+    font-size: 0.76rem;
+    margin-bottom: 0;
+  }
+
+  .season-award-showcase {
+    gap: 8px;
+  }
+
+  .season-award-card {
+    gap: 8px;
+    padding: 8px;
+  }
+
   .season-award-main {
-    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 8px;
+    grid-template-columns: 70px minmax(0, 1fr);
+    margin: 0;
+    padding: 0;
   }
 
   .award-statue-frame img {
-    height: 88px;
-    width: 88px;
+    height: 64px;
+    width: 64px;
+  }
+
+  .season-award-winner .eyebrow {
+    font-size: 0.62rem;
+    margin-bottom: 2px;
+  }
+
+  .season-award-winner h3 {
+    font-size: 0.96rem;
+    margin-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .season-award-winner p {
+    font-size: 0.72rem;
+    margin-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .season-award-winner span {
+    display: -webkit-box;
+    font-size: 0.72rem;
+    line-height: 1.28;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .candidate-list-head,
   .award-candidate-row {
-    grid-template-columns: 38px minmax(0, 1fr) 50px;
+    grid-template-columns: 34px minmax(0, 1fr) 46px;
   }
 
+  .desktop-candidate-list,
   .candidate-list-head {
     display: none;
   }
 
+  .mobile-candidate-list {
+    border-top: 1px solid var(--line);
+    display: block;
+    padding-top: 8px;
+  }
+
+  .mobile-candidate-list summary {
+    align-items: center;
+    background: #152128;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    display: grid;
+    gap: 2px 8px;
+    grid-template-columns: minmax(0, 1fr) 24px;
+    list-style: none;
+    min-height: 42px;
+    padding: 7px 8px;
+  }
+
+  .mobile-candidate-list summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-candidate-list summary::after {
+    align-items: center;
+    background: rgba(240, 184, 74, 0.12);
+    border: 1px solid rgba(240, 184, 74, 0.35);
+    border-radius: 999px;
+    color: var(--gold);
+    content: "+";
+    display: inline-flex;
+    font-weight: 900;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    height: 22px;
+    justify-content: center;
+    width: 22px;
+  }
+
+  .mobile-candidate-list[open] summary::after {
+    content: "-";
+  }
+
+  .mobile-candidate-list summary span {
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .mobile-candidate-list summary strong {
+    font-size: 0.84rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .compact-candidate-list {
+    border-top: 0;
+    padding-top: 8px;
+  }
+
+  .award-team-desktop-head,
+  .desktop-honor-grid {
+    display: none;
+  }
+
+  .mobile-honor-details {
+    display: block;
+  }
+
+  .mobile-honor-details summary {
+    align-items: center;
+    background: #152128;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    cursor: pointer;
+    display: grid;
+    gap: 2px 8px;
+    grid-template-columns: minmax(0, 1fr) 24px;
+    list-style: none;
+    min-height: 44px;
+    padding: 8px;
+  }
+
+  .mobile-honor-details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-honor-details summary::after {
+    align-items: center;
+    background: rgba(240, 184, 74, 0.12);
+    border: 1px solid rgba(240, 184, 74, 0.35);
+    border-radius: 999px;
+    color: var(--gold);
+    content: "+";
+    display: inline-flex;
+    font-weight: 900;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    height: 22px;
+    justify-content: center;
+    width: 22px;
+  }
+
+  .mobile-honor-details[open] summary::after {
+    content: "-";
+  }
+
+  .mobile-honor-details summary span {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 900;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-honor-details summary strong {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-honor-details .honor-grid {
+    margin-top: 8px;
+  }
+
+  .award-candidate-row {
+    min-height: 38px;
+    padding: 6px;
+  }
+
   .award-candidate-row .candidate-rank {
+    font-size: 0.68rem;
+    height: 26px;
     justify-self: center;
+    width: 30px;
+  }
+
+  .award-candidate-row strong {
+    font-size: 0.78rem;
+  }
+
+  .award-candidate-row span {
+    font-size: 0.68rem;
+  }
+
+  .award-candidate-row em {
+    font-size: 0.76rem;
+  }
+
+  .playoff-bracket.field-only .bracket-round {
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field-only .bracket-game {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .field-only .bracket-game strong {
+    font-size: 0.86rem;
+  }
+
+  .field-only .bracket-game span {
+    font-size: 0.72rem;
   }
 
   .need-command-legend {
