@@ -913,7 +913,7 @@ function SignedRecruitModal({ signee, recruit, teamName, teams, onClose }: { sig
         .slice(0, 8)
     : [];
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className="modal-backdrop recruit-modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="player-modal recruit-modal" role="dialog" aria-modal="true" aria-label={`${signee.playerName} signed recruit detail`} onMouseDown={(event) => event.stopPropagation()} data-testid="signed-recruit-modal">
         <div className="modal-head">
           <div className="card-title">
@@ -1756,7 +1756,7 @@ function RecruitActionButtons({
 }) {
   const compact = variant === "card";
   return (
-    <div className={clsx("button-row", compact && "compact-row")}>
+    <div className={clsx("button-row", compact && "compact-row", variant === "modal" && "recruit-action-row")}>
       {onOpen && (
         <button className="secondary" onClick={() => onOpen(recruit.id)}>
           Details
@@ -1821,7 +1821,7 @@ function RecruitModal({
     .slice(0, 3);
 
   return (
-    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+    <div className="modal-backdrop recruit-modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="player-modal recruit-modal" role="dialog" aria-modal="true" aria-label={`${recruit.name} recruit detail`} onMouseDown={(event) => event.stopPropagation()} data-testid="recruit-modal">
         <div className="modal-head">
           <div className="card-title">
@@ -1834,12 +1834,12 @@ function RecruitModal({
               </p>
             </div>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close recruit detail">
+          <button className="icon-button" onClick={onClose} aria-label="Close recruit detail">
             <X size={18} />
           </button>
         </div>
         <div className="recruit-modal-grid">
-          <section className="modal-panel">
+          <section className="modal-panel recruit-interest-panel">
             <div className="panel-head compact">
               <h3>School Interest</h3>
               <TrendingUp size={18} />
@@ -1864,7 +1864,7 @@ function RecruitModal({
               })}
             </div>
           </section>
-          <section className="modal-panel">
+          <section className="modal-panel recruit-plan-panel">
             <div className="panel-head compact">
               <h3>Recruiting Plan</h3>
               <Handshake size={18} />

@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.24 - 2026-06-20
+
+- Simplified the active and signed recruiting modals on mobile into a full-width sheet with a large close target, immediate recruiting actions, tighter summary chips, and compact school-interest rows.
+- Fixed the active recruit modal close button to use the shared icon-button styling instead of an unstyled class.
+- Added iPhone smoke coverage that opens a recruit modal, verifies the close/action buttons are visible, checks the modal fits the viewport without horizontal overflow, and captures a mobile modal screenshot.
+
 ## 1.21.23 - 2026-06-20
 
 - Added a Standings tab with the top-eight playoff watch, all desktop conference standings, and a mobile conference selector for compact standings review.

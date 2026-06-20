@@ -103,6 +103,21 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     expect(databaseOverflows).toBe(false);
     await expectNoHorizontalOverflow(page, "recruiting");
     await page.getByTestId("recruiting-database").screenshot({ path: path.join(screenshotDir, "mobile-recruiting.png") });
+    await page.getByTestId("recruit-row").first().click();
+    const recruitModal = page.getByTestId("recruit-modal");
+    await expect(recruitModal).toBeVisible();
+    await expect(page.getByRole("button", { name: "Close recruit detail" })).toBeVisible();
+    await expect(recruitModal.getByRole("button", { name: /Add Board|Remove Board/ })).toBeVisible();
+    await expect(recruitModal.getByRole("button", { name: /Offer Scholarship|Rescind Scholarship/ })).toBeVisible();
+    await expect(recruitModal.getByRole("button", { name: "Pitch" })).toBeVisible();
+    const modalFitsViewport = await recruitModal.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.width <= window.innerWidth + 1 && rect.height <= window.innerHeight + 1 && element.scrollWidth <= element.clientWidth + 1;
+    });
+    expect(modalFitsViewport).toBe(true);
+    await recruitModal.screenshot({ path: path.join(screenshotDir, "mobile-recruit-modal.png") });
+    await page.getByRole("button", { name: "Close recruit detail" }).click();
+    await expect(recruitModal).not.toBeVisible();
   }
 
   await openDynastySection(page, testInfo, /Debug/);
