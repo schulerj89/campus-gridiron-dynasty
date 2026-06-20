@@ -1129,16 +1129,18 @@ function RosterCutdownGroup({ team, cuts }: { team?: Team; cuts: NonNullable<Dyn
 
 function ProgramChangeGroup({ changes }: { changes: ProgramChange[] }) {
   return (
-    <section className="offseason-column" data-testid="program-review-panel">
+    <section className="offseason-column program-review-panel" data-testid="program-review-panel">
       <h3>Program Review</h3>
       {changes.length ? (
         <div className="table-list program-change-list">
           {changes.map((change) => (
             <div key={change.key} className="table-row program-change-row">
-              <strong>{title(String(change.key))}</strong>
-              <span className={clsx(change.delta > 0 ? "positive" : "negative")}>{change.delta > 0 ? `+${change.delta}` : change.delta}</span>
-              <span>{`${change.before}->${change.after}`}</span>
-              <span>{change.reason}</span>
+              <strong className="program-change-title">{title(String(change.key))}</strong>
+              <span className={clsx(change.delta > 0 ? "positive" : "negative", "program-change-delta")}>
+                {change.delta > 0 ? `+${change.delta}` : change.delta}
+              </span>
+              <span className="program-change-range">{`${change.before}->${change.after}`}</span>
+              <span className="program-change-reason">{change.reason}</span>
             </div>
           ))}
         </div>

@@ -2020,6 +2020,17 @@ select {
   grid-column: 1 / -1;
 }
 
+.program-change-title,
+.program-change-delta,
+.program-change-range,
+.program-change-reason {
+  min-width: 0;
+}
+
+.program-change-title {
+  overflow-wrap: anywhere;
+}
+
 .walk-on-row {
   grid-template-columns: minmax(130px, 1fr) 48px 78px 78px;
 }
@@ -2435,6 +2446,54 @@ select {
   .signee-row,
   .program-change-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
+  }
+
+  .offseason-stage-programReview .offseason-column.program-review-panel {
+    padding: 12px;
+  }
+
+  .offseason-stage-programReview .program-change-row {
+    align-items: start;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 64px 74px;
+  }
+
+  .offseason-stage-programReview .program-change-row span:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .offseason-stage-programReview .program-change-title {
+    font-size: 0.86rem;
+    grid-column: 1 / -1;
+    line-height: 1.28;
+  }
+
+  .offseason-stage-programReview .program-change-delta,
+  .offseason-stage-programReview .program-change-range {
+    background: #172229;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: 0.74rem;
+    font-weight: 850;
+    justify-content: center;
+    min-height: 28px;
+    min-width: 0;
+    overflow: hidden;
+    padding: 5px 8px;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: fit-content;
+  }
+
+  .offseason-stage-programReview .program-change-reason {
+    color: var(--muted);
+    font-size: 0.78rem;
+    grid-column: 1 / -1;
+    line-height: 1.34;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .departure-row {
