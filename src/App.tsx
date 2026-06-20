@@ -100,7 +100,7 @@ const MOBILE_SIGNEE_PAGE_SIZE = 6;
 const ROSTER_PAGE_SIZE = 18;
 const MOBILE_ROSTER_PAGE_SIZE = 7;
 const PROGRESSION_PAGE_SIZE = 24;
-const MOBILE_PROGRESSION_PAGE_SIZE = 7;
+const MOBILE_PROGRESSION_PAGE_SIZE = 4;
 const DEPARTURE_PAGE_SIZE = 12;
 const MOBILE_DEPARTURE_PAGE_SIZE = 6;
 const CLASS_RANKING_PAGE_SIZE = 20;
@@ -1055,15 +1055,15 @@ function ProgressionGroup({
           </div>
           {visibleRows.map((row) => (
             <div key={row.id} className="table-row progression-row">
-              <strong>{row.name}</strong>
-              <span>{row.position}</span>
-              <span>{row.year}</span>
-              <span>
+              <strong className="development-name">{row.name}</strong>
+              <span className="development-position">{row.position}</span>
+              <span className="development-year">{row.year}</span>
+              <span className="development-ovr" data-label="OVR">
                 {`${row.beforeOverall}->${row.afterOverall}`} <em className={row.delta > 0 ? "positive" : undefined}>{row.delta > 0 ? `+${row.delta}` : "+0"}</em>
               </span>
-              <span>{row.potential}</span>
-              <span>{row.status}</span>
-              <span>{row.gains}</span>
+              <span className="development-potential" data-label="POT">{row.potential}</span>
+              <span className="development-status" data-label="DEV">{row.status}</span>
+              <span className="development-gains">{row.gains}</span>
             </div>
           ))}
           {rosterRows.length > pageSize && <PaginationControls page={currentPage} pageCount={pageCount} total={rosterRows.length} pageSize={pageSize} label="development" onPageChange={setPage} />}
@@ -1091,12 +1091,12 @@ function RosterCutdownGroup({ team, cuts }: { team?: Team; cuts: NonNullable<Dyn
         <div className="table-list cut-list">
           {cuts.map((cut) => (
             <div key={cut.playerId} className="table-row cut-row">
-              <strong>{cut.playerName}</strong>
-              <span>{cut.position}</span>
-              <span>{cut.year}</span>
-              <span>OVR {cut.overall}</span>
-              <span>Pot {cut.potential}</span>
-              <span>{cut.note}</span>
+              <strong className="cut-name">{cut.playerName}</strong>
+              <span className="cut-position">{cut.position}</span>
+              <span className="cut-year">{cut.year}</span>
+              <span className="cut-overall">OVR {cut.overall}</span>
+              <span className="cut-potential">POT {cut.potential}</span>
+              <span className="cut-note">{cut.note}</span>
             </div>
           ))}
         </div>
@@ -2471,8 +2471,7 @@ function advanceMultipleWeeks(state: DynastyState, weeks: number): DynastyState 
   return next;
 }
 
-function tabAfterAdvance(_previous: DynastyState, next: DynastyState): Tab {
-  if (next.phase === "postseason" && next.playoff && !next.playoff.championTeamId) return "awards";
+function tabAfterAdvance(_previous: DynastyState, _next: DynastyState): Tab {
   return "overview";
 }
 

@@ -140,13 +140,12 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await openDynastySection(page, testInfo, /Stats/);
     await expect(page.getByTestId("leaderboard-panel")).toBeVisible();
     await advanceDynasty(page);
-    await expect(page.getByTestId("mobile-section-menu")).toContainText("Awards");
-    await expect(page.getByTestId("playoff-panel")).toBeVisible();
+    await expect(page.getByTestId("mobile-section-menu")).toContainText("Overview");
+    await expect(page.getByTestId("dashboard-playoff-bracket")).toBeVisible();
   }
 
   await openDynastySection(page, testInfo, /Awards/);
   await expect(page.getByTestId("awards-panel")).toBeVisible();
-  await expect(page.getByTestId("playoff-panel")).toBeVisible();
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "awards-playoff-desktop.png"), fullPage: true });
   }
@@ -180,6 +179,22 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
     await expect(page.locator(".departure-row").first()).toBeVisible();
     await expectNoHorizontalOverflow(page, "departures");
     await page.screenshot({ path: path.join(screenshotDir, "mobile-departures.png"), fullPage: true });
+
+    await advanceDynasty(page);
+    await expect(page.getByTestId("offseason-stage-recruiting")).toBeVisible({ timeout: 90_000 });
+    for (let week = 0; week < 4; week += 1) {
+      await advanceDynasty(page);
+    }
+    await expect(page.getByTestId("advance-week")).toContainText("Run Signing Day");
+    await advanceDynasty(page);
+    await expect(page.getByTestId("offseason-stage-signing")).toBeVisible({ timeout: 90_000 });
+    await advanceDynasty(page);
+    await expect(page.getByTestId("offseason-stage-development")).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId("preseason-progression-panel")).toContainText("Preseason Development");
+    await expect(page.getByTestId("preseason-progression-panel")).not.toContainText("Incoming FR");
+    await expect(page.getByTestId("preseason-cutdown-panel")).toBeVisible();
+    await expectNoHorizontalOverflow(page, "preseason-development");
+    await page.screenshot({ path: path.join(screenshotDir, "mobile-preseason-development.png"), fullPage: true });
   }
 });
 

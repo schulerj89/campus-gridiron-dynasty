@@ -225,7 +225,9 @@ test("captures additional feature screenshots", async ({ page }, testInfo) => {
   await page.getByTestId("all-american-second-panel").screenshot({ path: path.join(screenshotDir, "all-american-second-desktop.png") });
   await page.getByTestId("all-conference-first-panel").screenshot({ path: path.join(screenshotDir, "all-conference-first-desktop.png") });
   await page.getByTestId("all-conference-second-panel").screenshot({ path: path.join(screenshotDir, "all-conference-second-desktop.png") });
-  await page.getByTestId("playoff-panel").screenshot({ path: path.join(screenshotDir, "playoffs-desktop.png") });
+  await page.getByRole("button", { name: "Overview" }).click();
+  await expect(page.getByTestId("dashboard-playoff-bracket")).toBeVisible();
+  await page.getByTestId("dashboard-playoff-bracket").screenshot({ path: path.join(screenshotDir, "playoffs-desktop.png") });
   await page.getByRole("button", { name: "Roster" }).click();
   await page.locator(".roster-row").filter({ hasText: userSeasonAwardPlayer }).first().click();
   await page.getByTestId("player-modal").getByRole("button", { name: "Awards" }).click();

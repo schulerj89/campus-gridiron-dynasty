@@ -2325,8 +2325,6 @@ select {
   .class-rank-row,
   .movement-row,
   .signee-row,
-  .progression-row,
-  .cut-row,
   .program-change-row {
     grid-template-columns: 48px minmax(0, 1fr) 44px 44px;
   }
@@ -2377,9 +2375,94 @@ select {
     display: none;
   }
 
-  .progression-row span:last-child,
-  .cut-row span:last-child {
+  .progression-row,
+  .cut-row {
+    align-items: stretch;
+    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .development-name,
+  .cut-name {
+    font-size: 0.95rem;
     grid-column: 1 / -1;
+    line-height: 1.15;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .development-position,
+  .development-year,
+  .development-potential,
+  .development-status,
+  .cut-position,
+  .cut-year,
+  .cut-overall,
+  .cut-potential {
+    align-items: center;
+    background: #172229;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: #dce8e2;
+    display: flex;
+    font-size: 0.74rem;
+    font-weight: 850;
+    justify-content: center;
+    min-height: 28px;
+    min-width: 0;
+    overflow: hidden;
+    padding: 4px 7px;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .development-potential::before,
+  .development-status::before {
+    color: var(--muted);
+    content: attr(data-label) " ";
+    margin-right: 3px;
+  }
+
+  .development-ovr {
+    align-items: center;
+    background: rgba(240, 184, 74, 0.08);
+    border: 1px solid rgba(240, 184, 74, 0.26);
+    border-radius: 8px;
+    color: #f4dfab;
+    display: flex;
+    font-size: 0.86rem;
+    font-weight: 900;
+    gap: 8px;
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    min-width: 0;
+    padding: 8px 9px;
+  }
+
+  .development-ovr::before {
+    color: var(--muted);
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 900;
+  }
+
+  .development-ovr em {
+    font-style: normal;
+    margin-left: auto;
+  }
+
+  .development-gains,
+  .cut-note {
+    color: var(--muted);
+    font-size: 0.78rem;
+    grid-column: 1 / -1;
+    line-height: 1.32;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .depth-player-row {
@@ -2500,6 +2583,17 @@ select {
   .offseason-column h3 {
     font-size: 1.15rem;
     line-height: 1.15;
+  }
+
+  .offseason-steps {
+    gap: 7px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .offseason-steps span {
+    font-size: 0.76rem;
+    min-height: 34px;
+    padding: 8px 7px;
   }
 
   .mobile-menu-trigger {
@@ -2668,15 +2762,13 @@ select {
   [data-testid="player-of-week-panel"],
   [data-testid="conference-player-of-week-panel"],
   [data-testid="awards-panel"],
-  [data-testid="playoff-panel"],
   .award-team-panel {
     padding: 10px;
   }
 
   [data-testid="player-of-week-panel"] .panel-head,
   [data-testid="conference-player-of-week-panel"] .panel-head,
-  [data-testid="awards-panel"] .panel-head,
-  [data-testid="playoff-panel"] .panel-head {
+  [data-testid="awards-panel"] .panel-head {
     align-items: center;
     flex-direction: row;
     min-height: 0;
@@ -2684,8 +2776,7 @@ select {
 
   [data-testid="player-of-week-panel"] .panel-head h2,
   [data-testid="conference-player-of-week-panel"] .panel-head h2,
-  [data-testid="awards-panel"] .panel-head h2,
-  [data-testid="playoff-panel"] .panel-head h2 {
+  [data-testid="awards-panel"] .panel-head h2 {
     font-size: 1rem;
   }
 

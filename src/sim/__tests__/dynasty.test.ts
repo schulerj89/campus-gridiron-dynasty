@@ -454,6 +454,56 @@ describe("dynasty flow", () => {
     expect(state.teams.flatMap((team) => team.roster).some((player) => player.incomingFreshman)).toBe(false);
   }, 20_000);
 
+  it("does not let sophomores declare for the pro draft", () => {
+    const base = createDynasty(8941);
+    const userTeam = base.teams.find((team) => team.id === base.userTeamId)!;
+    const sophomore = userTeam.roster.find((player) => player.year === "SO")!;
+    const prepared: DynastyState = {
+      ...base,
+      phase: "postseason",
+      week: 16,
+      playoff: {
+        year: base.calendarYear,
+        seeds: [base.userTeamId],
+        games: [],
+        championTeamId: base.userTeamId,
+      },
+      teams: base.teams.map((team) =>
+        team.id === base.userTeamId
+          ? {
+              ...team,
+              roster: team.roster.map((player) =>
+                player.id === sophomore.id
+                  ? {
+                      ...player,
+                      overall: 99,
+                      potential: 99,
+                      awards: ["National Player of the Year", "All-American First Team"],
+                      stats: {
+                        ...player.stats,
+                        games: 12,
+                        rushYards: 1500,
+                        receivingYards: 1500,
+                        tackles: 95,
+                        sacks: 12,
+                        interceptions: 6,
+                      },
+                    }
+                  : player,
+              ),
+            }
+          : team,
+      ),
+    };
+
+    const advanced = advanceWeek(prepared);
+    const userReport = advanced.offseasonReport?.teams.find((report) => report.teamId === base.userTeamId);
+    const sophomoreDeparture = userReport?.departures.find((departure) => departure.playerId === sophomore.id);
+
+    expect(advanced.phase).toBe("offseason");
+    expect(sophomoreDeparture).toBeUndefined();
+  });
+
   it("preserves non-departing returning players through signing day and preseason development", () => {
     let state = createDynasty(8900);
     let guard = 0;

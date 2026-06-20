@@ -1177,8 +1177,9 @@ function playerDeparture(player: Player, team: Team): PlayerDeparture | undefine
   const awardBoost = player.awards.length * 2.4;
   const rankBoost = team.season.rank && team.season.rank <= 8 ? 2.5 : team.season.rank && team.season.rank <= 25 ? 1.2 : 0;
   const proScore = player.overall + production + awardBoost + rankBoost;
-  const proThreshold = (player.year === "SR" ? 87 : player.year === "JR" ? 91 : 96) + blueprintRetentionBonus(team);
-  if ((player.year === "SR" || player.year === "JR" || player.year === "SO") && proScore >= proThreshold) {
+  const proEligible = player.year === "SR" || player.year === "JR";
+  const proThreshold = (player.year === "SR" ? 87 : 91) + blueprintRetentionBonus(team);
+  if (proEligible && proScore >= proThreshold) {
     return {
       playerId: player.id,
       playerName: player.name,

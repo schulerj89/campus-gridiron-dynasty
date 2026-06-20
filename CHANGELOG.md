@@ -2,6 +2,14 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.22 - 2026-06-20
+
+- Routed every topbar advance action, including postseason rounds, back to Overview so simulation context is not hidden behind Awards.
+- Removed the playoff bracket from Awards and kept playoff bracket navigation on Overview, where postseason command controls already live.
+- Simplified mobile preseason development and roster-cutdown rows into readable summary cards with wrapped names, compact stat pills, and full-width movement notes.
+- Fixed pro-departure eligibility so sophomores cannot declare early, with regression coverage for a high-production 99 OVR sophomore.
+- Added mobile smoke coverage and screenshots for the preseason development screen plus updated playoff bracket screenshot coverage for the Overview-owned bracket.
+
 ## 1.21.21 - 2026-06-20
 
 - Fixed mobile offseason departure rows so player names and departure notes wrap in a dedicated compact layout instead of being squeezed into generic table columns.

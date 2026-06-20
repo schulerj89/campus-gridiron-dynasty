@@ -14,7 +14,6 @@ export function Awards({ state, onOpenPlayer }: { state: DynastyState; onOpenPla
   const userConference = state.conferences.find((conference) => conference.id === userTeam.conferenceId);
   const conferenceAwards = userConference && state.seasonAwards ? state.seasonAwards.allConference[userConference.id] : undefined;
   const playerById = new Map(state.teams.flatMap((team) => team.roster.map((player) => [player.id, player] as const)));
-  const playoffGames = state.playoff?.games ?? [];
   const latestHistory = state.history[0];
   const latestWeeklyAwards = state.weeklyAwards[0]?.national ?? [];
   const latestConferenceWeeklyAwards = userConference ? state.weeklyAwards[0]?.conference[userConference.id] ?? [] : [];
@@ -23,9 +22,6 @@ export function Awards({ state, onOpenPlayer }: { state: DynastyState; onOpenPla
   const seasonAwardsTitle = state.seasonAwards ? "Season Awards" : seasonAwardWatch ? "Season Award Watch" : state.phase !== "regular" && awardSource.length ? "Latest Season Awards" : "Season Award Watch Opens Week 8";
   const seasonAwardCandidateBoards = state.week >= 8 || state.seasonAwards ? createSeasonAwardCandidateBoards(state.teams) : [];
   const showSeasonAwardCandidates = Boolean(state.seasonAwards || seasonAwardWatch);
-  const currentChampionName = state.playoff?.championTeamId ? state.teams.find((team) => team.id === state.playoff?.championTeamId)?.name : undefined;
-  const bracketChampionName = state.playoff ? currentChampionName : latestHistory?.championName;
-  const priorPlayoffTeams = latestHistory?.playoffTeams.map((id) => state.teams.find((team) => team.id === id)?.name ?? id) ?? [];
   return (
     <>
       <section className="panel span-2" data-testid="player-of-week-panel">
@@ -67,13 +63,6 @@ export function Awards({ state, onOpenPlayer }: { state: DynastyState; onOpenPla
           <AwardTeamPanel title={`${userConference?.name ?? "Conference"} Freshman Team`} awards={conferenceAwards.freshman} testId="all-conference-freshman-panel" userTeamId={state.userTeamId} playerById={playerById} onOpenPlayer={onOpenPlayer} />
         </>
       )}
-      <section className="panel span-2" data-testid="playoff-panel">
-        <div className="panel-head compact">
-          <h2>{state.playoff ? "Summit Four Playoff" : "Latest Playoff Field"}</h2>
-          <Trophy size={20} />
-        </div>
-        <PlayoffBracket games={playoffGames} teams={state.teams} priorPlayoffTeams={priorPlayoffTeams} championName={bracketChampionName} />
-      </section>
     </>
   );
 }
