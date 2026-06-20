@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.27 - 2026-06-20
+
+- Fixed the home team-picker ratings mismatch by starting the dynasty from the same generated world seed shown in team selection.
+- Stabilized the home team-picker layout so long team names keep the card height steady and the New Dynasty action does not get squeezed.
+
 ## 1.21.26 - 2026-06-20
 
 - Added 20 more fictional city names and 20 more mascot/team-name suffixes to reduce repeated generated team identities.

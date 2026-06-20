@@ -159,13 +159,17 @@ p {
   background: rgba(15, 23, 27, 0.72);
   border: 1px solid rgba(236, 244, 239, 0.16);
   border-radius: 8px;
+  display: flex;
+  min-height: 118px;
   min-width: 0;
   padding: 14px;
 }
 
 .team-card-select h2 {
   font-size: 1.35rem;
+  line-height: 1.12;
   margin-bottom: 6px;
+  overflow-wrap: anywhere;
 }
 
 .team-card-heading,
@@ -173,6 +177,14 @@ p {
   align-items: center;
   display: flex;
   gap: 14px;
+}
+
+.team-card-heading {
+  width: 100%;
+}
+
+.team-card-heading > div {
+  min-width: 0;
 }
 
 .team-helmet {
@@ -212,6 +224,17 @@ p {
 
 .team-picker-metrics .metric {
   background: rgba(15, 23, 27, 0.78);
+}
+
+.team-picker .button-row {
+  display: grid;
+  grid-template-columns: minmax(172px, 1fr) minmax(136px, 0.82fr) 44px;
+}
+
+.team-picker .primary,
+.team-picker .secondary {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 label {
@@ -2637,6 +2660,18 @@ select {
 @media (max-width: 480px) {
   .feature {
     align-items: flex-start;
+  }
+
+  .team-card-select {
+    min-height: 132px;
+  }
+
+  .team-picker .button-row {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .team-picker .button-row .primary {
+    grid-column: 1 / -1;
   }
 
   .app-shell {

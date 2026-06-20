@@ -181,7 +181,8 @@ function useCompactMobile(): boolean {
 }
 
 export default function App() {
-  const previewWorld = useMemo(() => createDynasty(20260616), []);
+  const previewSeed = useMemo(() => dynastySeed(), []);
+  const previewWorld = useMemo(() => createDynasty(previewSeed), [previewSeed]);
   const [selectedTeamId, setSelectedTeamId] = useState(previewWorld.userTeamId);
   const [state, setState] = useState<DynastyState>();
   const [savedState, setSavedState] = useState<DynastyState>();
@@ -254,7 +255,7 @@ export default function App() {
   };
 
   const startDynasty = () => {
-    const dynasty = createDynasty(dynastySeed(), selectedTeamId);
+    const dynasty = createDynasty(previewSeed, selectedTeamId);
     setSelectedPlayerId(undefined);
     setState(dynasty);
     setActiveTab("overview");

@@ -19,6 +19,7 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await expect(page.getByText(APP_VERSION).first()).toBeVisible();
   await expect(page.getByTestId("team-picker")).toBeVisible();
   await page.getByTestId("team-next").click();
+  const selectedTeamOverall = await metricValue(page.getByTestId("team-picker"), "Overall");
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "home-desktop.png"), fullPage: true });
   }
@@ -29,6 +30,8 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   await expect(page.getByText(APP_VERSION).first()).toBeVisible();
   await expect(page.getByTestId("advance-week")).toContainText("Advance Week");
   await expect(page.getByTestId("sim-month")).toContainText("Sim 4 Weeks");
+  await expect(page.getByTestId("dashboard-command-panel")).toBeVisible();
+  await expect.poll(() => metricValue(page.getByTestId("dashboard-command-panel"), "Overall")).toBe(selectedTeamOverall);
 
   if (testInfo.project.name === "chromium-desktop") {
     await page.screenshot({ path: path.join(screenshotDir, "dashboard-desktop.png"), fullPage: true });
@@ -284,6 +287,17 @@ async function advanceDynasty(page: import("@playwright/test").Page) {
   await advance.click();
   await expect(advance).toBeEnabled({ timeout: 90_000 });
   await page.waitForFunction((previous) => document.querySelector('[data-testid="phase-week-label"]')?.textContent !== previous, before, { timeout: 90_000 }).catch(() => undefined);
+}
+
+async function metricValue(root: import("@playwright/test").Locator, label: string): Promise<string | undefined> {
+  return root.evaluate(
+    (element, metricLabel) =>
+      Array.from(element.querySelectorAll(".metric"))
+        .find((metric) => metric.querySelector("span")?.textContent?.trim() === metricLabel)
+        ?.querySelector("strong")
+        ?.textContent?.trim(),
+    label,
+  );
 }
 
 async function openDynastySection(page: import("@playwright/test").Page, testInfo: import("@playwright/test").TestInfo, name: string | RegExp) {
