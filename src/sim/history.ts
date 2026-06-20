@@ -42,7 +42,7 @@ export function buildProgramRecordBook(state: DynastyState): ProgramRecordBook |
   const recruitingClasses = history
     .filter((entry): entry is TeamHistoryEntry & { recruitingClassRank: number } => entry.recruitingClassRank !== undefined)
     .sort((a, b) => a.recruitingClassRank - b.recruitingClassRank || b.year - a.year);
-  const awardCounts = countAwards(history.flatMap((entry) => entry.awards));
+  const awardShelf = buildAwardShelf(history);
 
   return {
     teamName: team.name,
@@ -62,7 +62,7 @@ export function buildProgramRecordBook(state: DynastyState): ProgramRecordBook |
       : undefined,
     bestFinalRank: rankedFinishes[0] ? { year: rankedFinishes[0].year, rank: rankedFinishes[0].finalRank } : undefined,
     bestRecruitingClass: recruitingClasses[0] ? { year: recruitingClasses[0].year, rank: recruitingClasses[0].recruitingClassRank } : undefined,
-    awardLeaders: awardCounts,
+    awardLeaders: awardShelf,
     recentSeasons: history.slice(0, 8),
   };
 }
@@ -76,13 +76,23 @@ function parseRecord(record: string): { wins: number; losses: number } | undefin
   };
 }
 
-function countAwards(awards: string[]): { awardName: string; count: number }[] {
-  const counts = new Map<string, number>();
-  for (const award of awards) {
-    counts.set(award, (counts.get(award) ?? 0) + 1);
+function buildAwardShelf(history: TeamHistoryEntry[]): { awardName: string; count: number }[] {
+  const awards = new Map<string, { awardName: string; count: number; latestYear: number; order: number }>();
+  let order = 0;
+  for (const entry of history) {
+    for (const awardName of entry.awards) {
+      const current = awards.get(awardName);
+      if (current) {
+        current.count += 1;
+        current.latestYear = Math.max(current.latestYear, entry.year);
+      } else {
+        awards.set(awardName, { awardName, count: 1, latestYear: entry.year, order });
+      }
+      order += 1;
+    }
   }
-  return [...counts.entries()]
-    .map(([awardName, count]) => ({ awardName, count }))
-    .sort((a, b) => b.count - a.count || a.awardName.localeCompare(b.awardName))
-    .slice(0, 5);
+  return [...awards.values()]
+    .sort((a, b) => b.count - a.count || b.latestYear - a.latestYear || a.order - b.order || a.awardName.localeCompare(b.awardName))
+    .slice(0, 10)
+    .map(({ awardName, count }) => ({ awardName, count }));
 }

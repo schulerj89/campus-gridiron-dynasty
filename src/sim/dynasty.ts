@@ -854,19 +854,25 @@ function mostNeededWalkOnPosition(roster: Player[]): Position {
 
 function applySeasonAwardsToPlayers(teams: Team[], seasonAwards: SeasonAwards, conferences: Conference[]): Team[] {
   const awardsByPlayer = new Map<string, Set<string>>();
+  const careerAwardsByPlayer = new Map<string, Set<string>>();
   for (const { award, label } of scopedSeasonAwardLabels(seasonAwards, conferences)) {
     const awards = awardsByPlayer.get(award.playerId) ?? new Set<string>();
     awards.add(label);
     awardsByPlayer.set(award.playerId, awards);
+    const careerAwards = careerAwardsByPlayer.get(award.playerId) ?? new Set<string>();
+    careerAwards.add(careerAwardLabel(seasonAwards.year, label));
+    careerAwardsByPlayer.set(award.playerId, careerAwards);
   }
   return teams.map((team) => ({
     ...team,
     roster: team.roster.map((player) => {
       const awards = awardsByPlayer.get(player.id);
-      if (!awards) return player;
+      const careerAwards = careerAwardsByPlayer.get(player.id);
+      if (!awards && !careerAwards) return player;
       return {
         ...player,
-        awards: Array.from(new Set([...player.awards, ...awards])),
+        awards: Array.from(new Set([...player.awards, ...(awards ?? [])])),
+        careerAwards: Array.from(new Set([...(player.careerAwards ?? []), ...(careerAwards ?? [])])),
       };
     }),
   }));
@@ -931,7 +937,7 @@ function seasonAwardNamesByTeam(seasonAwards: SeasonAwards | undefined, conferen
   if (!seasonAwards) return awardsByTeam;
   for (const { award, label } of scopedSeasonAwardLabels(seasonAwards, conferences)) {
     const awards = awardsByTeam.get(award.teamId) ?? [];
-    awards.push(label);
+    awards.push(teamAwardHistoryLabel(label, award));
     awardsByTeam.set(award.teamId, awards);
   }
   return awardsByTeam;
@@ -957,6 +963,14 @@ function scopedSeasonAwardLabels(seasonAwards: SeasonAwards, conferences: Confer
 
 function honorAwardLabels(awards: AwardWinner[], scope: string): { award: AwardWinner; label: string }[] {
   return awards.map((award) => ({ award, label: `${scope} - ${award.awardName}` }));
+}
+
+function careerAwardLabel(year: number, label: string): string {
+  return `${year} ${label}`;
+}
+
+function teamAwardHistoryLabel(label: string, award: AwardWinner): string {
+  return `${label} - ${award.playerName}`;
 }
 
 function developAndGraduate(rng: Rng, team: Team, year: number, departures: PlayerDeparture[]): { roster: Player[]; progressions: PlayerProgression[] } {

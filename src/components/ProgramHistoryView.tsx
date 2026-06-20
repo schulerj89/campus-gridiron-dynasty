@@ -107,7 +107,7 @@ function ProgramRecordBookPanel({ recordBook }: { recordBook?: ProgramRecordBook
           <div className="record-book-awards">
             {recordBook.awardLeaders.length ? (
               recordBook.awardLeaders.map((award) => (
-                <span key={award.awardName}>{award.awardName} x{award.count}</span>
+                <span key={award.awardName}>{award.awardName}{award.count > 1 ? ` x${award.count}` : ""}</span>
               ))
             ) : (
               <p className="muted">Player award totals will accumulate here.</p>

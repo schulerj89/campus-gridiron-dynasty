@@ -151,6 +151,7 @@ export interface Player {
   stats: PlayerStats;
   careerStats: PlayerSeasonStats[];
   awards: string[];
+  careerAwards?: string[];
   streak?: PlayerStreak;
   incomingFreshman?: boolean;
   walkOn?: boolean;

@@ -260,6 +260,7 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     roster: team.roster.map((player) => ({
       ...player,
       stats: normalizeStats(player.stats),
+      careerAwards: normalizeStringList((player as typeof player & { careerAwards?: unknown }).careerAwards ?? player.awards),
       careerStats: (player.careerStats ?? []).map((entry) => ({
         ...entry,
         stats: normalizeStats(entry.stats),
@@ -352,6 +353,10 @@ function normalizeStats(stats: Partial<PlayerStats> | undefined): PlayerStats {
   if (stats?.passCompletions === undefined && normalized.passAttempts > 0 && normalized.passYards > 0) normalized.passCompletions = Math.min(normalized.passAttempts, Math.max(1, Math.round(normalized.passAttempts * 0.6)));
   if (stats?.rushAttempts === undefined && normalized.rushYards > 0) normalized.rushAttempts = Math.max(1, Math.round(normalized.rushYards / 4));
   return normalized;
+}
+
+function normalizeStringList(input: unknown): string[] {
+  return Array.isArray(input) ? input.filter((value): value is string => typeof value === "string") : [];
 }
 
 function normalizeOffensiveStrategy(value: unknown, scheme?: string): OffensiveStrategy {

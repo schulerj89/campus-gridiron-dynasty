@@ -23,4 +23,29 @@ describe("program record book", () => {
     expect(recordBook?.bowlTrips).toBeGreaterThanOrEqual(recordBook?.summitFourTrips ?? 0);
     expect(recordBook?.bestRecruitingClass?.rank).toBeGreaterThan(0);
   }, 60_000);
+
+  it("aggregates repeat player winners on the award shelf", () => {
+    const state = createDynasty(14503);
+    const userTeam = state.teams.find((team) => team.id === state.userTeamId)!;
+    const awardName = "Iron Lantern Trophy - Atlas Vale";
+    const prepared = {
+      ...state,
+      teams: state.teams.map((team) =>
+        team.id === state.userTeamId
+          ? {
+              ...team,
+              history: [
+                { year: 2028, record: "9-3", conferenceFinish: 2, postseason: "Bowl Eligible", awards: [awardName], recruitingClassRank: 18 },
+                { year: 2027, record: "8-4", conferenceFinish: 3, postseason: "Bowl Eligible", awards: ["All-American First Team - Signal Caller Crown - Jalen Crew"], recruitingClassRank: 22 },
+                { year: 2026, record: "10-2", conferenceFinish: 1, postseason: "Summit Eight", awards: [awardName], recruitingClassRank: 12 },
+                ...userTeam.history,
+              ],
+            }
+          : team,
+      ),
+    };
+
+    const recordBook = buildProgramRecordBook(prepared);
+    expect(recordBook?.awardLeaders[0]).toEqual({ awardName, count: 2 });
+  });
 });

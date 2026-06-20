@@ -1389,6 +1389,7 @@ function DepthChartPanel({
 
 function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Player; activeTab: PlayerModalTab; onTabChange: (tab: PlayerModalTab) => void; onClose: () => void }) {
   const statRows = playerStatRows(player);
+  const awardRows = playerCareerAwardRows(player);
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="player-modal" role="dialog" aria-modal="true" aria-label={`${player.name} player card`} onMouseDown={(event) => event.stopPropagation()} data-testid="player-modal">
@@ -1463,7 +1464,13 @@ function PlayerModal({ player, activeTab, onTabChange, onClose }: { player: Play
         )}
         {activeTab === "awards" && (
           <div className="award-history">
-            {player.awards.length ? player.awards.map((award) => <span key={award}>{award}</span>) : <p className="muted">No awards yet.</p>}
+            {awardRows.length ? (
+              awardRows.map((award) => (
+                <span key={award.label}>{award.label}{award.count > 1 ? ` x${award.count}` : ""}</span>
+              ))
+            ) : (
+              <p className="muted">No awards yet.</p>
+            )}
           </div>
         )}
       </section>
@@ -2604,6 +2611,18 @@ function playerStatRows(player: Player): { label: string; stats: PlayerStats }[]
       stats: player.stats,
     },
   ];
+}
+
+function playerCareerAwardRows(player: Player): { label: string; count: number }[] {
+  const awards = player.careerAwards?.length ? player.careerAwards : player.awards;
+  const counts = new Map<string, number>();
+  for (const award of awards) {
+    const label = award.replace(/^\d{4}\s+/, "");
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }
 
 function gameLineSummary(stats: PlayerStats): string {

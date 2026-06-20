@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.28 - 2026-06-20
+
+- Added career award tracking so player cards retain season honors across multiple years.
+- Updated the program award shelf to show named user-player winners and aggregate repeat winners with x2/x3 counts.
+- Added regression coverage for persistent player-card awards and repeated award shelf entries.
+
 ## 1.21.27 - 2026-06-20
 
 - Fixed the home team-picker ratings mismatch by starting the dynasty from the same generated world seed shown in team selection.
