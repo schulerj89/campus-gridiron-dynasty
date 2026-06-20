@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.33 - 2026-06-20
+
+- Added mobile-only Playoff Center round selection with a dropdown so Quarterfinals/Semifinals/Crown Bowl can be viewed without scrolling.
+- Kept the desktop accordion flow intact and added mobile-specific styling to keep the Playoff Center layout compact on small screens.
+
 ## 1.21.32 - 2026-06-20
 
 - Removed the playoff accordion from the Awards tab and moved it into a dedicated Playoff Center view with its own tab and dropdown round controls.

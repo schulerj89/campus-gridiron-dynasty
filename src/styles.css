@@ -2183,6 +2183,27 @@ select {
   margin-top: 8px;
 }
 
+.playoff-mobile-rounds {
+  display: grid;
+  gap: 10px;
+}
+
+.playoff-round-control {
+  display: grid;
+  gap: 6px;
+}
+
+.playoff-round-control label {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.playoff-round-summary {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
 .playoff-champion-banner {
   align-items: center;
   background: rgba(240, 184, 74, 0.12);
