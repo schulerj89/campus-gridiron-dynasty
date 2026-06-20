@@ -80,6 +80,7 @@ type RosterFilter = "ALL" | Position;
 type RosterView = "roster" | "depth";
 type PlayerModalTab = "profile" | "stats" | "attributes" | "awards";
 type OffseasonStage = "departures" | "recruiting" | "signing" | "development" | "programReview";
+type PlayoffRound = NonNullable<Game["playoffRound"]>;
 
 const tabs: { id: Tab; label: string; icon: typeof LineChart }[] = [
   { id: "overview", label: "Overview", icon: LineChart },
@@ -556,6 +557,8 @@ function Overview({
   const regularDashboardFocus = !offseasonFocus && !postseasonFocus && !championshipFocus;
   const advanceDisabled = state.phase === "complete" || isAdvancing;
   const matchupPreview = buildMatchupPreview(state);
+  const isCompactMobile = useCompactMobile();
+  const activePlayoffRound = isCompactMobile && state.playoff ? currentPlayoffRound(state.playoff.games) : undefined;
 
   return (
     <>
@@ -586,7 +589,7 @@ function Overview({
               </button>
             </div>
           </div>
-          <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={undefined} />
+          <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={undefined} activeRound={activePlayoffRound} />
         </section>
       )}
 
@@ -667,6 +670,7 @@ function Overview({
 function ChampionshipRecap({ state, onAdvance, isAdvancing, onNavigate }: { state: DynastyState; onAdvance: () => void; isAdvancing: boolean; onNavigate: (tab: Tab) => void }) {
   const champion = playoffChampion(state);
   const finalGame = state.playoff?.games.find((game) => game.playoffRound === "final");
+  const isCompactMobile = useCompactMobile();
   if (!champion || !state.playoff) return null;
   const home = finalGame ? state.teams.find((team) => team.id === finalGame.homeTeamId) : undefined;
   const away = finalGame ? state.teams.find((team) => team.id === finalGame.awayTeamId) : undefined;
@@ -703,9 +707,20 @@ function ChampionshipRecap({ state, onAdvance, isAdvancing, onNavigate }: { stat
         <Metric label="Runner-up" value={runnerUp?.abbreviation ?? "-"} />
         <Metric label="Crown Bowl" value={finalGame?.bowlName ?? "Crown Bowl"} />
       </div>
-      <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={champion.name} />
+      <PlayoffBracket games={state.playoff.games} teams={state.teams} priorPlayoffTeams={[]} championName={champion.name} activeRound={isCompactMobile ? "final" : undefined} />
     </section>
   );
+}
+
+function currentPlayoffRound(games: Game[]): PlayoffRound {
+  const roundPriority: Record<PlayoffRound, number> = { quarter: 0, semi: 1, final: 2 };
+  const pending = games
+    .filter((game): game is Game & { playoffRound: PlayoffRound } => Boolean(game.playoffRound) && !game.played)
+    .sort((a, b) => roundPriority[a.playoffRound] - roundPriority[b.playoffRound])[0];
+  if (pending) return pending.playoffRound;
+  if (games.some((game) => game.playoffRound === "final")) return "final";
+  if (games.some((game) => game.playoffRound === "semi")) return "semi";
+  return "quarter";
 }
 
 function playoffChampion(state: DynastyState): Team | undefined {

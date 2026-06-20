@@ -254,7 +254,21 @@ function AwardTeamPanel({
   );
 }
 
-export function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }: { games: Game[]; teams: Team[]; priorPlayoffTeams: string[]; championName?: string }) {
+type PlayoffBracketRound = NonNullable<Game["playoffRound"]>;
+
+export function PlayoffBracket({
+  games,
+  teams,
+  priorPlayoffTeams,
+  championName,
+  activeRound,
+}: {
+  games: Game[];
+  teams: Team[];
+  priorPlayoffTeams: string[];
+  championName?: string;
+  activeRound?: PlayoffBracketRound;
+}) {
   if (!games.length && priorPlayoffTeams.length) {
     return (
       <div className="playoff-bracket field-only">
@@ -273,10 +287,10 @@ export function PlayoffBracket({ games, teams, priorPlayoffTeams, championName }
   if (!games.length) return <p className="muted">Playoff bracket forms after Week 12.</p>;
 
   const rounds = [
-    { label: "Quarterfinals", games: games.filter((game) => game.playoffRound === "quarter"), placeholder: "Opening bowls pending" },
-    { label: "Semifinals", games: games.filter((game) => game.playoffRound === "semi"), placeholder: "Awaiting quarterfinal winners" },
-    { label: "Crown Bowl", games: games.filter((game) => game.playoffRound === "final"), placeholder: "Awaiting semifinal winners" },
-  ];
+    { round: "quarter" as const, label: "Quarterfinals", games: games.filter((game) => game.playoffRound === "quarter"), placeholder: "Opening bowls pending" },
+    { round: "semi" as const, label: "Semifinals", games: games.filter((game) => game.playoffRound === "semi"), placeholder: "Awaiting quarterfinal winners" },
+    { round: "final" as const, label: "Crown Bowl", games: games.filter((game) => game.playoffRound === "final"), placeholder: "Awaiting semifinal winners" },
+  ].filter((round) => !activeRound || round.round === activeRound);
 
   return (
     <div className="playoff-bracket">

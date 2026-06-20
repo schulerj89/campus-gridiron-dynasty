@@ -164,11 +164,16 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
       await advanceDynasty(page);
     }
     await expect(page.getByTestId("phase-week-label")).toContainText("postseason", { timeout: 90_000 });
+    await openDynastySection(page, testInfo, /Overview/);
+    await expectMobilePlayoffRound(page, "Quarterfinals", ["Semifinals", "Crown Bowl"]);
+    await page.getByTestId("dashboard-playoff-bracket").screenshot({ path: path.join(screenshotDir, "mobile-playoff-quarterfinals.png") });
     await openDynastySection(page, testInfo, /Stats/);
     await expect(page.getByTestId("leaderboard-panel")).toBeVisible();
     await advanceDynasty(page);
     await expect(page.getByTestId("mobile-section-menu")).toContainText("Overview");
     await expect(page.getByTestId("dashboard-playoff-bracket")).toBeVisible();
+    await expectMobilePlayoffRound(page, "Semifinals", ["Quarterfinals", "Crown Bowl"]);
+    await page.getByTestId("dashboard-playoff-bracket").screenshot({ path: path.join(screenshotDir, "mobile-playoff-semifinals.png") });
   }
 
   await openDynastySection(page, testInfo, /Awards/);
@@ -194,10 +199,15 @@ test("end-to-end dynasty smoke with debug flows", async ({ page }, testInfo) => 
   }
 
   if (isMobile) {
-    for (let round = 0; round < 2; round += 1) {
-      await advanceDynasty(page);
-    }
+    await advanceDynasty(page);
+    await expectMobilePlayoffRound(page, "Crown Bowl", ["Quarterfinals", "Semifinals"]);
+    await page.getByTestId("dashboard-playoff-bracket").screenshot({ path: path.join(screenshotDir, "mobile-playoff-championship.png") });
+    await advanceDynasty(page);
     await expect(page.getByTestId("phase-week-label")).toContainText("championship recap", { timeout: 90_000 });
+    await expect(page.getByTestId("championship-recap-panel").locator(".bracket-round")).toHaveCount(1);
+    await expect(page.getByTestId("championship-recap-panel")).toContainText("Crown Bowl");
+    await expect(page.getByTestId("championship-recap-panel")).not.toContainText("Quarterfinals");
+    await expect(page.getByTestId("championship-recap-panel")).not.toContainText("Semifinals");
     await openDynastySection(page, testInfo, /Stats/);
     await expect(page.getByTestId("leaderboard-panel")).toBeVisible();
     await advanceDynasty(page);
@@ -306,6 +316,17 @@ async function openDynastySection(page: import("@playwright/test").Page, testInf
     await mobileMenu.click();
   }
   await page.locator("#dynasty-section-tabs").getByRole("button", { name }).click();
+}
+
+async function expectMobilePlayoffRound(page: import("@playwright/test").Page, visibleRound: string, hiddenRounds: string[]) {
+  const bracket = page.getByTestId("dashboard-playoff-bracket");
+  const bracketBody = bracket.locator(".playoff-bracket");
+  await expect(bracket).toBeVisible();
+  await expect(bracketBody.locator(".bracket-round")).toHaveCount(1);
+  await expect(bracketBody).toContainText(visibleRound);
+  for (const hiddenRound of hiddenRounds) {
+    await expect(bracketBody).not.toContainText(hiddenRound);
+  }
 }
 
 async function expectNoHorizontalOverflow(page: import("@playwright/test").Page, label: string) {

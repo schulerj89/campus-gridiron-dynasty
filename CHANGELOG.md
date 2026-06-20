@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.29 - 2026-06-20
+
+- Simplified the mobile postseason dashboard so it shows only the active playoff round: Quarterfinals, Semifinals, or Crown Bowl.
+- Added iPhone smoke coverage and screenshots for each mobile playoff round state.
+
 ## 1.21.28 - 2026-06-20
 
 - Added career award tracking so player cards retain season honors across multiple years.
