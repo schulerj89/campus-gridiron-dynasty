@@ -702,7 +702,8 @@ select {
 .position-pills span,
 .need-row span,
 .known-attrs span,
-.mini-metrics span,
+.mini-metrics > span,
+.mini-metrics > .info-stat,
 .trait-chip {
   background: #1b272d;
   border: 1px solid var(--line);
@@ -713,6 +714,16 @@ select {
   font-weight: 750;
   line-height: 1;
   padding: 7px 9px;
+}
+
+.control-help {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.35;
+  margin-top: -2px;
+  text-transform: none;
 }
 
 .stars {
@@ -2130,13 +2141,45 @@ select {
 }
 
 .info-stat {
+  align-items: flex-start;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 0;
+}
+
+.info-stat summary {
   align-items: center;
-  cursor: help;
+  cursor: pointer;
+  display: inline-flex;
   gap: 5px;
+  list-style: none;
+}
+
+.info-stat summary::-webkit-details-marker {
+  display: none;
 }
 
 .info-stat svg {
   color: var(--blue);
+  flex: 0 0 auto;
+}
+
+.info-stat p {
+  background: #10191e;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 8px 0 0;
+  padding: 8px;
+  white-space: normal;
+  width: min(260px, calc(100vw - 48px));
+}
+
+.info-stat[open] {
+  border-radius: 8px;
 }
 
 .coach-pool-grid {
@@ -3097,6 +3140,11 @@ select {
     font-size: 1.2rem;
   }
 
+  .control-help {
+    font-size: 0.74rem;
+    line-height: 1.32;
+  }
+
   .blueprint-summary,
   .record-book-metrics,
   .investment-grid {
@@ -3134,9 +3182,15 @@ select {
     width: 46px;
   }
 
-  .coach-card .mini-metrics span {
+  .coach-card .mini-metrics > span,
+  .coach-card .mini-metrics > .info-stat {
     font-size: 0.7rem;
     padding: 6px 7px;
+  }
+
+  .coach-card .info-stat p {
+    font-size: 0.72rem;
+    width: 100%;
   }
 
   .coach-card .secondary {
@@ -3700,7 +3754,7 @@ select {
   }
 
   .recruit-modal .known-attrs span,
-  .recruit-modal .mini-metrics span {
+  .recruit-modal .mini-metrics > span {
     font-size: 0.7rem;
     padding: 6px 7px;
   }

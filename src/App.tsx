@@ -160,14 +160,14 @@ const offensiveStrategyOptions: { value: OffensiveStrategy; label: string; descr
   { value: "spreadTempo", label: "Spread Tempo", description: "Adds pace and passing volume while keeping multiple targets involved." },
 ];
 
-const blueprintFocusOptions: { value: BlueprintFocus; label: string }[] = [
-  { value: "custom", label: "Custom" },
-  { value: "balanced", label: "Balanced" },
-  { value: "recruiting", label: "Recruiting" },
-  { value: "development", label: "Development" },
-  { value: "academics", label: "Academics" },
-  { value: "facilities", label: "Facilities" },
-  { value: "retention", label: "Retention" },
+const blueprintFocusOptions: { value: BlueprintFocus; label: string; description: string }[] = [
+  { value: "custom", label: "Custom", description: "You assign each Program Blueprint point by hand before kickoff." },
+  { value: "balanced", label: "Balanced", description: "Auto-fills weak spots first, then spreads points across recruiting, training, facilities, trust, and retention." },
+  { value: "recruiting", label: "Recruiting", description: "Prioritizes recruiting reach and scouting so classes are easier to pitch and evaluate." },
+  { value: "development", label: "Development", description: "Prioritizes training staff and facilities for stronger offseason player growth." },
+  { value: "academics", label: "Academics", description: "Prioritizes academic support, player trust, scouting, and coach stability." },
+  { value: "facilities", label: "Facilities", description: "Prioritizes facilities with supporting training, recruiting, and retention investment." },
+  { value: "retention", label: "Retention", description: "Prioritizes player trust, coach retention, academics, and training to reduce churn." },
 ];
 
 function useCompactMobile(): boolean {
@@ -2227,6 +2227,7 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
   const remaining = blueprintRemaining(blueprint);
   const spent = blueprintSpent(blueprint);
   const selectedStrategy = offensiveStrategyOptions.find((option) => option.value === team.offensiveStrategy) ?? offensiveStrategyOptions[0]!;
+  const selectedBlueprintFocus = blueprintFocusOptions.find((option) => option.value === blueprint.focus) ?? blueprintFocusOptions[0]!;
   const strategyUnits = teamUnitRatings(team.roster);
   return (
     <>
@@ -2235,7 +2236,7 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
           <div>
             <p className="eyebrow">Team Strategy</p>
             <h2>Offensive Identity</h2>
-            <p className="muted">{selectedStrategy.description}</p>
+            <p className="muted">Choose how simulation volume tilts between passing, rushing, pace, and primary playmakers.</p>
           </div>
           <LineChart size={20} />
         </div>
@@ -2247,6 +2248,7 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
+            <span className="control-help">{selectedStrategy.description}</span>
           </label>
           <div className="strategy-summary">
             <Metric label="Pass Unit" value={strategyUnits.passing} />
@@ -2275,6 +2277,7 @@ function Program({ state, onUpdate }: { state: DynastyState; onUpdate: (recipe: 
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
+            <span className="control-help">{selectedBlueprintFocus.description}</span>
           </label>
           <p className="muted">{blueprint.focus === "custom" ? "Manual allocation is active. Use the plus buttons to shape the plan." : "Preset focus fills the annual plan immediately and can still be changed before kickoff."}</p>
         </div>
@@ -2433,10 +2436,13 @@ function CoachCard({ coach, onUpdate }: { coach: Coach; onUpdate: (recipe: (stat
 
 function InfoStat({ label, value, titleText }: { label: string; value: number; titleText: string }) {
   return (
-    <span className="info-stat" title={titleText}>
-      {label} {value}
-      <CircleHelp size={13} />
-    </span>
+    <details className="info-stat" title={titleText}>
+      <summary aria-label={`${label} ${value}. ${titleText}`}>
+        <span className="info-stat-value">{label} {value}</span>
+        <CircleHelp size={13} />
+      </summary>
+      <p>{titleText}</p>
+    </details>
   );
 }
 

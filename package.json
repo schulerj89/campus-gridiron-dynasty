@@ -1,7 +1,7 @@
 {
   "name": "campus-gridiron-dynasty",
   "private": true,
-  "version": "1.21.36",
+  "version": "1.21.37",
   "type": "module",
   "scripts": {
     "dev": "vite",

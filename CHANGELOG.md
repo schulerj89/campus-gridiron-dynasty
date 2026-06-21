@@ -2,6 +2,12 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.37 - 2026-06-21
+
+- Added compact Program control descriptions for offensive strategy and Blueprint Focus so the selected choice explains its gameplay effect on desktop and mobile.
+- Reworked Staff Room stat help from hover-only titles into tappable disclosure chips so Rec/Dev/Tac explanations work on mobile.
+- Documented the previous mobile home selector cleanup that hides the long team identity/conference/location subtitle on narrow screens.
+
 ## 1.21.36 - 2026-06-20
 
 - Simplified mobile offseason departure rows so graduated and pro cards keep position/year/overall together in compact pills and remain visually stable on narrow layouts while still showing all departure entries and notes.
