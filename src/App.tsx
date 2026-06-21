@@ -1177,12 +1177,22 @@ function DepartureGroup({ title: groupTitle, departures }: { title: string; depa
         <>
           <div className="table-list departure-list">
             {visibleDepartures.map((departure) => (
-              <div key={departure.playerId} className="table-row departure-row">
+              <div key={departure.playerId} className={clsx("table-row departure-row", isCompactMobile && "departure-row-mobile")}>
                 <strong>{departure.playerName}</strong>
-                <span>{departure.position}</span>
-                <span>{departure.year}</span>
-                <span>OVR {departure.overall}</span>
-                {showDepartureNote(departure.note) ? <span>{departure.note}</span> : null}
+                {isCompactMobile ? (
+                  <div className="departure-meta-line">
+                    <span className="departure-meta-pill">{departure.position}</span>
+                    <span className="departure-meta-pill">{departure.year}</span>
+                    <span className="departure-meta-pill">OVR {departure.overall}</span>
+                  </div>
+                ) : (
+                  <>
+                    <span>{departure.position}</span>
+                    <span>{departure.year}</span>
+                    <span>OVR {departure.overall}</span>
+                  </>
+                )}
+                {showDepartureNote(departure.note) ? <span className="departure-note">{departure.note}</span> : null}
               </div>
             ))}
           </div>

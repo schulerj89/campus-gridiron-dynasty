@@ -2,6 +2,10 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.36 - 2026-06-20
+
+- Simplified mobile offseason departure rows so graduated and pro cards keep position/year/overall together in compact pills and remain visually stable on narrow layouts while still showing all departure entries and notes.
+
 ## 1.21.35 - 2026-06-20
 
 - Cleaned offseason departures rows by removing verbose generated notes ("completed eligibility" and "OVR declared after ...") while keeping departure identity and OVR data.
