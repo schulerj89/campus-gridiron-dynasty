@@ -127,13 +127,15 @@ function StandingsRow({ row, userTeamId, mode }: { row: StandingsRowData; userTe
         <TeamHelmet team={row.team} size="sm" />
         {row.team.name}
       </strong>
-      <span className="standings-conf" data-label="Conf">{row.team.season.confWins}-{row.team.season.confLosses}</span>
-      <span className="standings-record" data-label="Overall">{row.team.season.wins}-{row.team.season.losses}</span>
-      <span className={clsx("standings-diff", row.pointDifferential >= 0 ? "positive" : "negative")} data-label="Diff">
-        {row.pointDifferential >= 0 ? "+" : ""}{row.pointDifferential}
-      </span>
-      <span className="standings-national-rank" data-label="Natl">{row.nationalRank ? `#${row.nationalRank}` : "-"}</span>
-      {mode === "conference" && <span className="standings-seed" data-label="Seed">{row.playoffSeed ? `#${row.playoffSeed}` : "-"}</span>}
+      <div className="standings-meta-grid">
+        <span className="standings-conf" data-label="Conf">{row.team.season.confWins}-{row.team.season.confLosses}</span>
+        <span className="standings-record" data-label="Overall">{row.team.season.wins}-{row.team.season.losses}</span>
+        <span className={clsx("standings-diff", row.pointDifferential >= 0 ? "positive" : "negative")} data-label="Diff">
+          {row.pointDifferential >= 0 ? "+" : ""}{row.pointDifferential}
+        </span>
+        <span className="standings-national-rank" data-label="Natl">{row.nationalRank ? `#${row.nationalRank}` : "-"}</span>
+        {mode === "conference" && <span className="standings-seed" data-label="Seed">{row.playoffSeed ? `#${row.playoffSeed}` : "-"}</span>}
+      </div>
     </div>
   );
 }

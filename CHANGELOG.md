@@ -2,6 +2,10 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.38 - 2026-06-21
+
+- Reworked mobile standings rows into compact two-column cards so team rank, team name, conference record, overall record, point differential, national rank, and playoff seed stay readable without cramped three-across pills.
+
 ## 1.21.37 - 2026-06-21
 
 - Added compact Program control descriptions for offensive strategy and Blueprint Focus so the selected choice explains its gameplay effect on desktop and mobile.

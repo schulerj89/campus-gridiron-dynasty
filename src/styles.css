@@ -1904,6 +1904,10 @@ select {
   min-width: 0;
 }
 
+.standings-meta-grid {
+  display: contents;
+}
+
 .standings-place,
 .standings-seed {
   color: var(--gold) !important;
@@ -3029,8 +3033,8 @@ select {
   .standings-row,
   [data-testid="standings-playoff-panel"] .standings-row {
     align-items: stretch;
-    gap: 8px;
-    grid-template-columns: 42px minmax(0, 1fr) 64px;
+    gap: 7px 8px;
+    grid-template-columns: 38px minmax(0, 1fr);
     min-width: 0;
     padding: 10px;
   }
@@ -3039,20 +3043,30 @@ select {
     align-items: center;
     background: rgba(240, 184, 74, 0.1);
     border: 1px solid rgba(240, 184, 74, 0.35);
-    border-radius: 999px;
+    border-radius: 8px;
     display: flex;
     justify-content: center;
+    min-height: 38px;
   }
 
   .standings-team {
+    align-items: center;
+    font-size: 0.9rem;
     grid-column: 2 / -1;
     line-height: 1.15;
     overflow-wrap: anywhere;
   }
 
   .standings-team .team-helmet {
-    height: 28px;
-    width: 34px;
+    height: 26px;
+    width: 32px;
+  }
+
+  .standings-meta-grid {
+    display: grid;
+    gap: 7px 8px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .standings-conf,
@@ -3060,21 +3074,27 @@ select {
   .standings-diff,
   .standings-national-rank,
   .standings-seed {
-    align-items: center;
+    align-items: flex-start;
     background: #172229;
     border: 1px solid var(--line);
-    border-radius: 999px;
+    border-radius: 8px;
     color: #dce8e2;
     display: flex;
-    font-size: 0.72rem;
+    flex-direction: column;
+    font-size: 0.82rem;
     font-weight: 850;
-    justify-content: center;
-    min-height: 28px;
+    gap: 2px;
+    justify-content: flex-start;
+    min-height: 42px;
     overflow: hidden;
-    padding: 4px 7px;
-    text-align: center;
+    padding: 6px 8px;
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .standings-seed {
+    grid-column: 1 / -1;
   }
 
   .standings-conf::before,
@@ -3083,8 +3103,11 @@ select {
   .standings-national-rank::before,
   .standings-seed::before {
     color: var(--muted);
-    content: attr(data-label) " ";
-    margin-right: 3px;
+    content: attr(data-label);
+    display: block;
+    font-size: 0.62rem;
+    line-height: 1;
+    margin-right: 0;
   }
 
   .player-grid,
