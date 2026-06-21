@@ -1,7 +1,8 @@
-import { emptyStats, type DynastyState, type Game, type GameBoxScore, type OffensiveStrategy, type PlayerStats, type PollSnapshot, type TeamBoxScore } from "./types";
+import { emptyStats, type DynastyState, type Game, type GameBoxScore, type OffensiveStrategy, type PlayerStats, type PollSnapshot, type SeasonAwards, type Team, type TeamBoxScore } from "./types";
 import { createPollSnapshot } from "./polls";
 import { ensureProgramBlueprint } from "./blueprint";
 import { calculateSeasonRecruitingBudget, calculateWeeklyRecruitingPoints } from "./generate";
+import { lockSeasonAwardCandidateBoards } from "./awards";
 
 const DB_NAME = "campus-gridiron-dynasty";
 const DB_VERSION = 2;
@@ -246,6 +247,7 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     debugFlags?: Partial<DynastyState["debugFlags"]>;
     debugLog?: DynastyState["debugLog"];
     weeklyAwards?: DynastyState["weeklyAwards"];
+    seasonAwards?: DynastyState["seasonAwards"];
     history?: DynastyState["history"];
   };
   const rawTeamIds = new Set(raw.teams.map((team) => team.id));
@@ -282,6 +284,7 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
     recruits,
     rankings,
     weeklyAwards: raw.weeklyAwards ?? [],
+    seasonAwards: normalizeSeasonAwards(raw.seasonAwards, teams),
     history: raw.history ?? [],
     debugFlags: {
       forceUserPlayoff: debugFlags.forceUserPlayoff ?? false,
@@ -298,6 +301,14 @@ export function normalizeDynastyState(input: DynastyState): DynastyState {
           games: normalizeGames(raw.playoff.games ?? []),
         }
       : undefined,
+  };
+}
+
+function normalizeSeasonAwards(seasonAwards: SeasonAwards | undefined, teams: Team[]): SeasonAwards | undefined {
+  if (!seasonAwards) return undefined;
+  return {
+    ...seasonAwards,
+    candidateBoards: seasonAwards.candidateBoards?.length ? seasonAwards.candidateBoards : lockSeasonAwardCandidateBoards(teams, seasonAwards.nationalAwards ?? []),
   };
 }
 

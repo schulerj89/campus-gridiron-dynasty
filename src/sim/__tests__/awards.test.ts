@@ -28,6 +28,28 @@ describe("season awards", () => {
     }
   });
 
+  it("stores locked candidate boards with season award winners first", () => {
+    const state = createDynasty(9204);
+    const awards = createSeasonAwards(state.teams, state.conferences, state.calendarYear);
+
+    expect(awards.candidateBoards).toHaveLength(SEASON_AWARD_DEFINITIONS.length);
+    for (const award of awards.nationalAwards) {
+      const board = awards.candidateBoards?.find((entry) => entry.awardName === award.awardName);
+      expect(board?.candidates[0]?.playerId).toBe(award.playerId);
+      expect(board?.candidates[0]?.playerName).toBe(award.playerName);
+    }
+  });
+
+  it("pins forced season award winners at the top of their candidate board", () => {
+    const state = createDynasty(9205);
+    const awards = createSeasonAwards(state.teams, state.conferences, state.calendarYear, state.userTeamId);
+    const overallAward = awards.nationalAwards.find((award) => award.awardName === SEASON_AWARD_DEFINITIONS[0]?.awardName);
+    const overallBoard = awards.candidateBoards?.find((board) => board.key === "overall");
+
+    expect(overallAward?.teamId).toBe(state.userTeamId);
+    expect(overallBoard?.candidates[0]?.playerId).toBe(overallAward?.playerId);
+  });
+
   it("honors position and freshman filters on candidate boards", () => {
     const state = createDynasty(9203);
     const boards = createSeasonAwardCandidateBoards(state.teams);

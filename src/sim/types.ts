@@ -42,6 +42,7 @@ export type PlayerStreakStatus = "hot" | "cold";
 export type BlueprintCategory = "scoutingNetwork" | "recruitingReach" | "trainingStaff" | "facilities" | "academicSupport" | "playerTrust" | "coachRetention";
 export type BlueprintFocus = "custom" | "balanced" | "recruiting" | "development" | "academics" | "facilities" | "retention";
 export type OffensiveStrategy = "balanced" | "airRaid" | "runHeavy" | "proStyle" | "spreadTempo";
+export type SeasonAwardKey = "overall" | "qb" | "rb" | "wr" | "ol" | "dl" | "lb" | "db" | "kicker" | "freshman";
 export type DirectorGoalKind = "wins" | "recruitingClass" | "scoringDefense";
 export type DirectorGoalStatus = "active" | "met" | "missed";
 
@@ -337,6 +338,25 @@ export interface AwardWinner {
   note: string;
 }
 
+export interface SeasonAwardCandidate {
+  rank: number;
+  playerId: string;
+  playerName: string;
+  teamId: string;
+  teamName: string;
+  position: Position;
+  year: Player["year"];
+  overall: number;
+  score: number;
+  note: string;
+}
+
+export interface SeasonAwardCandidateBoard {
+  key: SeasonAwardKey;
+  awardName: string;
+  candidates: SeasonAwardCandidate[];
+}
+
 export interface WeeklyAwards {
   year: number;
   week: number;
@@ -347,6 +367,7 @@ export interface WeeklyAwards {
 export interface SeasonAwards {
   year: number;
   nationalAwards: AwardWinner[];
+  candidateBoards?: SeasonAwardCandidateBoard[];
   allAmericans: {
     first: AwardWinner[];
     second: AwardWinner[];

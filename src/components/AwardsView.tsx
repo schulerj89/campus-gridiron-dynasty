@@ -1,10 +1,10 @@
 import type { KeyboardEvent } from "react";
 import clsx from "clsx";
 import { Award, Medal, Trophy } from "lucide-react";
-import { createSeasonAwardCandidateBoards, createSeasonAwards, SEASON_AWARD_DEFINITIONS, type SeasonAwardCandidateBoard, type SeasonAwardKey } from "../sim/awards";
+import { createSeasonAwardCandidateBoards, createSeasonAwards, lockSeasonAwardCandidateBoards, SEASON_AWARD_DEFINITIONS } from "../sim/awards";
 import { publicAsset } from "../assets";
 import { getUserTeam } from "../sim/dynasty";
-import type { AwardWinner, DynastyState, Game, Player, Team } from "../sim/types";
+import type { AwardWinner, DynastyState, Game, Player, SeasonAwardCandidateBoard, SeasonAwardKey, Team } from "../sim/types";
 
 const AWARD_KEY_BY_NAME = new Map(SEASON_AWARD_DEFINITIONS.map((definition) => [definition.awardName, definition.key]));
 type AwardCandidate = SeasonAwardCandidateBoard["candidates"][number];
@@ -20,7 +20,11 @@ export function Awards({ state, onOpenPlayer }: { state: DynastyState; onOpenPla
   const seasonAwardWatch = !state.seasonAwards && state.phase === "regular" && state.week >= 8 ? createSeasonAwards(state.teams, state.conferences, state.calendarYear).nationalAwards : undefined;
   const awardSource = state.seasonAwards?.nationalAwards ?? seasonAwardWatch ?? (state.phase === "regular" ? [] : latestHistory?.awardWinners ?? []);
   const seasonAwardsTitle = state.seasonAwards ? "Season Awards" : seasonAwardWatch ? "Season Award Watch" : state.phase !== "regular" && awardSource.length ? "Latest Season Awards" : "Season Award Watch Opens Week 8";
-  const seasonAwardCandidateBoards = state.week >= 8 || state.seasonAwards ? createSeasonAwardCandidateBoards(state.teams) : [];
+  const seasonAwardCandidateBoards = state.seasonAwards
+    ? state.seasonAwards.candidateBoards ?? lockSeasonAwardCandidateBoards(state.teams, state.seasonAwards.nationalAwards)
+    : seasonAwardWatch
+      ? createSeasonAwardCandidateBoards(state.teams)
+      : [];
   const showSeasonAwardCandidates = Boolean(state.seasonAwards || seasonAwardWatch);
   return (
     <>

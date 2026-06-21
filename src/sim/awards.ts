@@ -1,6 +1,6 @@
 import { AWARD_NAMES, POSITION_LABELS } from "./names";
 import { teamPower } from "./ratings";
-import type { AwardWinner, Conference, Game, Player, PlayerStats, Position, SeasonAwards, Team, WeeklyAwards } from "./types";
+import type { AwardWinner, Conference, Game, Player, PlayerStats, Position, SeasonAwardCandidate, SeasonAwardCandidateBoard, SeasonAwardKey, SeasonAwards, Team, WeeklyAwards } from "./types";
 
 type PlayerEntry = { team: Team; player: Player };
 type AwardEntry = { team: Team; player: Pick<Player, "id" | "name" | "position" | "stats"> };
@@ -8,32 +8,11 @@ type AwardEntry = { team: Team; player: Pick<Player, "id" | "name" | "position" 
 const OFFENSIVE_PLAYER_POSITIONS: Position[] = ["QB", "HB", "WR", "TE"];
 const DEFENSIVE_PLAYER_POSITIONS: Position[] = ["DL", "LB", "CB", "S"];
 
-export type SeasonAwardKey = "overall" | "qb" | "rb" | "wr" | "ol" | "dl" | "lb" | "db" | "kicker" | "freshman";
-
 export interface SeasonAwardDefinition {
   key: SeasonAwardKey;
   awardName: string;
   positions?: Position[];
   freshmanOnly?: boolean;
-}
-
-export interface SeasonAwardCandidate {
-  rank: number;
-  playerId: string;
-  playerName: string;
-  teamId: string;
-  teamName: string;
-  position: Position;
-  year: Player["year"];
-  overall: number;
-  score: number;
-  note: string;
-}
-
-export interface SeasonAwardCandidateBoard {
-  key: SeasonAwardKey;
-  awardName: string;
-  candidates: SeasonAwardCandidate[];
 }
 
 export const SEASON_AWARD_DEFINITIONS: SeasonAwardDefinition[] = [
@@ -123,6 +102,7 @@ export function createSeasonAwards(teams: Team[], conferences: Conference[], yea
   return {
     year,
     nationalAwards,
+    candidateBoards: lockSeasonAwardCandidateBoards(teams, nationalAwards),
     allAmericans,
     allConference,
   };
@@ -149,6 +129,42 @@ export function createSeasonAwardCandidateBoards(teams: Team[], limit = 8): Seas
         note: noteFor(entry.player),
       })),
   }));
+}
+
+export function lockSeasonAwardCandidateBoards(teams: Team[], awardWinners: AwardWinner[], limit = 8): SeasonAwardCandidateBoard[] {
+  const awardsByName = new Map(awardWinners.map((award) => [award.awardName, award]));
+  return createSeasonAwardCandidateBoards(teams, limit).map((board) => pinAwardWinner(board, awardsByName.get(board.awardName), teams, limit));
+}
+
+function pinAwardWinner(board: SeasonAwardCandidateBoard, award: AwardWinner | undefined, teams: Team[], limit: number): SeasonAwardCandidateBoard {
+  if (!award) return board;
+  const existingWinnerIndex = board.candidates.findIndex((candidate) => candidate.playerId === award.playerId);
+  const existingWinner = existingWinnerIndex >= 0 ? board.candidates[existingWinnerIndex] : undefined;
+  const fallbackScore = board.candidates[0] ? board.candidates[0].score + 1 : 0;
+  const winnerCandidate = existingWinner
+    ? { ...existingWinner, score: existingWinnerIndex > 0 ? Math.max(existingWinner.score, fallbackScore) : existingWinner.score }
+    : seasonAwardCandidateFromWinner(award, teams, fallbackScore);
+  const candidates = [winnerCandidate, ...board.candidates.filter((candidate) => candidate.playerId !== award.playerId)]
+    .slice(0, limit)
+    .map((candidate, index) => ({ ...candidate, rank: index + 1 }));
+  return { ...board, candidates };
+}
+
+function seasonAwardCandidateFromWinner(award: AwardWinner, teams: Team[], score: number): SeasonAwardCandidate {
+  const team = teams.find((candidate) => candidate.id === award.teamId);
+  const player = team?.roster.find((candidate) => candidate.id === award.playerId);
+  return {
+    rank: 1,
+    playerId: award.playerId,
+    playerName: award.playerName,
+    teamId: award.teamId,
+    teamName: award.teamName,
+    position: award.position,
+    year: player?.year ?? "SR",
+    overall: player?.overall ?? 0,
+    score,
+    note: award.note,
+  };
 }
 
 export function recruitingClassRankings(teams: Team[], signedCounts: Record<string, number> = {}, limit = 10): { teamId: string; teamName: string; points: number }[] {

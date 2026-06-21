@@ -2,6 +2,11 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.39 - 2026-06-21
+
+- Locked season award candidate boards when regular-season awards are finalized so playoff stats cannot reshuffle the displayed Top 8 under an already-announced winner.
+- Added compatibility handling for older saves by pinning recorded season award winners to the top of rebuilt candidate boards.
+
 ## 1.21.38 - 2026-06-21
 
 - Reworked mobile standings rows into compact two-column cards so team rank, team name, conference record, overall record, point differential, national rank, and playoff seed stay readable without cramped three-across pills.

@@ -59,6 +59,21 @@ describe("dynasty flow", () => {
     expect(userTeam.roster.some((player) => player.awards.length > 0)).toBe(true);
   });
 
+  it("keeps finalized season award candidate boards locked during the playoffs", () => {
+    let state = forceUserPlayoff(createDynasty(8917));
+    for (let week = 1; week <= 12; week += 1) {
+      state = advanceWeek(state);
+    }
+    const lockedBoards = state.seasonAwards?.candidateBoards;
+    expect(state.phase).toBe("postseason");
+    expect(lockedBoards?.length).toBeGreaterThan(0);
+
+    state = advanceWeek(state);
+
+    expect(state.phase).toBe("postseason");
+    expect(state.seasonAwards?.candidateBoards).toEqual(lockedBoards);
+  });
+
   it("uses the final national poll top eight as the playoff field", () => {
     let state = createDynasty(8916);
     for (let week = 1; week <= 12; week += 1) {
