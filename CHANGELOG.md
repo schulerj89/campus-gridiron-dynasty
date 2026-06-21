@@ -2,6 +2,10 @@
 
 All notable project changes should be recorded here when the app version changes.
 
+## 1.21.35 - 2026-06-20
+
+- Cleaned offseason departures rows by removing verbose generated notes ("completed eligibility" and "OVR declared after ...") while keeping departure identity and OVR data.
+
 ## 1.21.34 - 2026-06-20
 
 - Condensed the rankings page on mobile by reducing per-page density, hiding nonessential header copy, simplifying each row layout, and shortening movement lists.

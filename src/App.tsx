@@ -1165,6 +1165,11 @@ function DepartureGroup({ title: groupTitle, departures }: { title: string; depa
   useEffect(() => {
     setPage(1);
   }, [pageSize, departures.length]);
+
+  const showDepartureNote = (note: string) => {
+    return !note.includes("completed eligibility") && !/OVR declared after/.test(note);
+  };
+
   return (
     <section className="offseason-column" data-testid={groupTitle === "Graduated" ? "graduated-panel" : "pro-departures-panel"}>
       <h3>{groupTitle}</h3>
@@ -1177,7 +1182,7 @@ function DepartureGroup({ title: groupTitle, departures }: { title: string; depa
                 <span>{departure.position}</span>
                 <span>{departure.year}</span>
                 <span>OVR {departure.overall}</span>
-                <span>{departure.note}</span>
+                {showDepartureNote(departure.note) ? <span>{departure.note}</span> : null}
               </div>
             ))}
           </div>
