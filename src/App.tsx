@@ -496,7 +496,9 @@ function HomeScreen({
                   <div>
                     <p className="eyebrow">Starting program</p>
                     <h2>{selectedTeam.name}</h2>
-                    <p className="muted">{teamIdentity(selectedTeam)} - {selectedConference?.name ?? "Independent"} - {selectedTeam.city}, {selectedTeam.state}</p>
+                    <p className="muted team-card-subtitle">
+                      {teamIdentity(selectedTeam)} - {selectedConference?.name ?? "Independent"} - {selectedTeam.city}, {selectedTeam.state}
+                    </p>
                   </div>
                 </div>
               </div>
